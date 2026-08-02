@@ -1,62 +1,49 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/reminder_tile.dart';
+import '../../../models/reminder_item.dart';
+import '../../../providers/app_providers.dart';
+import 'reminder_form_sheet.dart';
 
-class UpcomingRemindersCard extends StatefulWidget {
+class UpcomingRemindersCard extends ConsumerWidget {
   const UpcomingRemindersCard({super.key});
 
-  @override
-  State<UpcomingRemindersCard> createState() => _UpcomingRemindersCardState();
-}
+  void _openReminderForm(
+    BuildContext context,
+    WidgetRef ref, {
+    ReminderItem? item,
+  }) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => ReminderFormSheet(
+        initialItem: item,
+        onSave: (savedItem) {
+          if (item == null) {
+            ref.read(remindersProvider.notifier).addReminder(savedItem);
+          } else {
+            ref.read(remindersProvider.notifier).updateReminder(savedItem);
+          }
+        },
+        onDelete: (id) {
+          ref.read(remindersProvider.notifier).deleteReminder(id);
+        },
+      ),
+    );
+  }
 
-class _UpcomingRemindersCardState extends State<UpcomingRemindersCard> {
-  // Local dummy state for the required 4 reminders
-  final Map<String, bool> _reminderStates = {
-    'Water Intake': true,
-    'Supplements': true,
-    'Exercise': true,
-    'Sleep': false,
-  };
-
   @override
-  Widget build(BuildContext context) {
-    final List<Map<String, dynamic>> remindersList = [
-      {
-        'title': 'Water Intake',
-        'subtitle': 'Drink 250ml fresh water',
-        'time': '10:30 AM',
-        'icon': Icons.water_drop_rounded,
-        'color': AppColors.waterColor,
-      },
-      {
-        'title': 'Supplements',
-        'subtitle': 'Multivitamin & Spearmint Tea',
-        'time': '1:00 PM',
-        'icon': Icons.medication_rounded,
-        'color': AppColors.softPurple,
-      },
-      {
-        'title': 'Exercise',
-        'subtitle': '20 Min Power Walk / Light Yoga',
-        'time': '5:30 PM',
-        'icon': Icons.fitness_center_rounded,
-        'color': AppColors.stepsColor,
-      },
-      {
-        'title': 'Sleep',
-        'subtitle': 'Wind down & phone off',
-        'time': '10:30 PM',
-        'icon': Icons.bedtime_rounded,
-        'color': AppColors.sleepColor,
-      },
-    ];
+  Widget build(BuildContext context, WidgetRef ref) {
+    final reminders = ref.watch(remindersProvider);
 
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(26),
         border: Border.all(
           color: AppColors.softLavender,
           width: 1.2,
@@ -72,53 +59,30 @@ class _UpcomingRemindersCardState extends State<UpcomingRemindersCard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Card Title Row
+          // 1. Header Title Row
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Expanded(
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(7),
-                      decoration: BoxDecoration(
-                        color: AppColors.softPurple.withValues(alpha: 0.12),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.alarm_rounded,
-                        size: 16,
-                        color: AppColors.softPurple,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Flexible(
-                      child: Text(
-                        'Upcoming Reminders',
-                        overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.outfit(
-                          fontSize: 17,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.textDark,
-                        ),
-                      ),
-                    ),
-                  ],
+              Container(
+                padding: const EdgeInsets.all(7),
+                decoration: BoxDecoration(
+                  color: AppColors.softPurple.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.alarm_rounded,
+                  size: 16,
+                  color: AppColors.softPurple,
                 ),
               ),
               const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: AppColors.babyPink,
-                  borderRadius: BorderRadius.circular(12),
-                ),
+              Expanded(
                 child: Text(
-                  '4 Scheduled',
-                  style: GoogleFonts.inter(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.softPurple,
+                  'Upcoming Reminders',
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.outfit(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textDark,
                   ),
                 ),
               ),
@@ -126,28 +90,87 @@ class _UpcomingRemindersCardState extends State<UpcomingRemindersCard> {
           ),
           const SizedBox(height: 14),
 
-          // List of 4 Reminders
-          ...remindersList.map((r) {
-            final title = r['title'] as String;
-            final subtitle = r['subtitle'] as String;
-            final time = r['time'] as String;
-            final icon = r['icon'] as IconData;
-            final color = r['color'] as Color;
-            final isEnabled = _reminderStates[title] ?? true;
-
-            return ReminderTile(
-              title: title,
-              time: '$subtitle • $time',
-              icon: icon,
-              iconBgColor: color,
-              isEnabled: isEnabled,
-              onToggle: (val) {
-                setState(() {
-                  _reminderStates[title] = val;
-                });
+          // 2. List of Pastel Reminder Cards
+          if (reminders.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 16.0),
+              child: Center(
+                child: Text(
+                  'No reminders scheduled yet.\nTap below to add your first reminder! 🌸',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.inter(
+                    fontSize: 13,
+                    color: AppColors.textMedium,
+                  ),
+                ),
+              ),
+            )
+          else
+            ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: reminders.length,
+              itemBuilder: (ctx, index) {
+                final item = reminders[index];
+                return ReminderTile(
+                  item: item,
+                  onToggle: (val) {
+                    ref.read(remindersProvider.notifier).toggleReminder(item.id);
+                  },
+                  onTap: () => _openReminderForm(context, ref, item: item),
+                );
               },
-            );
-          }),
+            ),
+          const SizedBox(height: 8),
+
+          // 3. Full-Width Add Reminder Button
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () => _openReminderForm(context, ref),
+                borderRadius: BorderRadius.circular(18),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFF0F5),
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(
+                      color: const Color(0xFFFFD1DC),
+                      width: 1.2,
+                    ),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x0A000000),
+                        blurRadius: 6,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(
+                        Icons.add_rounded,
+                        size: 20,
+                        color: AppColors.softPurple,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Add Reminder',
+                        style: GoogleFonts.outfit(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.softPurple,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );

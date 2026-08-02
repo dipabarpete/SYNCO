@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/user_profile.dart';
 import '../models/health_metrics.dart';
@@ -5,6 +6,7 @@ import '../models/cycle_data.dart';
 import '../models/community_post.dart';
 import '../models/kyra_message.dart';
 import '../models/article_item.dart';
+import '../models/reminder_item.dart';
 
 // User Profile Provider
 final userProfileProvider = StateNotifierProvider<UserProfileNotifier, UserProfile>((ref) {
@@ -110,30 +112,79 @@ class CycleDataNotifier extends StateNotifier<CycleData> {
 }
 
 // Reminders Provider
-final remindersProvider = StateNotifierProvider<RemindersNotifier, Map<String, bool>>((ref) {
+final remindersProvider = StateNotifierProvider<RemindersNotifier, List<ReminderItem>>((ref) {
   return RemindersNotifier();
 });
 
-class RemindersNotifier extends StateNotifier<Map<String, bool>> {
+class RemindersNotifier extends StateNotifier<List<ReminderItem>> {
   RemindersNotifier()
-      : super({
-          'Water Intake': true,
-          'Supplements': true,
-          'Medicine': false,
-          'Exercise': true,
-          'Sleep Reminder': true,
-          'Period Reminder': true,
-          'Ovulation Reminder': true,
-          'Mental Wellness Reminder': false,
-        });
+      : super([
+          ReminderItem(
+            id: 'rem_1',
+            title: 'Period Expected',
+            category: 'Period',
+            subtitle: 'May 28, 2026',
+            colorKey: 'Pink',
+            isEnabled: true,
+          ),
+          ReminderItem(
+            id: 'rem_2',
+            title: 'Drink 2.5L Water',
+            category: 'Water',
+            subtitle: 'Daily Goal',
+            reminderTimes: const [TimeOfDay(hour: 10, minute: 30)],
+            colorKey: 'Blue',
+            isEnabled: true,
+          ),
+          ReminderItem(
+            id: 'rem_3',
+            title: 'Take Supplements',
+            category: 'Medicine',
+            subtitle: 'After Breakfast',
+            reminderTimes: const [TimeOfDay(hour: 13, minute: 0)],
+            colorKey: 'Purple',
+            isEnabled: true,
+          ),
+          ReminderItem(
+            id: 'rem_4',
+            title: 'Evening Walk',
+            category: 'Exercise',
+            subtitle: '30 mins activity',
+            reminderTimes: const [TimeOfDay(hour: 18, minute: 0)],
+            colorKey: 'Peach',
+            isEnabled: true,
+          ),
+          ReminderItem(
+            id: 'rem_5',
+            title: 'Sleep Reminder',
+            category: 'Sleep',
+            subtitle: 'Wind down time',
+            reminderTimes: const [TimeOfDay(hour: 22, minute: 30)],
+            colorKey: 'Purple',
+            isEnabled: false,
+          ),
+        ]);
 
-  void toggleReminder(String title) {
-    final current = state[title] ?? false;
-    state = {...state, title: !current};
+  void toggleReminder(String id) {
+    state = [
+      for (final r in state)
+        if (r.id == id) r.copyWith(isEnabled: !r.isEnabled) else r
+    ];
   }
 
-  void addReminder(String title) {
-    state = {...state, title: true};
+  void addReminder(ReminderItem reminder) {
+    state = [...state, reminder];
+  }
+
+  void updateReminder(ReminderItem updated) {
+    state = [
+      for (final r in state)
+        if (r.id == updated.id) updated else r
+    ];
+  }
+
+  void deleteReminder(String id) {
+    state = state.where((r) => r.id != id).toList();
   }
 }
 

@@ -1,84 +1,118 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_colors.dart';
+import '../../models/reminder_item.dart';
 
 class ReminderTile extends StatelessWidget {
-  final String title;
-  final String time;
-  final IconData icon;
-  final Color iconBgColor;
-  final bool isEnabled;
+  final ReminderItem item;
   final ValueChanged<bool> onToggle;
+  final VoidCallback onTap;
 
   const ReminderTile({
     super.key,
-    required this.title,
-    required this.time,
-    required this.icon,
-    required this.iconBgColor,
-    required this.isEnabled,
+    required this.item,
     required this.onToggle,
+    required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(18),
+        color: item.cardBackgroundColor,
+        borderRadius: BorderRadius.circular(19),
         border: Border.all(
-          color: isEnabled ? AppColors.softPurple.withValues(alpha: 0.2) : AppColors.borderGrey.withValues(alpha: 0.5),
-          width: 1,
+          color: item.borderColor,
+          width: 1.0,
         ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: iconBgColor.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Icon(
-              icon,
-              size: 20,
-              color: iconBgColor,
-            ),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0A000000),
+            blurRadius: 8,
+            offset: Offset(0, 3),
           ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(19),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(19),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            child: Row(
               children: [
-                Text(
-                  title,
-                  style: GoogleFonts.inter(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textDark,
+                // Left Side: Circular White Icon Container
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Color(0x08000000),
+                        blurRadius: 4,
+                        offset: Offset(0, 1),
+                      ),
+                    ],
+                  ),
+                  child: Icon(
+                    item.icon,
+                    size: 19,
+                    color: item.iconColor,
                   ),
                 ),
-                Text(
-                  time,
-                  style: GoogleFonts.inter(
-                    fontSize: 12,
-                    color: AppColors.textMedium,
+                const SizedBox(width: 12),
+
+                // Center: Title & Subtitle/Time Details
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        item.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.outfit(
+                          fontSize: 14.5,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textDark,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        item.timeDisplay,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.inter(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w500,
+                          color: AppColors.textMedium,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Right Side: Functional ON/OFF Switch
+                GestureDetector(
+                  onTap: () {}, // Prevents parent InkWell from triggering edit when clicking switch
+                  child: Switch(
+                    value: item.isEnabled,
+                    onChanged: onToggle,
+                    activeThumbColor: Colors.white,
+                    activeTrackColor: item.iconColor,
+                    inactiveThumbColor: AppColors.textLight,
+                    inactiveTrackColor: AppColors.lightGrey,
                   ),
                 ),
               ],
             ),
           ),
-          Switch(
-            value: isEnabled,
-            onChanged: onToggle,
-            activeThumbColor: AppColors.softPurple,
-            activeTrackColor: AppColors.softLavender,
-            inactiveThumbColor: AppColors.textLight,
-            inactiveTrackColor: AppColors.lightGrey,
-          ),
-        ],
+        ),
       ),
     );
   }

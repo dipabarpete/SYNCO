@@ -68,7 +68,7 @@ class AppBarHeader extends StatelessWidget {
                 TextSpan(
                   children: [
                     TextSpan(
-                      text: 'Good Morning, ',
+                      text: 'Hey, ',
                       style: GoogleFonts.outfit(
                         fontSize: 17,
                         fontWeight: FontWeight.w500,
@@ -94,7 +94,7 @@ class AppBarHeader extends StatelessWidget {
               ),
               const SizedBox(height: 2),
               Text(
-                'In Sync With You.',
+                'Take charge of your health today.',
                 style: GoogleFonts.inter(
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
@@ -105,36 +105,6 @@ class AppBarHeader extends StatelessWidget {
             ],
           ),
         ),
-
-        // Right Side: Link With Partner Icon
-        GestureDetector(
-          onTap: onPartnerTap,
-          child: Container(
-            padding: const EdgeInsets.all(9),
-            decoration: BoxDecoration(
-              color: isPartnerLinked
-                  ? AppColors.babyPink
-                  : AppColors.softLavender.withValues(alpha: 0.4),
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: isPartnerLinked
-                    ? AppColors.rosePink.withValues(alpha: 0.4)
-                    : AppColors.softPurpleLight.withValues(alpha: 0.2),
-                width: 1,
-              ),
-            ),
-            child: Icon(
-              isPartnerLinked
-                  ? Icons.favorite_rounded
-                  : Icons.favorite_border_rounded,
-              color: isPartnerLinked
-                  ? AppColors.rosePink
-                  : AppColors.softPurple,
-              size: 20,
-            ),
-          ),
-        ),
-        const SizedBox(width: 10),
 
         // Right Side: Notification Icon with Badge
         GestureDetector(
@@ -172,6 +142,36 @@ class AppBarHeader extends StatelessWidget {
                 ),
               ),
             ],
+          ),
+        ),
+        const SizedBox(width: 10),
+
+        // Right Side: Link With Partner Icon
+        GestureDetector(
+          onTap: onPartnerTap,
+          child: Container(
+            padding: const EdgeInsets.all(9),
+            decoration: BoxDecoration(
+              color: isPartnerLinked
+                  ? AppColors.babyPink
+                  : AppColors.softLavender.withValues(alpha: 0.4),
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: isPartnerLinked
+                    ? AppColors.rosePink.withValues(alpha: 0.4)
+                    : AppColors.softPurpleLight.withValues(alpha: 0.2),
+                width: 1,
+              ),
+            ),
+            child: Icon(
+              isPartnerLinked
+                  ? Icons.people_rounded
+                  : Icons.people_outline_rounded,
+              color: isPartnerLinked
+                  ? AppColors.rosePink
+                  : AppColors.softPurple,
+              size: 20,
+            ),
           ),
         ),
       ],

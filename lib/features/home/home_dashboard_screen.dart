@@ -5,8 +5,10 @@ import 'widgets/app_bar_header.dart';
 import 'widgets/health_score_card.dart';
 import 'widgets/health_data_glance_grid.dart';
 import 'widgets/period_cycle_overview_card.dart';
-import 'widgets/daily_insights_card.dart';
 import 'widgets/upcoming_reminders_card.dart';
+
+import '../health/health_tracking_screen.dart';
+import '../cycle/my_cycle_screen.dart';
 
 class HomeDashboardScreen extends StatelessWidget {
   const HomeDashboardScreen({super.key});
@@ -34,48 +36,50 @@ class HomeDashboardScreen extends StatelessWidget {
 
               // 2. HEALTH SCORE CARD (Hero Card)
               HealthScoreCard(
-                score: 82,
+                score: 84,
                 percentile: 78,
-                title: 'Health Score',
-                description:
-                    'Your body is in optimal balance today! Good sleep and hydration are boosting your energy.',
+                title: 'HEALTH SCORE',
+                description: 'Your consistency is paying off.',
                 onTap: () => _showDialogInfo(context, 'Health Score Details'),
+                onViewReportTap: () => _showDialogInfo(context, 'View Full Report'),
+                onSuggestionTap: () => _showDialogInfo(context, 'Better Sleep Suggestion'),
               ),
               const SizedBox(height: 24),
 
-              // 3. HEALTH DATA GLANCE
-              _buildSectionTitle('Health Data Glance', subtitle: 'Daily Metrics'),
-              const SizedBox(height: 12),
+              // 3. HEALTH AT A GLANCE
               HealthDataGlanceGrid(
-                onTileTap: () => _showDialogInfo(context, 'Metric Detail'),
+                onTileTap: (title) => _showDialogInfo(context, title),
+                onViewAllTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const HealthTrackingScreen(),
+                    ),
+                  );
+                },
               ),
               const SizedBox(height: 24),
 
               // 4. PERIOD CYCLE OVERVIEW
-              _buildSectionTitle('Period Cycle Overview', subtitle: 'Track & Predict'),
+              _buildSectionTitle('Period Cycle Overview'),
               const SizedBox(height: 12),
               PeriodCycleOverviewCard(
                 currentPhase: 'Follicular Phase',
                 currentDay: 8,
                 totalDays: 28,
                 daysUntilNextPeriod: 16,
-                onTap: () => _showDialogInfo(context, 'Period Cycle Overview'),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const MyCycleScreen(),
+                    ),
+                  );
+                },
               ),
               const SizedBox(height: 24),
 
-              // 5. MY DAILY INSIGHTS
-              _buildSectionTitle('My Daily Insights', subtitle: 'Personalized For You'),
-              const SizedBox(height: 12),
-              DailyInsightsCard(
-                title: 'Follicular Phase Guidance',
-                description:
-                    'Your estrogen is rising today! Walking for 20 minutes and eating nutrient-dense foods will keep your energy and focus high.',
-                actionButtonText: 'Explore Daily Guidance',
-                onActionTap: () => _showDialogInfo(context, 'Daily Insight Details'),
-              ),
-              const SizedBox(height: 24),
-
-              // 6. UPCOMING REMINDERS
+              // 5. UPCOMING REMINDERS
               const UpcomingRemindersCard(),
               const SizedBox(height: 24),
             ],
