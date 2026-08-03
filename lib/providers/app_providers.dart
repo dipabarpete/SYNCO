@@ -201,7 +201,7 @@ class WhisperRoomNotifier extends StateNotifier<List<CommunityPost>> {
             authorName: 'Anonymous Butterfly',
             authorAvatar: '🌸',
             isAnonymous: true,
-            category: 'PCOS/PCOD',
+            category: 'PCOS/PCOD Support',
             title: 'Managing PCOS cravings naturally - what worked for me!',
             content:
                 'Adding spearmint tea and cinnamon morning water helped reduce my sweet cravings significantly during follicular phase. Has anyone else tried this?',
@@ -225,7 +225,7 @@ class WhisperRoomNotifier extends StateNotifier<List<CommunityPost>> {
             authorName: 'Wellness Sister',
             authorAvatar: '✨',
             isAnonymous: false,
-            category: 'Period Talk',
+            category: 'Periods & Flow Talk',
             title: 'POLL: How do you handle day 1 cramps?',
             content: 'Let us know your go-to ritual for comfort during day 1 of your cycle!',
             timeAgo: '5h ago',
@@ -242,14 +242,69 @@ class WhisperRoomNotifier extends StateNotifier<List<CommunityPost>> {
             authorName: 'Anonymous Rose',
             authorAvatar: '🌿',
             isAnonymous: true,
-            category: 'Mental Wellness',
+            category: 'Mental Wellness & Mood',
             title: 'Feeling anxious during ovulation phase? You are not alone.',
             content:
                 'I used to think ovulation only brings high energy, but sometimes estrogen spikes cause mild anxiety for me. Be gentle with yourselves today ladies! 💖',
             timeAgo: '1d ago',
             likesCount: 412,
             commentsCount: 53,
-          )
+          ),
+          CommunityPost(
+            id: 'post_4',
+            authorName: 'Sonali',
+            authorAvatar: '👑',
+            isAnonymous: false,
+            isMine: true,
+            category: 'Exercise & Nutrition',
+            title: 'My top 5 seed cycling tips for hormonal balance ✨',
+            content:
+                'Started seed cycling 3 months ago: pumpkin & flax seeds during follicular, sesame & sunflower during luteal. My cycle has been so much more regular!',
+            timeAgo: '2d ago',
+            likesCount: 198,
+            commentsCount: 34,
+            isSaved: true,
+          ),
+          CommunityPost(
+            id: 'post_5',
+            authorName: 'Dr. Priya M.',
+            authorAvatar: '🩺',
+            isAnonymous: false,
+            category: 'Sex Education',
+            title: 'Understanding intimacy & cycle phase changes',
+            content:
+                'Libido and energy change dynamically across your menstrual cycle due to fluctuating estrogen and progesterone. Knowing your cycle helps build confidence.',
+            timeAgo: '3d ago',
+            likesCount: 320,
+            commentsCount: 42,
+          ),
+          CommunityPost(
+            id: 'post_6',
+            authorName: 'MommyToBee',
+            authorAvatar: '🤰',
+            isAnonymous: false,
+            category: 'Pregnancy & Motherhood',
+            title: 'First trimester morning sickness relief ideas 🍼',
+            content:
+                'Small frequent meals, ginger water, and vitamin B6 made a huge difference during weeks 6-10!',
+            timeAgo: '4d ago',
+            likesCount: 156,
+            commentsCount: 19,
+          ),
+          CommunityPost(
+            id: 'post_7',
+            authorName: 'Sonali',
+            authorAvatar: '👑',
+            isAnonymous: false,
+            isMine: true,
+            category: 'General',
+            title: 'Welcome to Whisper Room! Safe space for all of us 💬',
+            content:
+                'Feel free to ask any question, share your wins, or seek support from this amazing community.',
+            timeAgo: '5d ago',
+            likesCount: 530,
+            commentsCount: 88,
+          ),
         ]);
 
   void toggleLike(String postId) {
@@ -290,6 +345,20 @@ class WhisperRoomNotifier extends StateNotifier<List<CommunityPost>> {
 
   void addPost(CommunityPost post) {
     state = [post, ...state];
+  }
+
+  void deletePost(String postId) {
+    state = state.where((post) => post.id != postId).toList();
+  }
+
+  void editPost(String postId, String newTitle, String newContent) {
+    state = [
+      for (final post in state)
+        if (post.id == postId)
+          post.copyWith(title: newTitle, content: newContent)
+        else
+          post
+    ];
   }
 
   void addComment(String postId, String commentText) {

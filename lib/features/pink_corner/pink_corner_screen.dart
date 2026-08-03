@@ -2,27 +2,102 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/theme/app_colors.dart';
-import '../../models/article_item.dart';
-import '../../providers/app_providers.dart';
+import 'placeholder_topic_screen.dart';
+import 'widgets/faq_card.dart';
+import 'widgets/suggestion_card.dart';
+import 'widgets/topic_card.dart';
 
 class PinkCornerScreen extends ConsumerWidget {
   const PinkCornerScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final articles = ref.watch(articlesProvider);
-    final trending = articles.where((a) => a.isTrending).toList();
+    // 6 Topic Cards configuration in EXACT order specified
+    final topicItems = [
+      {
+        'title': 'PCOS/PCOD',
+        'icon': Icons.spa_rounded,
+        'backgroundColor': const Color(0xFFF4EFFB), // Lavender
+        'borderColor': const Color(0xFFD8B4F8).withValues(alpha: 0.6),
+        'iconColor': AppColors.softPurple,
+      },
+      {
+        'title': 'Periods',
+        'icon': Icons.water_drop_rounded,
+        'backgroundColor': const Color(0xFFFFF0F3), // Pink
+        'borderColor': const Color(0xFFFFD1DC).withValues(alpha: 0.6),
+        'iconColor': AppColors.deepRose,
+      },
+      {
+        'title': 'Body & Wellness',
+        'icon': Icons.self_improvement_rounded,
+        'backgroundColor': const Color(0xFFF0FDF4), // Mint
+        'borderColor': const Color(0xFFB5EAD7).withValues(alpha: 0.6),
+        'iconColor': const Color(0xFF45B69C),
+      },
+      {
+        'title': 'Sex & Pleasure',
+        'icon': Icons.favorite_rounded,
+        'backgroundColor': const Color(0xFFFFF7ED), // Peach
+        'borderColor': const Color(0xFFFFB085).withValues(alpha: 0.6),
+        'iconColor': AppColors.peachCoral,
+      },
+      {
+        'title': 'Pregnancy',
+        'icon': Icons.child_care_rounded,
+        'backgroundColor': const Color(0xFFF0F4FF), // Soft Blue
+        'borderColor': const Color(0xFFC7CEEA).withValues(alpha: 0.6),
+        'iconColor': const Color(0xFF5B7FFF),
+      },
+      {
+        'title': 'Vaginal Discharge',
+        'icon': Icons.opacity_rounded,
+        'backgroundColor': const Color(0xFFF8F0FF), // Lilac
+        'borderColor': const Color(0xFFE0C3FC).withValues(alpha: 0.6),
+        'iconColor': AppColors.softPurpleLight,
+      },
+    ];
 
-    final categories = [
-      {'name': 'PCOS & PCOD', 'icon': Icons.spa_rounded, 'color': AppColors.softPurple},
-      {'name': 'Period Flow Guide', 'icon': Icons.water_drop_rounded, 'color': AppColors.rosePink},
-      {'name': 'Body Changes', 'icon': Icons.accessibility_new_rounded, 'color': AppColors.peachCoral},
-      {'name': 'Pleasure & Wellness', 'icon': Icons.favorite_rounded, 'color': AppColors.blushPink},
-      {'name': 'Pregnancy', 'icon': Icons.child_care_rounded, 'color': AppColors.skyBlue},
-      {'name': 'Exercise & Movement', 'icon': Icons.fitness_center_rounded, 'color': AppColors.mintGreen},
-      {'name': 'Vaginal Discharge', 'icon': Icons.opacity_rounded, 'color': AppColors.softPurpleLight},
-      {'name': 'Fertility Awareness', 'icon': Icons.wb_sunny_rounded, 'color': AppColors.peachCoral},
-      {'name': 'Women Health FAQs', 'icon': Icons.help_outline_rounded, 'color': AppColors.textMedium},
+    final suggestedArticles = [
+      {
+        'title': 'Understanding Your Cycle & Hormones',
+        'category': 'Cycle Syncing',
+        'description': 'A complete guide to how estrogen and progesterone affect your energy and mood.',
+        'icon': Icons.auto_awesome_rounded,
+        'iconColor': AppColors.softPurple,
+        'iconBackgroundColor': const Color(0xFFF4EFFB),
+      },
+      {
+        'title': 'PCOS Care: Foods That Support Balance',
+        'category': 'PCOS Care',
+        'description': 'Nutritional strategies and meal tips for insulin sensitivity and wellness.',
+        'icon': Icons.restaurant_rounded,
+        'iconColor': AppColors.deepRose,
+        'iconBackgroundColor': const Color(0xFFFFF0F3),
+      },
+      {
+        'title': 'Prioritizing Pleasure & Body Confidence',
+        'category': 'Sex & Pleasure',
+        'description': 'Insights on intimate wellness, open communication, and self-care practices.',
+        'icon': Icons.favorite_rounded,
+        'iconColor': AppColors.peachCoral,
+        'iconBackgroundColor': const Color(0xFFFFF7ED),
+      },
+      {
+        'title': 'Gentle Movement for Cramp Relief',
+        'category': 'Period Care',
+        'description': 'Targeted yoga poses and stretch routines to soothe dysmenorrhea naturally.',
+        'icon': Icons.self_improvement_rounded,
+        'iconColor': const Color(0xFF45B69C),
+        'iconBackgroundColor': const Color(0xFFF0FDF4),
+      },
+    ];
+
+    final faqs = [
+      'Is it normal to have irregular periods with PCOS?',
+      'How can I naturally reduce severe menstrual cramps?',
+      'What are early pregnancy symptoms before a missed period?',
+      'When should I consult a doctor regarding vaginal discharge?',
     ];
 
     return Scaffold(
@@ -40,12 +115,23 @@ class PinkCornerScreen extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Top Header Banner
+            // 1. Empower Your Body Hero Card (Updated Soft Purple/Lavender Theme)
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                gradient: AppColors.primaryGradient,
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF9D76C1), Color(0xFF7B4397)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
                 borderRadius: BorderRadius.circular(24),
+                boxShadow: const [
+                  BoxShadow(
+                    color: AppColors.shadowColor,
+                    blurRadius: 10,
+                    offset: Offset(0, 4),
+                  ),
+                ],
               ),
               child: Row(
                 children: [
@@ -55,12 +141,19 @@ class PinkCornerScreen extends ConsumerWidget {
                       children: [
                         Text(
                           'Empower Your Body ✨',
-                          style: GoogleFonts.outfit(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white),
+                          style: GoogleFonts.outfit(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
                         ),
                         const SizedBox(height: 4),
                         Text(
                           'Medically backed insights on PCOS, cycle sync, fertility, and intimacy.',
-                          style: GoogleFonts.inter(fontSize: 12, color: Colors.white.withValues(alpha: 0.9)),
+                          style: GoogleFonts.inter(
+                            fontSize: 12,
+                            color: Colors.white.withValues(alpha: 0.9),
+                          ),
                         ),
                       ],
                     ),
@@ -69,175 +162,122 @@ class PinkCornerScreen extends ConsumerWidget {
                 ],
               ),
             ),
-            const SizedBox(height: 22),
+            const SizedBox(height: 24),
 
-            // Categories Horizontal Cards
-            Text('Explore Topics', style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 12),
-            SizedBox(
-              height: 100,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                itemCount: categories.length,
-                itemBuilder: (ctx, i) {
-                  final cat = categories[i];
-                  return Container(
-                    width: 110,
-                    margin: const EdgeInsets.only(right: 10),
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).cardColor,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: (cat['color'] as Color).withValues(alpha: 0.3)),
-                      boxShadow: const [BoxShadow(color: AppColors.shadowColor, blurRadius: 6, offset: Offset(0, 3))],
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(cat['icon'] as IconData, color: cat['color'] as Color, size: 24),
-                        const SizedBox(height: 6),
-                        Text(
-                          cat['name'] as String,
-                          textAlign: TextAlign.center,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.textDark),
+            // 2. Explore Topics (2-Column Grid)
+            Text(
+              'Explore Topics',
+              style: GoogleFonts.outfit(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textDark,
+              ),
+            ),
+            const SizedBox(height: 14),
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: topicItems.length,
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+                childAspectRatio: 1.35,
+              ),
+              itemBuilder: (context, index) {
+                final topic = topicItems[index];
+                return TopicCard(
+                  title: topic['title'] as String,
+                  icon: topic['icon'] as IconData,
+                  backgroundColor: topic['backgroundColor'] as Color,
+                  borderColor: topic['borderColor'] as Color,
+                  iconColor: topic['iconColor'] as Color,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => PlaceholderTopicScreen(
+                          title: topic['title'] as String,
+                          icon: topic['icon'] as IconData,
+                          accentColor: topic['iconColor'] as Color,
+                          backgroundColor: topic['backgroundColor'] as Color,
                         ),
-                      ],
-                    ),
-                  );
-                },
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+            const SizedBox(height: 28),
+
+            // 3. Suggested for You Section
+            Text(
+              'Suggested for You',
+              style: GoogleFonts.outfit(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textDark,
               ),
             ),
-            const SizedBox(height: 22),
-
-            // Trending Topics Horizontal Scroll Section
-            Text('Trending Topics 🔥', style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 12),
-            SizedBox(
-              height: 220,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                itemCount: trending.length,
-                itemBuilder: (ctx, i) {
-                  final art = trending[i];
-                  return GestureDetector(
-                    onTap: () => _openArticleDetail(context, art),
-                    child: Container(
-                      width: 240,
-                      margin: const EdgeInsets.only(right: 14),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).cardColor,
-                        borderRadius: BorderRadius.circular(22),
-                        boxShadow: const [BoxShadow(color: AppColors.shadowColor, blurRadius: 10, offset: Offset(0, 4))],
-                        border: Border.all(color: AppColors.borderGrey.withValues(alpha: 0.4)),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          ClipRRect(
-                            borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
-                            child: Image.network(art.imageUrl, height: 110, width: double.infinity, fit: BoxFit.cover),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.all(12),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(art.category, style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.softPurple)),
-                                const SizedBox(height: 4),
-                                Text(art.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.bold)),
-                                const SizedBox(height: 6),
-                                Text('${art.readTime} • ${art.likesCount} ❤️', style: GoogleFonts.inter(fontSize: 11, color: AppColors.textMedium)),
-                              ],
-                            ),
-                          ),
-                        ],
+            const SizedBox(height: 14),
+            ...suggestedArticles.map(
+              (article) => SuggestionCard(
+                title: article['title'] as String,
+                category: article['category'] as String,
+                description: article['description'] as String,
+                icon: article['icon'] as IconData,
+                iconColor: article['iconColor'] as Color,
+                iconBackgroundColor: article['iconBackgroundColor'] as Color,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => PlaceholderTopicScreen(
+                        title: article['title'] as String,
+                        icon: article['icon'] as IconData,
+                        accentColor: article['iconColor'] as Color,
+                        backgroundColor: article['iconBackgroundColor'] as Color,
+                        description: article['description'] as String,
                       ),
                     ),
                   );
                 },
               ),
             ),
-            const SizedBox(height: 22),
+            const SizedBox(height: 28),
 
-            // Suggested Articles List
-            Text('Suggested Articles', style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 12),
-            ...articles.map((art) => _buildArticleListItem(context, art)),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildArticleListItem(BuildContext context, ArticleItem article) {
-    return GestureDetector(
-      onTap: () => _openArticleDetail(context, article),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Theme.of(context).cardColor,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: AppColors.borderGrey.withValues(alpha: 0.4)),
-        ),
-        child: Row(
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: Image.network(article.imageUrl, width: 80, height: 80, fit: BoxFit.cover),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(article.category, style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.softPurple)),
-                  const SizedBox(height: 4),
-                  Text(article.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 4),
-                  Text(article.readTime, style: GoogleFonts.inter(fontSize: 11, color: AppColors.textMedium)),
-                ],
+            // 4. FAQs Answered Section
+            Text(
+              'FAQs Answered',
+              style: GoogleFonts.outfit(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textDark,
               ),
             ),
+            const SizedBox(height: 14),
+            ...faqs.map(
+              (question) => FaqCard(
+                question: question,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => PlaceholderTopicScreen(
+                        title: 'FAQ Detail',
+                        icon: Icons.help_outline_rounded,
+                        accentColor: AppColors.softPurple,
+                        backgroundColor: AppColors.babyPink,
+                        description: question,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 16),
           ],
         ),
-      ),
-    );
-  }
-
-  void _openArticleDetail(BuildContext context, ArticleItem article) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
-      builder: (ctx) => DraggableScrollableSheet(
-        expand: false,
-        initialChildSize: 0.85,
-        maxChildSize: 0.95,
-        builder: (context, scrollController) {
-          return Padding(
-            padding: const EdgeInsets.all(20),
-            child: ListView(
-              controller: scrollController,
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(22),
-                  child: Image.network(article.imageUrl, height: 180, fit: BoxFit.cover),
-                ),
-                const SizedBox(height: 16),
-                Text(article.category, style: GoogleFonts.inter(color: AppColors.softPurple, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 4),
-                Text(article.title, style: GoogleFonts.outfit(fontSize: 22, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 8),
-                Text(article.readTime, style: GoogleFonts.inter(color: AppColors.textMedium)),
-                const Divider(height: 24),
-                Text(article.fullBody, style: GoogleFonts.inter(fontSize: 14, height: 1.6, color: AppColors.textDark)),
-              ],
-            ),
-          );
-        },
       ),
     );
   }

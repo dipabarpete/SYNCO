@@ -1,0 +1,587 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../../core/theme/app_colors.dart';
+import '../../models/community_post.dart';
+import '../../providers/app_providers.dart';
+
+class CreatePostScreen extends ConsumerStatefulWidget {
+  const CreatePostScreen({super.key});
+
+  @override
+  ConsumerState<CreatePostScreen> createState() => _CreatePostScreenState();
+}
+
+class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
+  final TextEditingController _titleController = TextEditingController();
+  final TextEditingController _contentController = TextEditingController();
+  final TextEditingController _pollQuestionController = TextEditingController();
+
+  bool _isAnonymous = false; // Default OFF as requested
+  String _selectedCategory = 'PCOS/PCOD Support';
+
+  final List<String> _categories = [
+    'PCOS/PCOD Support',
+    'Periods & Flow Talk',
+    'Mental Wellness & Mood',
+    'Sex Education',
+    'Exercise & Nutrition',
+    'Pregnancy & Motherhood',
+    'General',
+  ];
+
+  // Image Attachment state
+  final List<String> _attachedImageUrls = [];
+
+  // Poll state
+  bool _showPollSection = false;
+  final List<TextEditingController> _pollOptionControllers = [
+    TextEditingController(text: 'Option 1'),
+    TextEditingController(text: 'Option 2'),
+  ];
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _contentController.dispose();
+    _pollQuestionController.dispose();
+    for (final controller in _pollOptionControllers) {
+      controller.dispose();
+    }
+    super.dispose();
+  }
+
+  void _addImageSample() {
+    // Adds a demo image attachment preview
+    final sampleImages = [
+      'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=400',
+      'https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=400',
+      'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=400',
+    ];
+    setState(() {
+      _attachedImageUrls.add(
+        sampleImages[_attachedImageUrls.length % sampleImages.length],
+      );
+    });
+  }
+
+  void _addPollOption() {
+    if (_pollOptionControllers.length < 6) {
+      setState(() {
+        _pollOptionControllers.add(
+          TextEditingController(text: 'Option ${_pollOptionControllers.length + 1}'),
+        );
+      });
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Maximum 6 options allowed per poll')),
+      );
+    }
+  }
+
+  void _removePollOption(int index) {
+    if (_pollOptionControllers.length > 2) {
+      setState(() {
+        final removed = _pollOptionControllers.removeAt(index);
+        removed.dispose();
+      });
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Minimum 2 poll options required')),
+      );
+    }
+  }
+
+  void _publishPost() {
+    if (_titleController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a post title')),
+      );
+      return;
+    }
+    if (_contentController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter your post content')),
+      );
+      return;
+    }
+
+    // Prepare poll options if poll created
+    List<PollOption>? pollOptions;
+    if (_showPollSection && _pollOptionControllers.every((c) => c.text.isNotEmpty)) {
+      pollOptions = _pollOptionControllers.asMap().entries.map((entry) {
+        return PollOption(
+          id: 'opt_${entry.key}',
+          text: entry.value.text.trim(),
+          votes: 0,
+        );
+      }).toList();
+    }
+
+    final newPost = CommunityPost(
+      id: 'post_${DateTime.now().millisecondsSinceEpoch}',
+      authorName: _isAnonymous ? 'Anonymous Girl' : 'Sonali',
+      authorAvatar: _isAnonymous ? '🌸' : '👑',
+      isAnonymous: _isAnonymous,
+      isMine: true,
+      category: _selectedCategory,
+      title: _titleController.text.trim(),
+      content: _contentController.text.trim(),
+      timeAgo: 'Just now',
+      likesCount: 0,
+      commentsCount: 0,
+      pollOptions: pollOptions,
+      attachedImages: _attachedImageUrls.isNotEmpty ? _attachedImageUrls : null,
+    );
+
+    ref.read(whisperRoomProvider.notifier).addPost(newPost);
+    Navigator.pop(context);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Your post is live in Whisper Room! 💖')),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFFAF8F5),
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded, color: AppColors.textDark),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Text(
+          'Create a Post',
+          style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.bold),
+        ),
+        elevation: 0,
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(18.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 1. ANONYMOUS TOGGLE & IDENTITY PREVIEW
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: Theme.of(context).cardColor,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: AppColors.borderGrey.withValues(alpha: 0.5),
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 16,
+                        backgroundColor: _isAnonymous
+                            ? AppColors.babyPink
+                            : AppColors.softLavender,
+                        child: Text(
+                          _isAnonymous ? '🌸' : '👑',
+                          style: const TextStyle(fontSize: 14),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Post Anonymously',
+                            style: GoogleFonts.inter(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.textDark,
+                            ),
+                          ),
+                          Text(
+                            _isAnonymous
+                                ? 'Posting as Anonymous Girl'
+                                : 'Posting as Sonali',
+                            style: GoogleFonts.inter(
+                              fontSize: 11,
+                              color: AppColors.textMedium,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  Switch(
+                    value: _isAnonymous,
+                    onChanged: (val) {
+                      setState(() {
+                        _isAnonymous = val;
+                      });
+                    },
+                    activeThumbColor: Colors.white,
+                    activeTrackColor: AppColors.softPurple,
+                    inactiveThumbColor: AppColors.textLight,
+                    inactiveTrackColor: AppColors.lightGrey,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 18),
+
+            // 2. TITLE FIELD
+            Text(
+              'Title',
+              style: GoogleFonts.inter(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textDark,
+              ),
+            ),
+            const SizedBox(height: 6),
+            TextField(
+              controller: _titleController,
+              decoration: InputDecoration(
+                hintText: 'e.g. Need advice about PCOS, Is this normal?',
+                hintStyle: GoogleFonts.inter(fontSize: 13, color: AppColors.textLight),
+                filled: true,
+                fillColor: Theme.of(context).cardColor,
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(18),
+                  borderSide:
+                      BorderSide(color: AppColors.borderGrey.withValues(alpha: 0.5)),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(18),
+                  borderSide:
+                      BorderSide(color: AppColors.borderGrey.withValues(alpha: 0.5)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(18),
+                  borderSide: const BorderSide(color: AppColors.softPurple),
+                ),
+              ),
+            ),
+            const SizedBox(height: 18),
+
+            // 3. CATEGORY SELECTION
+            Text(
+              'Select Category',
+              style: GoogleFonts.inter(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textDark,
+              ),
+            ),
+            const SizedBox(height: 8),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: _categories.map((cat) {
+                  final isSelected = _selectedCategory == cat;
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 8.0),
+                    child: ChoiceChip(
+                      selected: isSelected,
+                      label: Text(cat),
+                      labelStyle: GoogleFonts.inter(
+                        fontSize: 12,
+                        fontWeight:
+                            isSelected ? FontWeight.bold : FontWeight.w500,
+                        color: isSelected ? Colors.white : AppColors.textDark,
+                      ),
+                      selectedColor: AppColors.softPurple,
+                      backgroundColor: Theme.of(context).cardColor,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        side: BorderSide(
+                          color: isSelected
+                              ? AppColors.softPurple
+                              : AppColors.borderGrey.withValues(alpha: 0.6),
+                        ),
+                      ),
+                      onSelected: (val) {
+                        setState(() {
+                          _selectedCategory = cat;
+                        });
+                      },
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+            const SizedBox(height: 18),
+
+            // 4. CONTENT FIELD
+            Text(
+              'Content',
+              style: GoogleFonts.inter(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textDark,
+              ),
+            ),
+            const SizedBox(height: 6),
+            TextField(
+              controller: _contentController,
+              maxLines: 5,
+              decoration: InputDecoration(
+                hintText:
+                    'What\'s on your mind?\nShare your thoughts, ask questions, or support others...',
+                hintStyle: GoogleFonts.inter(fontSize: 13, color: AppColors.textLight),
+                filled: true,
+                fillColor: Theme.of(context).cardColor,
+                contentPadding: const EdgeInsets.all(16),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(18),
+                  borderSide:
+                      BorderSide(color: AppColors.borderGrey.withValues(alpha: 0.5)),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(18),
+                  borderSide:
+                      BorderSide(color: AppColors.borderGrey.withValues(alpha: 0.5)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(18),
+                  borderSide: const BorderSide(color: AppColors.softPurple),
+                ),
+              ),
+            ),
+            const SizedBox(height: 18),
+
+            // 5. ATTACHMENT ACTION BUTTONS (Add Image & Create Poll)
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _addImageSample,
+                    icon: const Text('📷'),
+                    label: Text(
+                      'Add Image',
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.softPurple,
+                      ),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      side: const BorderSide(color: AppColors.softPurple, width: 1.2),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      setState(() {
+                        _showPollSection = !_showPollSection;
+                      });
+                    },
+                    icon: const Text('📊'),
+                    label: Text(
+                      _showPollSection ? 'Remove Poll' : 'Create Poll',
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.softPurple,
+                      ),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      side: BorderSide(
+                        color: _showPollSection
+                            ? Colors.redAccent
+                            : AppColors.softPurple,
+                        width: 1.2,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
+            // IMAGE PREVIEWS LIST
+            if (_attachedImageUrls.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              SizedBox(
+                height: 80,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: _attachedImageUrls.length,
+                  itemBuilder: (ctx, idx) {
+                    return Stack(
+                      children: [
+                        Container(
+                          margin: const EdgeInsets.only(right: 10),
+                          width: 80,
+                          height: 80,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(16),
+                            image: DecorationImage(
+                              image: NetworkImage(_attachedImageUrls[idx]),
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          top: 4,
+                          right: 14,
+                          child: GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _attachedImageUrls.removeAt(idx);
+                              });
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.all(2),
+                              decoration: const BoxDecoration(
+                                color: Colors.black54,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.close_rounded,
+                                size: 14,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ),
+            ],
+
+            // POLL BUILDER SECTION
+            if (_showPollSection) ...[
+              const SizedBox(height: 18),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.softLavender.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: AppColors.softPurple.withValues(alpha: 0.3),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Interactive Poll Builder',
+                      style: GoogleFonts.outfit(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textDark,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    ..._pollOptionControllers.asMap().entries.map((entry) {
+                      final idx = entry.key;
+                      final ctrl = entry.value;
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 8.0),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: ctrl,
+                                decoration: InputDecoration(
+                                  labelText: 'Option ${idx + 1}',
+                                  filled: true,
+                                  fillColor: Colors.white,
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 14,
+                                    vertical: 10,
+                                  ),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            if (_pollOptionControllers.length > 2)
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.remove_circle_outline_rounded,
+                                  color: Colors.redAccent,
+                                ),
+                                onPressed: () => _removePollOption(idx),
+                              ),
+                          ],
+                        ),
+                      );
+                    }),
+                    if (_pollOptionControllers.length < 6)
+                      TextButton.icon(
+                        onPressed: _addPollOption,
+                        icon: const Icon(Icons.add_rounded, color: AppColors.softPurple),
+                        label: const Text(
+                          'Add Option',
+                          style: TextStyle(
+                            color: AppColors.softPurple,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+
+            const SizedBox(height: 28),
+
+            // 6. PUBLISH POST BUTTON
+            SizedBox(
+              width: double.infinity,
+              height: 52,
+              child: ElevatedButton(
+                onPressed: _publishPost,
+                style: ElevatedButton.styleFrom(
+                  padding: EdgeInsets.zero,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  elevation: 4,
+                  shadowColor: AppColors.softPurple.withValues(alpha: 0.3),
+                ),
+                child: Ink(
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [AppColors.softPurple, AppColors.softPurpleLight],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Container(
+                    alignment: Alignment.center,
+                    child: Text(
+                      'Publish Post',
+                      style: GoogleFonts.outfit(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

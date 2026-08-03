@@ -4,6 +4,9 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../core/theme/app_colors.dart';
 import '../../models/community_post.dart';
 import '../../providers/app_providers.dart';
+import 'create_post_screen.dart';
+import 'notifications_screen.dart';
+import 'saved_posts_screen.dart';
 
 class WhisperRoomScreen extends ConsumerStatefulWidget {
   const WhisperRoomScreen({super.key});
@@ -12,15 +15,17 @@ class WhisperRoomScreen extends ConsumerStatefulWidget {
   ConsumerState<WhisperRoomScreen> createState() => _WhisperRoomScreenState();
 }
 
-class _WhisperRoomScreenState extends ConsumerState<WhisperRoomScreen> with SingleTickerProviderStateMixin {
+class _WhisperRoomScreenState extends ConsumerState<WhisperRoomScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+  String? _selectedCategoryFilter;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
   }
 
   @override
@@ -30,9 +35,37 @@ class _WhisperRoomScreenState extends ConsumerState<WhisperRoomScreen> with Sing
     super.dispose();
   }
 
+  void _navigateToCreatePost() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const CreatePostScreen(),
+      ),
+    );
+  }
+
+  void _navigateToSavedPosts() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const SavedPostsScreen(),
+      ),
+    );
+  }
+
+  void _navigateToNotifications() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const NotificationsScreen(),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final posts = ref.watch(whisperRoomProvider);
+    final userProfile = ref.watch(userProfileProvider);
 
     final filteredPosts = posts.where((p) {
       if (_searchQuery.isEmpty) return true;
@@ -44,14 +77,40 @@ class _WhisperRoomScreenState extends ConsumerState<WhisperRoomScreen> with Sing
 
     return Scaffold(
       appBar: AppBar(
+        centerTitle: false,
+        titleSpacing: 16,
         title: Text(
           'Whisper Room',
-          style: GoogleFonts.outfit(fontSize: 22, fontWeight: FontWeight.bold),
+          style: GoogleFonts.outfit(
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+            color: AppColors.textDark,
+          ),
         ),
         actions: [
+          // Standalone Outlined Material Notification Icon
           IconButton(
-            icon: const Icon(Icons.add_circle_outline_rounded, color: AppColors.softPurple, size: 28),
-            onPressed: () => _showCreatePostModal(context),
+            icon: const Icon(
+              Icons.notifications_outlined,
+              color: AppColors.softPurple,
+              size: 24,
+            ),
+            onPressed: _navigateToNotifications,
+            tooltip: 'Notifications',
+          ),
+
+          // Saved Posts Icon (unchanged)
+          Padding(
+            padding: const EdgeInsets.only(right: 8.0),
+            child: IconButton(
+              icon: const Icon(
+                Icons.bookmark_outline_rounded,
+                color: AppColors.softPurple,
+                size: 24,
+              ),
+              onPressed: _navigateToSavedPosts,
+              tooltip: 'Saved Posts',
+            ),
           ),
         ],
         bottom: PreferredSize(
@@ -60,38 +119,46 @@ class _WhisperRoomScreenState extends ConsumerState<WhisperRoomScreen> with Sing
             children: [
               // Search Bar
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
                 child: TextField(
                   controller: _searchController,
                   onChanged: (val) => setState(() => _searchQuery = val),
                   decoration: InputDecoration(
                     hintText: 'Search topics, PCOS, period tips...',
-                    hintStyle: GoogleFonts.inter(fontSize: 13, color: AppColors.textLight),
-                    prefixIcon: const Icon(Icons.search_rounded, color: AppColors.softPurple),
+                    hintStyle:
+                        GoogleFonts.inter(fontSize: 13, color: AppColors.textLight),
+                    prefixIcon: const Icon(Icons.search_rounded,
+                        color: AppColors.softPurple),
                     filled: true,
                     fillColor: Theme.of(context).cardColor,
                     contentPadding: const EdgeInsets.symmetric(vertical: 0),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(20),
-                      borderSide: BorderSide(color: AppColors.borderGrey.withValues(alpha: 0.4)),
+                      borderSide: BorderSide(
+                          color: AppColors.borderGrey.withValues(alpha: 0.4)),
                     ),
                   ),
                 ),
               ),
 
-              // Categories Tab Bar
+              // Filter Chips / Tabs in exact requested order:
+              // For You → Popular → Following → My Posts → Categories
               TabBar(
                 controller: _tabController,
                 isScrollable: true,
                 labelColor: AppColors.softPurple,
                 unselectedLabelColor: AppColors.textMedium,
                 indicatorColor: AppColors.softPurple,
-                labelStyle: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 13),
+                indicatorSize: TabBarIndicatorSize.label,
+                labelStyle: GoogleFonts.inter(
+                    fontWeight: FontWeight.bold, fontSize: 13),
                 tabs: const [
+                  Tab(text: 'For You'),
                   Tab(text: 'Popular'),
                   Tab(text: 'Following'),
+                  Tab(text: 'My Posts'),
                   Tab(text: 'Categories'),
-                  Tab(text: 'For You'),
                 ],
               ),
             ],
@@ -103,25 +170,48 @@ class _WhisperRoomScreenState extends ConsumerState<WhisperRoomScreen> with Sing
         children: [
           _buildPostFeed(filteredPosts),
           _buildPostFeed(filteredPosts.reversed.toList()),
-          _buildCategoriesView(),
-          _buildPostFeed(filteredPosts),
+          _buildPostFeed(filteredPosts.where((p) => !p.isAnonymous).toList()),
+          _buildPostFeed(
+            filteredPosts
+                .where((p) => p.isMine || p.authorName == userProfile.username)
+                .toList(),
+            emptyMessage: 'You haven\'t posted anything yet. Share your thoughts!',
+          ),
+          _buildCategoriesView(filteredPosts),
         ],
       ),
+      // FAB Label: "New Post"
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showCreatePostModal(context),
+        onPressed: _navigateToCreatePost,
         backgroundColor: AppColors.softPurple,
         icon: const Icon(Icons.edit_rounded, color: Colors.white),
-        label: const Text('Post Anonymously', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        label: const Text(
+          'New Post',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
       ),
     );
   }
 
-  Widget _buildPostFeed(List<CommunityPost> postsList) {
+  Widget _buildPostFeed(List<CommunityPost> postsList, {String? emptyMessage}) {
     if (postsList.isEmpty) {
       return Center(
-        child: Text(
-          'No posts found. Be the first to share!',
-          style: GoogleFonts.inter(color: AppColors.textMedium),
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.bubble_chart_outlined,
+                  size: 48, color: AppColors.softPurpleLight),
+              const SizedBox(height: 12),
+              Text(
+                emptyMessage ?? 'No posts found. Be the first to share!',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.inter(
+                    color: AppColors.textMedium, fontSize: 14, height: 1.4),
+              ),
+            ],
+          ),
         ),
       );
     }
@@ -137,6 +227,9 @@ class _WhisperRoomScreenState extends ConsumerState<WhisperRoomScreen> with Sing
   }
 
   Widget _buildPostCard(CommunityPost post) {
+    final userProfile = ref.watch(userProfileProvider);
+    final isMyPost = post.isMine || post.authorName == userProfile.username;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
       padding: const EdgeInsets.all(16),
@@ -155,13 +248,18 @@ class _WhisperRoomScreenState extends ConsumerState<WhisperRoomScreen> with Sing
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Author Header & Anonymous Badge
+          // Author Header & Identity
           Row(
             children: [
               CircleAvatar(
                 radius: 18,
-                backgroundColor: post.isAnonymous ? AppColors.babyPink : AppColors.softLavender,
-                child: Text(post.authorAvatar, style: const TextStyle(fontSize: 16)),
+                backgroundColor: post.isAnonymous
+                    ? AppColors.babyPink
+                    : AppColors.softLavender,
+                child: Text(
+                  post.isAnonymous ? '🌸' : post.authorAvatar,
+                  style: const TextStyle(fontSize: 16),
+                ),
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -171,20 +269,48 @@ class _WhisperRoomScreenState extends ConsumerState<WhisperRoomScreen> with Sing
                     Row(
                       children: [
                         Text(
-                          post.authorName,
-                          style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.textDark),
+                          post.isAnonymous ? 'Anonymous Girl' : post.authorName,
+                          style: GoogleFonts.inter(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                            color: AppColors.textDark,
+                          ),
                         ),
                         if (post.isAnonymous) ...[
                           const SizedBox(width: 6),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 2),
                             decoration: BoxDecoration(
                               color: AppColors.softPurple.withValues(alpha: 0.12),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
                               'ANONYMOUS',
-                              style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.bold, color: AppColors.softPurple),
+                              style: GoogleFonts.inter(
+                                fontSize: 9,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.softPurple,
+                              ),
+                            ),
+                          ),
+                        ],
+                        if (isMyPost && !post.isAnonymous) ...[
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: AppColors.rosePink.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              'YOU',
+                              style: GoogleFonts.inter(
+                                fontSize: 9,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.softPurple,
+                              ),
                             ),
                           ),
                         ],
@@ -192,13 +318,15 @@ class _WhisperRoomScreenState extends ConsumerState<WhisperRoomScreen> with Sing
                     ),
                     Text(
                       '${post.category} • ${post.timeAgo}',
-                      style: GoogleFonts.inter(fontSize: 11, color: AppColors.textMedium),
+                      style: GoogleFonts.inter(
+                          fontSize: 11, color: AppColors.textMedium),
                     ),
                   ],
                 ),
               ),
               IconButton(
-                icon: const Icon(Icons.more_vert_rounded, size: 18, color: AppColors.textLight),
+                icon: const Icon(Icons.more_vert_rounded,
+                    size: 18, color: AppColors.textLight),
                 onPressed: () => _showPostOptionsDialog(context, post),
               ),
             ],
@@ -208,14 +336,43 @@ class _WhisperRoomScreenState extends ConsumerState<WhisperRoomScreen> with Sing
           // Post Title & Content
           Text(
             post.title,
-            style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textDark),
+            style: GoogleFonts.outfit(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textDark),
           ),
           const SizedBox(height: 4),
           Text(
             post.content,
-            style: GoogleFonts.inter(fontSize: 13, color: AppColors.textMedium, height: 1.4),
+            style: GoogleFonts.inter(
+                fontSize: 13, color: AppColors.textMedium, height: 1.4),
           ),
           const SizedBox(height: 12),
+
+          // Attached Images (if present)
+          if (post.attachedImages != null && post.attachedImages!.isNotEmpty) ...[
+            SizedBox(
+              height: 140,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemCount: post.attachedImages!.length,
+                itemBuilder: (ctx, idx) {
+                  return Container(
+                    margin: const EdgeInsets.only(right: 10),
+                    width: 140,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(16),
+                      image: DecorationImage(
+                        image: NetworkImage(post.attachedImages![idx]),
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
 
           // Optional Interactive Poll
           if (post.pollOptions != null) ...[
@@ -231,36 +388,67 @@ class _WhisperRoomScreenState extends ConsumerState<WhisperRoomScreen> with Sing
                 children: [
                   IconButton(
                     icon: Icon(
-                      post.isLiked ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                      color: post.isLiked ? AppColors.rosePink : AppColors.textLight,
+                      post.isLiked
+                          ? Icons.favorite_rounded
+                          : Icons.favorite_border_rounded,
+                      color: post.isLiked
+                          ? AppColors.rosePink
+                          : AppColors.textLight,
                       size: 20,
                     ),
-                    onPressed: () => ref.read(whisperRoomProvider.notifier).toggleLike(post.id),
+                    onPressed: () => ref
+                        .read(whisperRoomProvider.notifier)
+                        .toggleLike(post.id),
                   ),
-                  Text('${post.likesCount}', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold)),
+                  Text('${post.likesCount}',
+                      style: GoogleFonts.inter(
+                          fontSize: 12, fontWeight: FontWeight.bold)),
                   const SizedBox(width: 16),
                   IconButton(
-                    icon: const Icon(Icons.mode_comment_outlined, color: AppColors.textLight, size: 20),
+                    icon: const Icon(Icons.mode_comment_outlined,
+                        color: AppColors.textLight, size: 20),
                     onPressed: () => _showCommentsDrawer(context, post),
                   ),
-                  Text('${post.commentsCount}', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold)),
+                  Text('${post.commentsCount}',
+                      style: GoogleFonts.inter(
+                          fontSize: 12, fontWeight: FontWeight.bold)),
                 ],
               ),
               Row(
                 children: [
                   IconButton(
                     icon: Icon(
-                      post.isSaved ? Icons.bookmark_rounded : Icons.bookmark_border_rounded,
-                      color: post.isSaved ? AppColors.softPurple : AppColors.textLight,
+                      post.isSaved
+                          ? Icons.bookmark_rounded
+                          : Icons.bookmark_border_rounded,
+                      color: post.isSaved
+                          ? AppColors.softPurple
+                          : AppColors.textLight,
                       size: 20,
                     ),
-                    onPressed: () => ref.read(whisperRoomProvider.notifier).toggleSave(post.id),
+                    onPressed: () {
+                      ref
+                          .read(whisperRoomProvider.notifier)
+                          .toggleSave(post.id);
+                      final isSavedNow = !post.isSaved;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            isSavedNow
+                                ? 'Post saved to your bookmarks! 🔖'
+                                : 'Post removed from saved.',
+                          ),
+                        ),
+                      );
+                    },
                   ),
                   IconButton(
-                    icon: const Icon(Icons.share_outlined, color: AppColors.textLight, size: 20),
+                    icon: const Icon(Icons.share_outlined,
+                        color: AppColors.textLight, size: 20),
                     onPressed: () {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Post link copied for sharing! 📲')),
+                        const SnackBar(
+                            content: Text('Post link copied for sharing! 📲')),
                       );
                     },
                   ),
@@ -285,12 +473,15 @@ class _WhisperRoomScreenState extends ConsumerState<WhisperRoomScreen> with Sing
         final double ratio = totalVotes > 0 ? opt.votes / totalVotes : 0.0;
 
         return GestureDetector(
-          onTap: () => ref.read(whisperRoomProvider.notifier).votePoll(post.id, opt.id),
+          onTap: () =>
+              ref.read(whisperRoomProvider.notifier).votePoll(post.id, opt.id),
           child: Container(
             margin: const EdgeInsets.only(bottom: 8),
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: isVoted ? AppColors.softPurple.withValues(alpha: 0.12) : AppColors.lightGrey,
+              color: isVoted
+                  ? AppColors.softPurple.withValues(alpha: 0.12)
+                  : AppColors.lightGrey,
               borderRadius: BorderRadius.circular(14),
               border: Border.all(
                 color: isVoted ? AppColors.softPurple : Colors.transparent,
@@ -311,7 +502,10 @@ class _WhisperRoomScreenState extends ConsumerState<WhisperRoomScreen> with Sing
                 ),
                 Text(
                   '${(ratio * 100).round()}% (${opt.votes})',
-                  style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.textMedium),
+                  style: GoogleFonts.inter(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textMedium),
                 ),
               ],
             ),
@@ -321,14 +515,124 @@ class _WhisperRoomScreenState extends ConsumerState<WhisperRoomScreen> with Sing
     );
   }
 
-  Widget _buildCategoriesView() {
+  Widget _buildCategoriesView(List<CommunityPost> allPosts) {
+    // Exact requested categories in exact specified order with Material icons:
     final categories = [
-      {'name': 'PCOS & PCOD Support', 'count': '1.2k posts', 'icon': Icons.spa_rounded},
-      {'name': 'Period & Flow Talk', 'count': '3.4k posts', 'icon': Icons.water_drop_rounded},
-      {'name': 'Mental Wellness & Mood', 'count': '2.1k posts', 'icon': Icons.psychology_rounded},
-      {'name': 'TTC & Fertility Journey', 'count': '980 posts', 'icon': Icons.favorite_rounded},
-      {'name': 'Pregnancy & Motherhood', 'count': '1.5k posts', 'icon': Icons.child_care_rounded},
+      {
+        'name': 'PCOS/PCOD Support',
+        'count': '1.2k posts',
+        'icon': Icons.spa_rounded,
+      },
+      {
+        'name': 'Periods & Flow Talk',
+        'count': '3.4k posts',
+        'icon': Icons.water_drop_rounded,
+      },
+      {
+        'name': 'Mental Wellness & Mood',
+        'count': '2.1k posts',
+        'icon': Icons.psychology_rounded,
+      },
+      {
+        'name': 'Sex Education',
+        'count': '850 posts',
+        'icon': Icons.lock_outline_rounded,
+      },
+      {
+        'name': 'Exercise & Nutrition',
+        'count': '1.8k posts',
+        'icon': Icons.fitness_center_rounded,
+      },
+      {
+        'name': 'Pregnancy & Motherhood',
+        'count': '1.5k posts',
+        'icon': Icons.child_care_rounded,
+      },
+      {
+        'name': 'General',
+        'count': '4.2k posts',
+        'icon': Icons.forum_rounded,
+      },
     ];
+
+    if (_selectedCategoryFilter != null) {
+      final categoryPosts = allPosts.where((p) {
+        final pCat = p.category.toLowerCase();
+        final selCat = _selectedCategoryFilter!.toLowerCase();
+        return pCat.contains(selCat) || selCat.contains(pCat);
+      }).toList();
+
+      final selectedCatData = categories.firstWhere(
+        (c) => c['name'] == _selectedCategoryFilter,
+        orElse: () => {
+          'name': _selectedCategoryFilter!,
+          'icon': Icons.category_rounded,
+        },
+      );
+
+      return Column(
+        children: [
+          Container(
+            margin: const EdgeInsets.all(16),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            decoration: BoxDecoration(
+              color: AppColors.softPurple.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: AppColors.softPurple.withValues(alpha: 0.2),
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      selectedCatData['icon'] as IconData,
+                      color: AppColors.softPurple,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      _selectedCategoryFilter!,
+                      style: GoogleFonts.outfit(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                        color: AppColors.softPurple,
+                      ),
+                    ),
+                  ],
+                ),
+                TextButton.icon(
+                  onPressed: () {
+                    setState(() {
+                      _selectedCategoryFilter = null;
+                    });
+                  },
+                  icon: const Icon(Icons.close_rounded,
+                      size: 16, color: AppColors.softPurple),
+                  label: Text(
+                    'All Categories',
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.softPurple,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: _buildPostFeed(
+              categoryPosts,
+              emptyMessage:
+                  'No posts under $_selectedCategoryFilter yet. Be the first to start a conversation!',
+            ),
+          ),
+        ],
+      );
+    }
 
     return ListView.builder(
       padding: const EdgeInsets.all(16),
@@ -336,111 +640,52 @@ class _WhisperRoomScreenState extends ConsumerState<WhisperRoomScreen> with Sing
       itemBuilder: (ctx, i) {
         final cat = categories[i];
         return Card(
-          margin: const EdgeInsets.only(bottom: 10),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          margin: const EdgeInsets.only(bottom: 12),
+          elevation: 1,
+          shadowColor: AppColors.shadowColor,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
           child: ListTile(
-            leading: Icon(cat['icon'] as IconData, color: AppColors.softPurple),
-            title: Text(cat['name'] as String, style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
-            subtitle: Text(cat['count'] as String, style: GoogleFonts.inter(fontSize: 12)),
-            trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14),
-            onTap: () {},
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+            leading: Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppColors.softPurple.withValues(alpha: 0.12),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                cat['icon'] as IconData,
+                color: AppColors.softPurple,
+                size: 20,
+              ),
+            ),
+            title: Text(
+              cat['name'] as String,
+              style: GoogleFonts.outfit(
+                fontWeight: FontWeight.bold,
+                fontSize: 15,
+                color: AppColors.textDark,
+              ),
+            ),
+            subtitle: Text(
+              cat['count'] as String,
+              style: GoogleFonts.inter(
+                fontSize: 12,
+                color: AppColors.textMedium,
+              ),
+            ),
+            trailing: const Icon(
+              Icons.arrow_forward_ios_rounded,
+              size: 14,
+              color: AppColors.textLight,
+            ),
+            onTap: () {
+              setState(() {
+                _selectedCategoryFilter = cat['name'] as String;
+              });
+            },
           ),
-        );
-      },
-    );
-  }
-
-  void _showCreatePostModal(BuildContext context) {
-    final titleCtrl = TextEditingController();
-    final contentCtrl = TextEditingController();
-    bool isAnon = true;
-    String selectedCategory = 'PCOS/PCOD';
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
-      builder: (ctx) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            return Padding(
-              padding: EdgeInsets.only(
-                left: 20,
-                right: 20,
-                top: 20,
-                bottom: MediaQuery.of(context).viewInsets.bottom + 20,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Share in Whisper Room', style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 12),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text('Post Anonymously', style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
-                      Switch(
-                        value: isAnon,
-                        onChanged: (val) => setModalState(() => isAnon = val),
-                        activeThumbColor: AppColors.softPurple,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: titleCtrl,
-                    decoration: InputDecoration(
-                      labelText: 'Title',
-                      hintText: 'Ask a question or share advice...',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  TextField(
-                    controller: contentCtrl,
-                    maxLines: 3,
-                    decoration: InputDecoration(
-                      labelText: 'Content Details',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () {
-                      if (titleCtrl.text.isNotEmpty) {
-                        final newPost = CommunityPost(
-                          id: 'post_${DateTime.now().millisecondsSinceEpoch}',
-                          authorName: isAnon ? 'Anonymous Sister' : 'Sonali',
-                          authorAvatar: isAnon ? '🌷' : '👑',
-                          isAnonymous: isAnon,
-                          category: selectedCategory,
-                          title: titleCtrl.text.trim(),
-                          content: contentCtrl.text.trim(),
-                          timeAgo: 'Just now',
-                          likesCount: 0,
-                          commentsCount: 0,
-                        );
-
-                        ref.read(whisperRoomProvider.notifier).addPost(newPost);
-                        Navigator.pop(context);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Your post is live in Whisper Room! 💖')),
-                        );
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.softPurple,
-                      foregroundColor: Colors.white,
-                      minimumSize: const Size(double.infinity, 48),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    ),
-                    child: const Text('Publish Post', style: TextStyle(fontWeight: FontWeight.bold)),
-                  ),
-                ],
-              ),
-            );
-          },
         );
       },
     );
@@ -452,7 +697,8 @@ class _WhisperRoomScreenState extends ConsumerState<WhisperRoomScreen> with Sing
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
       builder: (ctx) {
         return Padding(
           padding: EdgeInsets.only(
@@ -466,19 +712,27 @@ class _WhisperRoomScreenState extends ConsumerState<WhisperRoomScreen> with Sing
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Comments (${post.commentsCount})', style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold)),
+                Text('Comments (${post.commentsCount})',
+                    style: GoogleFonts.outfit(
+                        fontSize: 18, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 10),
                 Expanded(
                   child: post.comments.isEmpty
-                      ? Center(child: Text('No comments yet. Say something supportive!', style: GoogleFonts.inter()))
+                      ? Center(
+                          child: Text(
+                              'No comments yet. Say something supportive!',
+                              style: GoogleFonts.inter()))
                       : ListView.builder(
                           itemCount: post.comments.length,
                           itemBuilder: (ctx, i) {
                             final c = post.comments[i];
                             return ListTile(
                               leading: CircleAvatar(child: Text(c.authorAvatar)),
-                              title: Text(c.authorName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                              subtitle: Text(c.text, style: const TextStyle(fontSize: 12)),
+                              title: Text(c.authorName,
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.bold, fontSize: 13)),
+                              subtitle:
+                                  Text(c.text, style: const TextStyle(fontSize: 12)),
                             );
                           },
                         ),
@@ -490,15 +744,19 @@ class _WhisperRoomScreenState extends ConsumerState<WhisperRoomScreen> with Sing
                         controller: commentCtrl,
                         decoration: InputDecoration(
                           hintText: 'Add a comment...',
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(20)),
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(20)),
                         ),
                       ),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.send_rounded, color: AppColors.softPurple),
+                      icon: const Icon(Icons.send_rounded,
+                          color: AppColors.softPurple),
                       onPressed: () {
                         if (commentCtrl.text.isNotEmpty) {
-                          ref.read(whisperRoomProvider.notifier).addComment(post.id, commentCtrl.text.trim());
+                          ref
+                              .read(whisperRoomProvider.notifier)
+                              .addComment(post.id, commentCtrl.text.trim());
                           Navigator.pop(ctx);
                         }
                       },
@@ -514,6 +772,9 @@ class _WhisperRoomScreenState extends ConsumerState<WhisperRoomScreen> with Sing
   }
 
   void _showPostOptionsDialog(BuildContext context, CommunityPost post) {
+    final userProfile = ref.watch(userProfileProvider);
+    final isMyPost = post.isMine || post.authorName == userProfile.username;
+
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -521,13 +782,37 @@ class _WhisperRoomScreenState extends ConsumerState<WhisperRoomScreen> with Sing
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            if (isMyPost) ...[
+              ListTile(
+                leading: const Icon(Icons.edit_outlined, color: AppColors.softPurple),
+                title: const Text('Edit Post'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _showEditPostDialog(context, post);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent),
+                title: const Text('Delete Post', style: TextStyle(color: Colors.redAccent)),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  ref.read(whisperRoomProvider.notifier).deletePost(post.id);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Post deleted successfully.')),
+                  );
+                },
+              ),
+              const Divider(),
+            ],
             ListTile(
               leading: const Icon(Icons.flag_outlined, color: Colors.redAccent),
               title: const Text('Report Post'),
               onTap: () {
                 Navigator.pop(ctx);
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Thank you. Post reported for moderator review.')),
+                  const SnackBar(
+                      content:
+                          Text('Thank you. Post reported for moderator review.')),
                 );
               },
             ),
@@ -538,6 +823,59 @@ class _WhisperRoomScreenState extends ConsumerState<WhisperRoomScreen> with Sing
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _showEditPostDialog(BuildContext context, CommunityPost post) {
+    final titleCtrl = TextEditingController(text: post.title);
+    final contentCtrl = TextEditingController(text: post.content);
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text('Edit Post', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: titleCtrl,
+              decoration: const InputDecoration(labelText: 'Title'),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: contentCtrl,
+              maxLines: 3,
+              decoration: const InputDecoration(labelText: 'Content'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (titleCtrl.text.isNotEmpty && contentCtrl.text.isNotEmpty) {
+                ref.read(whisperRoomProvider.notifier).editPost(
+                      post.id,
+                      titleCtrl.text.trim(),
+                      contentCtrl.text.trim(),
+                    );
+                Navigator.pop(ctx);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Post updated! ✨')),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.softPurple,
+            ),
+            child: const Text('Save', style: TextStyle(color: Colors.white)),
+          ),
+        ],
       ),
     );
   }
