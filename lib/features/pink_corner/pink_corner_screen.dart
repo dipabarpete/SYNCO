@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/theme/app_colors.dart';
+import 'pcos_article_screen.dart';
 import 'placeholder_topic_screen.dart';
 import 'widgets/faq_card.dart';
 import 'widgets/suggestion_card.dart';
@@ -193,17 +194,26 @@ class PinkCornerScreen extends ConsumerWidget {
                   borderColor: topic['borderColor'] as Color,
                   iconColor: topic['iconColor'] as Color,
                   onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => PlaceholderTopicScreen(
-                          title: topic['title'] as String,
-                          icon: topic['icon'] as IconData,
-                          accentColor: topic['iconColor'] as Color,
-                          backgroundColor: topic['backgroundColor'] as Color,
+                    if (topic['title'] == 'PCOS/PCOD') {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const PcosArticleScreen(),
                         ),
-                      ),
-                    );
+                      );
+                    } else {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => PlaceholderTopicScreen(
+                            title: topic['title'] as String,
+                            icon: topic['icon'] as IconData,
+                            accentColor: topic['iconColor'] as Color,
+                            backgroundColor: topic['backgroundColor'] as Color,
+                          ),
+                        ),
+                      );
+                    }
                   },
                 );
               },
@@ -229,18 +239,27 @@ class PinkCornerScreen extends ConsumerWidget {
                 iconColor: article['iconColor'] as Color,
                 iconBackgroundColor: article['iconBackgroundColor'] as Color,
                 onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => PlaceholderTopicScreen(
-                        title: article['title'] as String,
-                        icon: article['icon'] as IconData,
-                        accentColor: article['iconColor'] as Color,
-                        backgroundColor: article['iconBackgroundColor'] as Color,
-                        description: article['description'] as String,
+                  if (article['category'] == 'PCOS Care') {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const PcosArticleScreen(),
                       ),
-                    ),
-                  );
+                    );
+                  } else {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => PlaceholderTopicScreen(
+                          title: article['title'] as String,
+                          icon: article['icon'] as IconData,
+                          accentColor: article['iconColor'] as Color,
+                          backgroundColor: article['iconBackgroundColor'] as Color,
+                          description: article['description'] as String,
+                        ),
+                      ),
+                    );
+                  }
                 },
               ),
             ),
@@ -260,18 +279,27 @@ class PinkCornerScreen extends ConsumerWidget {
               (question) => FaqCard(
                 question: question,
                 onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => PlaceholderTopicScreen(
-                        title: 'FAQ Detail',
-                        icon: Icons.help_outline_rounded,
-                        accentColor: AppColors.softPurple,
-                        backgroundColor: AppColors.babyPink,
-                        description: question,
+                  if (question.contains('PCOS')) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const PcosArticleScreen(),
                       ),
-                    ),
-                  );
+                    );
+                  } else {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => PlaceholderTopicScreen(
+                          title: 'FAQ Detail',
+                          icon: Icons.help_outline_rounded,
+                          accentColor: AppColors.softPurple,
+                          backgroundColor: AppColors.babyPink,
+                          description: question,
+                        ),
+                      ),
+                    );
+                  }
                 },
               ),
             ),
