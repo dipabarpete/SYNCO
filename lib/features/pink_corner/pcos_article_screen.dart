@@ -48,59 +48,38 @@ class PcosArticleScreen extends StatelessWidget {
             ),
             const SizedBox(height: 14),
 
-            // IMAGE 1: Healthy Ovary vs PCOS Ovary
-            ArticleImageCard(
-              imageUrl: 'https://images.unsplash.com/photo-1579684385127-1ef15d508118?w=800',
-              caption: 'Figure 1: Comparison between a Healthy Ovary and a PCOS Ovary with multiple underdeveloped follicles.',
-              fallbackWidget: Container(
-                padding: const EdgeInsets.all(16),
-                color: const Color(0xFFF4EFFB),
-                child: Column(
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(14),
-                              border: Border.all(color: Colors.green.withValues(alpha: 0.4)),
-                            ),
-                            child: Column(
-                              children: [
-                                const Icon(Icons.check_circle_outline_rounded, color: Colors.green, size: 28),
-                                const SizedBox(height: 6),
-                                Text('Healthy Ovary', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 13)),
-                                const SizedBox(height: 4),
-                                Text('Regular ovulation, 1 mature egg released per cycle.', style: GoogleFonts.inter(fontSize: 11), textAlign: TextAlign.center),
-                              ],
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(14),
-                              border: Border.all(color: AppColors.softPurple.withValues(alpha: 0.4)),
-                            ),
-                            child: Column(
-                              children: [
-                                const Icon(Icons.bubble_chart_rounded, color: AppColors.softPurple, size: 28),
-                                const SizedBox(height: 6),
-                                Text('PCOS Ovary', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 13)),
-                                const SizedBox(height: 4),
-                                Text('Multiple small follicles ("string of pearls"), irregular ovulation.', style: GoogleFonts.inter(fontSize: 11), textAlign: TextAlign.center),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+            Container(
+              margin: const EdgeInsets.only(bottom: 16),
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF9F6FC),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: AppColors.borderGrey.withValues(alpha: 0.6),
+                ),
+                boxShadow: const [
+                  BoxShadow(
+                    color: AppColors.shadowColor,
+                    blurRadius: 10,
+                    offset: Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: AspectRatio(
+                  aspectRatio: 1.0,
+                  child: Image.asset(
+                    'assets/images/pcos_hero.png',
+                    fit: BoxFit.contain,
+                    alignment: Alignment.center,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Image.network(
+                        'https://images.unsplash.com/photo-1579684385127-1ef15d508118?w=800',
+                        fit: BoxFit.contain,
+                      );
+                    },
+                  ),
                 ),
               ),
             ),
@@ -154,55 +133,67 @@ class PcosArticleScreen extends StatelessWidget {
               ),
             ),
 
-            // PCOS VS PCOD
-            const ArticleSectionHeading(title: 'PCOS vs PCOD', icon: Icons.compare_arrows_rounded),
-            Text(
-              'While both conditions involve the ovaries, they differ significantly in severity, cause, and metabolic impact:',
-              style: GoogleFonts.inter(fontSize: 14, height: 1.6, color: AppColors.textDark),
-            ),
-            const SizedBox(height: 10),
-            _buildComparisonTable(),
-
             // SYMPTOMS
             const ArticleSectionHeading(title: 'Symptoms', icon: Icons.healing_rounded),
             Text(
               'Hormonal imbalances manifest differently in every woman. Common signs to watch out for include:',
               style: GoogleFonts.inter(fontSize: 14, height: 1.6, color: AppColors.textDark),
             ),
-            
-            // IMAGE 2: Symptoms Infographic
-            ArticleImageCard(
-              imageUrl: 'https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?w=800',
-              caption: 'Figure 2: Infographic highlighting the 6 primary symptoms of PCOS & PCOD.',
-              fallbackWidget: Container(
-                padding: const EdgeInsets.all(14),
-                color: const Color(0xFFFAF8F5),
-                child: Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    _buildSymptomBadge('🩸 Irregular Periods', AppColors.deepRose, const Color(0xFFFFF0F3)),
-                    _buildSymptomBadge('✨ Hormonal Acne', AppColors.softPurple, const Color(0xFFF4EFFB)),
-                    _buildSymptomBadge('💇‍♀️ Hair Fall & Thinning', const Color(0xFF45B69C), const Color(0xFFF0FDF4)),
-                    _buildSymptomBadge('🌸 Facial Hair (Hirsutism)', AppColors.peachCoral, const Color(0xFFFFF7ED)),
-                    _buildSymptomBadge('⚖️ Unexplained Weight Gain', const Color(0xFF5B7FFF), const Color(0xFFF0F4FF)),
-                    _buildSymptomBadge('🧠 Mood Changes & Fatigue', AppColors.softPurpleLight, const Color(0xFFF8F0FF)),
-                  ],
-                ),
-              ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _buildSymptomBadge('🩸 Irregular Periods', AppColors.deepRose, const Color(0xFFFFF0F3)),
+                _buildSymptomBadge('✨ Acne', AppColors.softPurple, const Color(0xFFF4EFFB)),
+                _buildSymptomBadge('💇‍♀️ Hair Fall', const Color(0xFF45B69C), const Color(0xFFF0FDF4)),
+                _buildSymptomBadge('🌸 Excess Facial Hair', AppColors.peachCoral, const Color(0xFFFFF7ED)),
+                _buildSymptomBadge('⚖️ Weight Gain', const Color(0xFF5B7FFF), const Color(0xFFF0F4FF)),
+                _buildSymptomBadge('🧠 Mood Swings', AppColors.softPurpleLight, const Color(0xFFF8F0FF)),
+                _buildSymptomBadge('⚡ Fatigue', AppColors.peachCoral, const Color(0xFFFFF7ED)),
+                _buildSymptomBadge('👶 Difficulty Conceiving', AppColors.deepRose, const Color(0xFFFFF0F3)),
+              ],
             ),
 
-            // CAUSES
+            // 2. CAUSES (Single purple card with NO divider lines)
             const ArticleSectionHeading(title: 'Causes', icon: Icons.psychology_rounded),
             Text(
               'While the exact root cause of PCOS is multifaceted, research highlights four key underlying factors:',
               style: GoogleFonts.inter(fontSize: 14, height: 1.6, color: AppColors.textDark),
             ),
             const SizedBox(height: 8),
-            _buildCauseTile(context, 'Genetics', 'A family history of PCOS or insulin sensitivity increases your likelihood.'),
-            _buildCauseTile(context, 'Insulin Resistance', 'High circulating insulin levels signal ovaries to secrete excess male hormones.'),
-            _buildCauseTile(context, 'Low-Grade Inflammation', 'Chronic inflammation stimulates polycystic ovaries to produce androgens.'),
-            _buildCauseTile(context, 'Hormonal Imbalance', 'Disrupted ratio between LH (Luteinizing Hormone) and FSH (Follicle-Stimulating Hormone).'),
+            ArticleInfoCard(
+              backgroundColor: const Color(0xFFF4EFFB),
+              borderColor: const Color(0xFFD8B4F8).withValues(alpha: 0.6),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildSingleCardCauseItem(
+                    icon: Icons.bubble_chart_rounded,
+                    title: 'Hormonal Imbalance',
+                    desc: 'Disrupted ratio between LH (Luteinizing Hormone) and FSH (Follicle-Stimulating Hormone).',
+                  ),
+                  const SizedBox(height: 12),
+                  _buildSingleCardCauseItem(
+                    icon: Icons.grain_rounded,
+                    title: 'Insulin Resistance',
+                    desc: 'High circulating insulin levels signal ovaries to secrete excess male hormones.',
+                  ),
+                  const SizedBox(height: 12),
+                  _buildSingleCardCauseItem(
+                    icon: Icons.family_restroom_rounded,
+                    title: 'Genetics',
+                    desc: 'A family history of PCOS or insulin sensitivity increases your likelihood.',
+                  ),
+                  const SizedBox(height: 12),
+                  _buildSingleCardCauseItem(
+                    icon: Icons.local_fire_department_rounded,
+                    title: 'Chronic Inflammation',
+                    desc: 'Low-grade chronic inflammation stimulates polycystic ovaries to produce androgens.',
+                  ),
+                ],
+              ),
+            ),
 
             // INSULIN RESISTANCE
             const ArticleSectionHeading(title: 'Insulin Resistance', icon: Icons.grain_rounded),
@@ -210,23 +201,17 @@ class PcosArticleScreen extends StatelessWidget {
               'Insulin is a hormone produced by your pancreas that helps cells convert blood glucose into energy. When your cells become resistant to insulin, glucose accumulates in the bloodstream.',
               style: GoogleFonts.inter(fontSize: 14, height: 1.6, color: AppColors.textDark),
             ),
-
-            // IMAGE 3: Insulin Resistance Illustration
-            ArticleImageCard(
-              imageUrl: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=800',
-              caption: 'Figure 3: Medical diagram of Insulin Resistance leading to androgen stimulation in ovaries.',
-              fallbackWidget: Container(
-                padding: const EdgeInsets.all(16),
-                color: const Color(0xFFF4EFFB),
-                child: Column(
-                  children: [
-                    Text('How Insulin Resistance Works:', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: AppColors.softPurple)),
-                    const SizedBox(height: 8),
-                    _buildStepRow('1', 'Pancreas secretes insulin to transport sugar into cells.'),
-                    _buildStepRow('2', 'Receptors resist insulin, forcing pancreas to release excess insulin.'),
-                    _buildStepRow('3', 'High insulin levels signal ovaries to overproduce testosterone.'),
-                  ],
-                ),
+            const SizedBox(height: 8),
+            ArticleInfoCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('How Insulin Resistance Works:', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: AppColors.softPurple)),
+                  const SizedBox(height: 8),
+                  _buildStepRow('1', 'Pancreas secretes insulin to transport sugar into cells.'),
+                  _buildStepRow('2', 'Receptors resist insulin, forcing pancreas to release excess insulin.'),
+                  _buildStepRow('3', 'High insulin levels signal ovaries to overproduce testosterone.'),
+                ],
               ),
             ),
 
@@ -236,25 +221,20 @@ class PcosArticleScreen extends StatelessWidget {
               'Managing weight with PCOS is not about restrictive starvation diets; it is about nourishing your body with balanced, anti-inflammatory meals that keep blood sugar stable.',
               style: GoogleFonts.inter(fontSize: 14, height: 1.6, color: AppColors.textDark),
             ),
-
-            // IMAGE 4: Healthy Indian Plate
-            ArticleImageCard(
-              imageUrl: 'https://images.unsplash.com/photo-1610192244261-3f33de3f55e4?w=800',
-              caption: 'Figure 4: A balanced Indian Thali plate featuring multigrain Roti, Dal, Paneer, Sabzi, Brown Rice, and fresh Salad.',
-              fallbackWidget: Container(
-                padding: const EdgeInsets.all(16),
-                color: const Color(0xFFF0FDF4),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Healthy Balanced Indian Thali Plate:', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: const Color(0xFF2E8B57))),
-                    const SizedBox(height: 8),
-                    _buildBulletPoint('🌾 Complex Carbs: Multigrain Roti / Jowar Roti or Brown Rice.'),
-                    _buildBulletPoint('🍲 Plant & Lean Protein: Yellow Dal, Chana, Rajma, or Grilled Paneer.'),
-                    _buildBulletPoint('🥬 Fiber & Micronutrients: Green Sabzi (Palak, Bhindi, Gobhi).'),
-                    _buildBulletPoint('🥗 Raw Fiber: Cucumber, Tomato, Beetroot Salad with Lemon.'),
-                  ],
-                ),
+            const SizedBox(height: 8),
+            ArticleInfoCard(
+              backgroundColor: const Color(0xFFF0FDF4),
+              borderColor: const Color(0xFFB5EAD7),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Healthy Balanced Indian Thali Plate:', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: const Color(0xFF2E8B57))),
+                  const SizedBox(height: 8),
+                  _buildBulletPoint('🌾 Complex Carbs: Multigrain Roti / Jowar Roti or Brown Rice.'),
+                  _buildBulletPoint('🍲 Plant & Lean Protein: Yellow Dal, Chana, Rajma, or Grilled Paneer.'),
+                  _buildBulletPoint('🥬 Fiber & Micronutrients: Green Sabzi (Palak, Bhindi, Gobhi).'),
+                  _buildBulletPoint('🥗 Raw Fiber: Cucumber, Tomato, Beetroot Salad with Lemon.'),
+                ],
               ),
             ),
 
@@ -298,48 +278,85 @@ class PcosArticleScreen extends StatelessWidget {
               ),
             ),
 
-            // EXERCISES
-            const ArticleSectionHeading(title: 'Exercises', icon: Icons.fitness_center_rounded),
-            Text(
-              'Gentle, consistent movement improves insulin sensitivity without placing excessive stress on your adrenal glands.',
-              style: GoogleFonts.inter(fontSize: 14, height: 1.6, color: AppColors.textDark),
-            ),
-
-            // IMAGE 5: Exercise Illustration
-            ArticleImageCard(
-              imageUrl: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=800',
-              caption: 'Figure 5: Recommended healthy movements for PCOS including brisk walking, yoga, and gentle strength exercises.',
-              fallbackWidget: Container(
-                padding: const EdgeInsets.all(16),
-                color: const Color(0xFFF0F4FF),
-                child: Column(
-                  children: [
-                    Row(
-                      children: [
-                        _buildExerciseBadge('🚶‍♀️ Brisk Walking', '30 mins daily'),
-                        const SizedBox(width: 8),
-                        _buildExerciseBadge('🧘‍♀️ Hormone Yoga', 'Asanas for pelvis'),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        _buildExerciseBadge('🏋️‍♀️ Strength Training', '2-3x per week'),
-                        const SizedBox(width: 8),
-                        _buildExerciseBadge('🚴‍♀️ Gentle Cycling', 'Low impact cardio'),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            // COMMON MYTHS
+            // 3. REORDERED: COMMON MYTHS (Moved before Exercises)
             const ArticleSectionHeading(title: 'Common Myths', icon: Icons.fact_check_rounded),
             _buildMythCard(context, 'Myth: PCOS means you can never get pregnant.', 'Fact: With proper lifestyle care and medical support, most women with PCOS conceive naturally.'),
             _buildMythCard(context, 'Myth: PCOS only affects overweight women.', 'Fact: "Lean PCOS" affects nearly 20% of women with normal BMI.'),
             _buildMythCard(context, 'Myth: PCOD and PCOS are identical.', 'Fact: PCOD is milder and lifestyle-driven; PCOS is a metabolic-endocrine condition.'),
             _buildMythCard(context, 'Myth: You must completely eliminate all carbohydrates.', 'Fact: Complex carbs like brown rice, oats, and millets provide steady fuel without blood sugar spikes.'),
+
+            // 3. REORDERED: EXERCISES (Moved after Common Myths)
+            const ArticleSectionHeading(title: 'Exercises', icon: Icons.fitness_center_rounded),
+            Text(
+              'Gentle, consistent movement improves insulin sensitivity without placing excessive stress on your adrenal glands.',
+              style: GoogleFonts.inter(fontSize: 14, height: 1.6, color: AppColors.textDark),
+            ),
+            const SizedBox(height: 8),
+            ArticleInfoCard(
+              backgroundColor: const Color(0xFFF0F4FF),
+              borderColor: const Color(0xFFC7CEEA),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      _buildExerciseBadge('🚶‍♀️ Brisk Walking', '30 mins daily'),
+                      const SizedBox(width: 8),
+                      _buildExerciseBadge('🧘‍♀️ Hormone Yoga', 'Asanas for pelvis'),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      _buildExerciseBadge('🏋️‍♀️ Strength Training', '2-3x per week'),
+                      const SizedBox(width: 8),
+                      _buildExerciseBadge('🚴‍♀️ Gentle Cycling', 'Low impact cardio'),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      _buildExerciseBadge('🏊‍♀️ Swimming', 'Full body workout'),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: Theme.of(context).cardColor,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(
+                  color: AppColors.borderGrey.withValues(alpha: 0.6),
+                ),
+                boxShadow: const [
+                  BoxShadow(
+                    color: AppColors.shadowColor,
+                    blurRadius: 10,
+                    offset: Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(18),
+                child: Image.asset(
+                  'assets/images/yoga_poses_pcos.png',
+                  width: double.infinity,
+                  fit: BoxFit.contain,
+                  alignment: Alignment.center,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      padding: const EdgeInsets.all(20),
+                      color: const Color(0xFFF0F4FF),
+                      child: const Center(
+                        child: Icon(Icons.self_improvement_rounded, size: 48, color: AppColors.softPurple),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
 
             // RECOMMENDED VIDEOS
             const ArticleSectionHeading(title: 'Recommended Videos', icon: Icons.video_library_rounded),
@@ -368,46 +385,6 @@ class PcosArticleScreen extends StatelessWidget {
               onTap: () => _showVideoPlaceholder(context, 'Lifestyle Tips for PCOS'),
             ),
 
-            // TAKEAWAY
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                gradient: AppColors.primaryGradient,
-                borderRadius: BorderRadius.circular(22),
-                boxShadow: const [
-                  BoxShadow(
-                    color: AppColors.shadowColor,
-                    blurRadius: 10,
-                    offset: Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Column(
-                children: [
-                  const Text('✨', style: TextStyle(fontSize: 32)),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Key Takeaway',
-                    style: GoogleFonts.outfit(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    'PCOS & PCOD are highly manageable conditions. Small, consistent daily habits — balanced Indian meals, gentle movement, quality sleep, and self-compassion — will help you reclaim your hormonal harmony.',
-                    style: GoogleFonts.inter(
-                      fontSize: 13,
-                      height: 1.5,
-                      color: Colors.white.withValues(alpha: 0.95),
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
-            ),
             const SizedBox(height: 24),
           ],
         ),
@@ -448,33 +425,41 @@ class PcosArticleScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildCauseTile(BuildContext context, String title, String desc) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.borderGrey.withValues(alpha: 0.5)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Icon(Icons.check_circle_rounded, size: 18, color: AppColors.softPurple),
-          const SizedBox(width: 10),
-          Expanded(
-            child: RichText(
-              text: TextSpan(
-                style: GoogleFonts.inter(fontSize: 13, color: AppColors.textDark, height: 1.4),
-                children: [
-                  TextSpan(text: '$title: ', style: const TextStyle(fontWeight: FontWeight.bold)),
-                  TextSpan(text: desc),
-                ],
+  Widget _buildSingleCardCauseItem({
+    required IconData icon,
+    required String title,
+    required String desc,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 18, color: AppColors.softPurple),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: GoogleFonts.outfit(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                  color: AppColors.textDark,
+                ),
               ),
-            ),
+              const SizedBox(height: 2),
+              Text(
+                desc,
+                style: GoogleFonts.inter(
+                  fontSize: 12,
+                  height: 1.4,
+                  color: AppColors.textDark,
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -563,65 +548,6 @@ class PcosArticleScreen extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildComparisonTable() {
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.borderGrey.withValues(alpha: 0.6)),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: Table(
-          border: TableBorder.symmetric(
-            inside: BorderSide(color: AppColors.borderGrey.withValues(alpha: 0.6)),
-          ),
-          children: [
-            TableRow(
-              decoration: const BoxDecoration(color: Color(0xFFF4EFFB)),
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(10),
-                  child: Text('Feature', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.softPurple)),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(10),
-                  child: Text('PCOD', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.softPurple)),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(10),
-                  child: Text('PCOS', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.softPurple)),
-                ),
-              ],
-            ),
-            _buildTableRow('Nature', 'Ovarian disease', 'Endocrine disorder'),
-            _buildTableRow('Severity', 'Milder, common', 'More complex'),
-            _buildTableRow('Prevalence', 'Up to 25% women', '10% of women'),
-            _buildTableRow('Fertility', 'Low impact', 'Requires guidance'),
-          ],
-        ),
-      ),
-    );
-  }
-
-  TableRow _buildTableRow(String feature, String pcod, String pcos) {
-    return TableRow(
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(10),
-          child: Text(feature, style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 11)),
-        ),
-        Padding(
-          padding: const EdgeInsets.all(10),
-          child: Text(pcod, style: GoogleFonts.inter(fontSize: 11)),
-        ),
-        Padding(
-          padding: const EdgeInsets.all(10),
-          child: Text(pcos, style: GoogleFonts.inter(fontSize: 11)),
-        ),
-      ],
     );
   }
 
