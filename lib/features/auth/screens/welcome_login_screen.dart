@@ -6,6 +6,7 @@ import '../providers/auth_provider.dart';
 import '../widgets/google_logo_icon.dart';
 import 'phone_auth_screen.dart';
 import 'email_login_screen.dart';
+import '../../onboarding/screens/role_selection_screen.dart';
 
 class WelcomeLoginScreen extends ConsumerWidget {
   const WelcomeLoginScreen({super.key});
@@ -349,7 +350,30 @@ class WelcomeLoginScreen extends ConsumerWidget {
                       ),
                     ),
 
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 14),
+
+                    // 4. CHOOSE ROLE / GET STARTED QUICK LINK
+                    TextButton.icon(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const RoleSelectionScreen(),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.swap_horiz_rounded, size: 18, color: AppColors.softPurple),
+                      label: Text(
+                        'Select Role (User or Doctor)',
+                        style: GoogleFonts.inter(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.softPurple,
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 24),
 
                     // Bottom Terms / Privacy notice
                     Text(

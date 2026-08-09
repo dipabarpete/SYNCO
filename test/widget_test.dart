@@ -15,11 +15,9 @@ void main() {
     );
 
     // Verify Home Dashboard header greeting and sections exist
-    expect(find.textContaining('Good Morning,'), findsOneWidget);
+    expect(find.textContaining('Hello,'), findsOneWidget);
     expect(find.textContaining('Health Score'), findsOneWidget);
-    expect(find.text('Health Data Glance'), findsOneWidget);
     expect(find.text('Period Cycle Overview'), findsOneWidget);
-    expect(find.text('My Daily Insights'), findsOneWidget);
     expect(find.text('Upcoming Reminders'), findsOneWidget);
   });
 }

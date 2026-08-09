@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/theme/app_theme.dart';
 import 'core/widgets/custom_bottom_nav_bar.dart';
+import 'models/user_profile.dart';
 import 'features/auth/providers/auth_provider.dart';
 import 'features/auth/screens/splash_screen.dart';
 import 'features/auth/screens/welcome_login_screen.dart';
+import 'features/onboarding/screens/role_selection_screen.dart';
+import 'features/doctor/screens/doctor_dashboard_screen.dart';
 import 'features/home/home_dashboard_screen.dart';
 import 'features/whisper_room/whisper_room_screen.dart';
 import 'features/kyra/kyra_ai_screen.dart';
@@ -17,7 +20,7 @@ class HerSyncApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return MaterialApp(
-      title: 'HerSync',
+      title: 'SYNCO',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
@@ -27,7 +30,7 @@ class HerSyncApp extends ConsumerWidget {
   }
 }
 
-/// Authentication Gateway directing users through Splash -> Login or Main Dashboard
+/// Authentication Gateway directing users through Splash -> Login / Role Selection -> Main Dashboard
 class HerSyncAuthGateway extends ConsumerStatefulWidget {
   const HerSyncAuthGateway({super.key});
 
@@ -41,6 +44,8 @@ class _HerSyncAuthGatewayState extends ConsumerState<HerSyncAuthGateway> {
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authNotifierProvider);
+
+    debugPrint('[DIAGNOSTIC] HerSyncAuthGateway build: status=${authState.status}, splashDone=$_isSplashDone (file: lib/app.dart)');
 
     // Show Splash Screen first
     if (!_isSplashDone || authState.status == AuthStatus.initial) {
@@ -57,8 +62,22 @@ class _HerSyncAuthGatewayState extends ConsumerState<HerSyncAuthGateway> {
 
     // After Splash Screen check:
     if (authState.status == AuthStatus.authenticated) {
+      // Check if logged in as Consultant / Doctor
+      if (authState.userProfile?.role == UserRole.doctor) {
+        debugPrint('[DIAGNOSTIC] lib/app.dart -> ROUTING TO DOCTOR DASHBOARD');
+        return const DoctorDashboardScreen();
+      }
+
+      // If user onboarding is incomplete, route to Role Selection / Onboarding
+      if (authState.userProfile?.onboardingCompleted == false) {
+        debugPrint('[DIAGNOSTIC] lib/app.dart -> ROUTING TO ROLE SELECTION / ONBOARDING');
+        return const RoleSelectionScreen();
+      }
+
+      debugPrint('[DIAGNOSTIC] lib/app.dart -> ROUTING TO USER DASHBOARD (HerSyncMainLayout)');
       return const HerSyncMainLayout();
     } else {
+      debugPrint('[DIAGNOSTIC] lib/app.dart -> ROUTING TO LOGIN (WelcomeLoginScreen). Status: ${authState.status}');
       return const WelcomeLoginScreen();
     }
   }
