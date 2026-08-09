@@ -1,6 +1,6 @@
 {
-    "name": "hersync",
-    "short_name": "hersync",
+    "name": "SYNCO",
+    "short_name": "SYNCO",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

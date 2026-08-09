@@ -103,7 +103,7 @@ class WelcomeLoginScreen extends ConsumerWidget {
                   children: [
                     const SizedBox(height: 30),
 
-                    // Top: HerSync Logo / Identity
+                    // Top: SYNCO Logo / Identity
                     Container(
                       padding: const EdgeInsets.all(18),
                       decoration: BoxDecoration(
@@ -137,7 +137,7 @@ class WelcomeLoginScreen extends ConsumerWidget {
 
                     // Welcoming Heading
                     Text(
-                      'Welcome to HerSync',
+                      'Welcome to SYNCO',
                       textAlign: TextAlign.center,
                       style: GoogleFonts.outfit(
                         fontSize: 30,
@@ -353,7 +353,7 @@ class WelcomeLoginScreen extends ConsumerWidget {
 
                     // Bottom Terms / Privacy notice
                     Text(
-                      'By continuing, you agree to HerSync Terms of Service & Privacy Policy.',
+                      'By continuing, you agree to SYNCO Terms of Service & Privacy Policy.',
                       textAlign: TextAlign.center,
                       style: GoogleFonts.inter(
                         fontSize: 11,

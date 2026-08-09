@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Premium HerSync Theme Color Palette
+/// Premium SYNCO Theme Color Palette
 /// Soft, feminine, elegant, pastel, luxurious.
 class AppColors {
   // Primary Pastel Tones

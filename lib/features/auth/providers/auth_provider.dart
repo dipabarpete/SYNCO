@@ -122,7 +122,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       username: user.userMetadata?['full_name'] ??
           (user.email != null && user.email!.contains('@')
               ? user.email!.split('@').first
-              : 'HerSync User'),
+              : 'SYNCO User'),
       avatarUrl: user.userMetadata?['avatar_url'] ?? '',
       email: user.email,
       phone: user.phone,
