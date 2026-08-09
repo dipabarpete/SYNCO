@@ -199,14 +199,19 @@ class PeriodCycleOverviewCard extends StatelessWidget {
                 color: AppColors.textDark,
               ),
             ),
-            Row(
-              children: [
-                _buildLegendDot(AppColors.rosePink, 'Period'),
-                const SizedBox(width: 8),
-                _buildLegendDot(AppColors.softPurpleLight, 'Fertile'),
-                const SizedBox(width: 8),
-                _buildLegendDot(AppColors.peachCoral, 'Ovulation'),
-              ],
+            Flexible(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    _buildLegendDot(AppColors.rosePink, 'Period'),
+                    const SizedBox(width: 8),
+                    _buildLegendDot(AppColors.softPurpleLight, 'Fertile'),
+                    const SizedBox(width: 8),
+                    _buildLegendDot(AppColors.peachCoral, 'Ovulation'),
+                  ],
+                ),
+              ),
             ),
           ],
         ),

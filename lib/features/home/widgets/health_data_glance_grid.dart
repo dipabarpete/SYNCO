@@ -117,12 +117,15 @@ class HealthDataGlanceGrid extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Text(
-              'Health at a Glance',
-              style: GoogleFonts.outfit(
-                fontSize: 19,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textDark,
+            Expanded(
+              child: Text(
+                'Health Data Glance',
+                style: GoogleFonts.outfit(
+                  fontSize: 19,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textDark,
+                ),
+                overflow: TextOverflow.ellipsis,
               ),
             ),
             GestureDetector(

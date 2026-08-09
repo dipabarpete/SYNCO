@@ -68,7 +68,7 @@ class AppBarHeader extends StatelessWidget {
                 TextSpan(
                   children: [
                     TextSpan(
-                      text: 'Hey, ',
+                      text: 'Good Morning, ',
                       style: GoogleFonts.outfit(
                         fontSize: 17,
                         fontWeight: FontWeight.w500,

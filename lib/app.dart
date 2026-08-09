@@ -2,20 +2,77 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/theme/app_theme.dart';
 import 'core/widgets/custom_bottom_nav_bar.dart';
+import 'features/auth/providers/auth_provider.dart';
+import 'features/auth/screens/splash_screen.dart';
+import 'features/auth/screens/welcome_login_screen.dart';
 import 'features/home/home_dashboard_screen.dart';
 import 'features/whisper_room/whisper_room_screen.dart';
 import 'features/kyra/kyra_ai_screen.dart';
 import 'features/pink_corner/pink_corner_screen.dart';
 import 'features/health/health_tracking_screen.dart';
 
-class HerSyncApp extends ConsumerStatefulWidget {
+class HerSyncApp extends ConsumerWidget {
   const HerSyncApp({super.key});
 
   @override
-  ConsumerState<HerSyncApp> createState() => _HerSyncAppState();
+  Widget build(BuildContext context, WidgetRef ref) {
+    return MaterialApp(
+      title: 'HerSync',
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
+      themeMode: ThemeMode.light, // Pastel light theme default matching Figma
+      home: const HerSyncAuthGateway(),
+    );
+  }
 }
 
-class _HerSyncAppState extends ConsumerState<HerSyncApp> {
+/// Authentication Gateway directing users through Splash -> Login or Main Dashboard
+class HerSyncAuthGateway extends ConsumerStatefulWidget {
+  const HerSyncAuthGateway({super.key});
+
+  @override
+  ConsumerState<HerSyncAuthGateway> createState() => _HerSyncAuthGatewayState();
+}
+
+class _HerSyncAuthGatewayState extends ConsumerState<HerSyncAuthGateway> {
+  bool _isSplashDone = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final authState = ref.watch(authNotifierProvider);
+
+    // Show Splash Screen first
+    if (!_isSplashDone || authState.status == AuthStatus.initial) {
+      return SplashScreen(
+        onSplashComplete: () {
+          if (mounted) {
+            setState(() {
+              _isSplashDone = true;
+            });
+          }
+        },
+      );
+    }
+
+    // After Splash Screen check:
+    if (authState.status == AuthStatus.authenticated) {
+      return const HerSyncMainLayout();
+    } else {
+      return const WelcomeLoginScreen();
+    }
+  }
+}
+
+/// Existing Main Application Layout with Bottom Navigation Bar
+class HerSyncMainLayout extends ConsumerStatefulWidget {
+  const HerSyncMainLayout({super.key});
+
+  @override
+  ConsumerState<HerSyncMainLayout> createState() => _HerSyncMainLayoutState();
+}
+
+class _HerSyncMainLayoutState extends ConsumerState<HerSyncMainLayout> {
   int _currentIndex = 0;
 
   final List<Widget> _screens = const [
@@ -28,25 +85,18 @@ class _HerSyncAppState extends ConsumerState<HerSyncApp> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'HerSync',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
-      themeMode: ThemeMode.light, // Pastel light theme default matching Figma
-      home: Scaffold(
-        body: IndexedStack(
-          index: _currentIndex,
-          children: _screens,
-        ),
-        bottomNavigationBar: CustomBottomNavBar(
-          currentIndex: _currentIndex,
-          onTap: (index) {
-            setState(() {
-              _currentIndex = index;
-            });
-          },
-        ),
+    return Scaffold(
+      body: IndexedStack(
+        index: _currentIndex,
+        children: _screens,
+      ),
+      bottomNavigationBar: CustomBottomNavBar(
+        currentIndex: _currentIndex,
+        onTap: (index) {
+          setState(() {
+            _currentIndex = index;
+          });
+        },
       ),
     );
   }

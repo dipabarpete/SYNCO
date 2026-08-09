@@ -87,7 +87,7 @@ class HealthScoreCard extends StatelessWidget {
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        title.toUpperCase(),
+                        title,
                         style: GoogleFonts.outfit(
                           fontSize: 12.5,
                           fontWeight: FontWeight.w700,
@@ -272,12 +272,15 @@ class HealthScoreCard extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        'Great job!',
-                        style: GoogleFonts.inter(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                          color: const Color(0xFF7B6D86),
+                      Flexible(
+                        child: Text(
+                          'Great job!',
+                          style: GoogleFonts.inter(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: const Color(0xFF7B6D86),
+                          ),
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                       GestureDetector(
