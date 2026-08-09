@@ -85,6 +85,9 @@ class AuthService {
         redirectTo: redirectUrl,
       );
 
+      debugPrint('[DIAGNOSTIC] signInWithOAuth launched: $success');
+      debugPrint('[DIAGNOSTIC] currentSession immediately after signInWithOAuth launch: ${client.auth.currentSession != null ? "EXISTS" : "NULL (OAuth browser in progress)"}');
+
       if (success) {
         return AuthResult.success(user: client.auth.currentUser);
       } else {
@@ -329,6 +332,7 @@ class AuthService {
 
   /// Signs out the user from Supabase.
   Future<void> signOut() async {
+    debugPrint('[DIAGNOSTIC] signOut() WAS CALLED in AuthService!');
     final client = _supabase;
     if (client != null) {
       try {

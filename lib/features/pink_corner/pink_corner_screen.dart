@@ -5,7 +5,6 @@ import '../../core/theme/app_colors.dart';
 import 'pcos_article_screen.dart';
 import 'placeholder_topic_screen.dart';
 import 'widgets/faq_card.dart';
-import 'widgets/suggestion_card.dart';
 import 'widgets/topic_card.dart';
 
 class PinkCornerScreen extends ConsumerWidget {
@@ -13,7 +12,7 @@ class PinkCornerScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // 6 Topic Cards configuration in EXACT order specified
+    // 6 Topic Cards configuration for Explore Topics
     final topicItems = [
       {
         'title': 'PCOS/PCOD',
@@ -23,74 +22,39 @@ class PinkCornerScreen extends ConsumerWidget {
         'iconColor': AppColors.softPurple,
       },
       {
-        'title': 'Periods',
+        'title': 'Menstrual Health',
         'icon': Icons.water_drop_rounded,
         'backgroundColor': const Color(0xFFFFF0F3), // Pink
         'borderColor': const Color(0xFFFFD1DC).withValues(alpha: 0.6),
         'iconColor': AppColors.deepRose,
       },
       {
-        'title': 'Body & Wellness',
+        'title': 'Reproductive Health',
+        'icon': Icons.favorite_rounded,
+        'backgroundColor': const Color(0xFFF4EFFB), // Lavender
+        'borderColor': const Color(0xFFD8B4F8).withValues(alpha: 0.6),
+        'iconColor': AppColors.softPurple,
+      },
+      {
+        'title': 'Nutrition',
+        'icon': Icons.restaurant_rounded,
+        'backgroundColor': const Color(0xFFFFF7ED), // Peach
+        'borderColor': const Color(0xFFFFB085).withValues(alpha: 0.6),
+        'iconColor': AppColors.peachCoral,
+      },
+      {
+        'title': 'Stress & Wellbeing',
         'icon': Icons.self_improvement_rounded,
         'backgroundColor': const Color(0xFFF0FDF4), // Mint
         'borderColor': const Color(0xFFB5EAD7).withValues(alpha: 0.6),
         'iconColor': const Color(0xFF45B69C),
       },
       {
-        'title': 'Sex & Pleasure',
-        'icon': Icons.favorite_rounded,
-        'backgroundColor': const Color(0xFFFFF7ED), // Peach
-        'borderColor': const Color(0xFFFFB085).withValues(alpha: 0.6),
-        'iconColor': AppColors.peachCoral,
-      },
-      {
-        'title': 'Pregnancy',
-        'icon': Icons.child_care_rounded,
+        'title': 'Sleep',
+        'icon': Icons.bedtime_rounded,
         'backgroundColor': const Color(0xFFF0F4FF), // Soft Blue
         'borderColor': const Color(0xFFC7CEEA).withValues(alpha: 0.6),
         'iconColor': const Color(0xFF5B7FFF),
-      },
-      {
-        'title': 'Vaginal Discharge',
-        'icon': Icons.opacity_rounded,
-        'backgroundColor': const Color(0xFFF8F0FF), // Lilac
-        'borderColor': const Color(0xFFE0C3FC).withValues(alpha: 0.6),
-        'iconColor': AppColors.softPurpleLight,
-      },
-    ];
-
-    final suggestedArticles = [
-      {
-        'title': 'Understanding Your Cycle & Hormones',
-        'category': 'Cycle Syncing',
-        'description': 'A complete guide to how estrogen and progesterone affect your energy and mood.',
-        'icon': Icons.auto_awesome_rounded,
-        'iconColor': AppColors.softPurple,
-        'iconBackgroundColor': const Color(0xFFF4EFFB),
-      },
-      {
-        'title': 'PCOS Care: Foods That Support Balance',
-        'category': 'PCOS Care',
-        'description': 'Nutritional strategies and meal tips for insulin sensitivity and wellness.',
-        'icon': Icons.restaurant_rounded,
-        'iconColor': AppColors.deepRose,
-        'iconBackgroundColor': const Color(0xFFFFF0F3),
-      },
-      {
-        'title': 'Prioritizing Pleasure & Body Confidence',
-        'category': 'Sex & Pleasure',
-        'description': 'Insights on intimate wellness, open communication, and self-care practices.',
-        'icon': Icons.favorite_rounded,
-        'iconColor': AppColors.peachCoral,
-        'iconBackgroundColor': const Color(0xFFFFF7ED),
-      },
-      {
-        'title': 'Gentle Movement for Cramp Relief',
-        'category': 'Period Care',
-        'description': 'Targeted yoga poses and stretch routines to soothe dysmenorrhea naturally.',
-        'icon': Icons.self_improvement_rounded,
-        'iconColor': const Color(0xFF45B69C),
-        'iconBackgroundColor': const Color(0xFFF0FDF4),
       },
     ];
 
@@ -116,56 +80,7 @@ class PinkCornerScreen extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 1. Empower Your Body Hero Card (Updated Soft Purple/Lavender Theme)
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF9D76C1), Color(0xFF7B4397)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(24),
-                boxShadow: const [
-                  BoxShadow(
-                    color: AppColors.shadowColor,
-                    blurRadius: 10,
-                    offset: Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Empower Your Body ✨',
-                          style: GoogleFonts.outfit(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Medically backed insights on PCOS, cycle sync, fertility, and intimacy.',
-                          style: GoogleFonts.inter(
-                            fontSize: 12,
-                            color: Colors.white.withValues(alpha: 0.9),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const Text('📚', style: TextStyle(fontSize: 40)),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // 2. Explore Topics (2-Column Grid)
+            // 1. Explore Topics (2-Column Grid)
             Text(
               'Explore Topics',
               style: GoogleFonts.outfit(
@@ -220,52 +135,7 @@ class PinkCornerScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 28),
 
-            // 3. Suggested for You Section
-            Text(
-              'Suggested for You',
-              style: GoogleFonts.outfit(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textDark,
-              ),
-            ),
-            const SizedBox(height: 14),
-            ...suggestedArticles.map(
-              (article) => SuggestionCard(
-                title: article['title'] as String,
-                category: article['category'] as String,
-                description: article['description'] as String,
-                icon: article['icon'] as IconData,
-                iconColor: article['iconColor'] as Color,
-                iconBackgroundColor: article['iconBackgroundColor'] as Color,
-                onTap: () {
-                  if (article['category'] == 'PCOS Care') {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const PcosArticleScreen(),
-                      ),
-                    );
-                  } else {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => PlaceholderTopicScreen(
-                          title: article['title'] as String,
-                          icon: article['icon'] as IconData,
-                          accentColor: article['iconColor'] as Color,
-                          backgroundColor: article['iconBackgroundColor'] as Color,
-                          description: article['description'] as String,
-                        ),
-                      ),
-                    );
-                  }
-                },
-              ),
-            ),
-            const SizedBox(height: 28),
-
-            // 4. FAQs Answered Section
+            // 2. FAQs Answered Section
             Text(
               'FAQs Answered',
               style: GoogleFonts.outfit(
