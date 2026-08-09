@@ -299,7 +299,7 @@ class AuthService {
         user.userMetadata?['name'] ??
         (user.email != null && user.email!.contains('@')
             ? user.email!.split('@').first
-            : 'HerSync User');
+            : 'SYNCO User');
 
     final String fallbackAvatar = user.userMetadata?['avatar_url'] ??
         user.userMetadata?['picture'] ??
