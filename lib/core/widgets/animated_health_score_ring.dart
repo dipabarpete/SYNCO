@@ -112,7 +112,7 @@ class AnimatedHealthScoreRing extends StatelessWidget {
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              'Better than $percentile% of HerSync users',
+                              'Better than $percentile% of SYNCO users',
                               style: GoogleFonts.inter(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,

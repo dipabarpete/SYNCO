@@ -437,7 +437,7 @@ class _EmailLoginScreenState extends ConsumerState<EmailLoginScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          _isSignUpMode ? 'Join HerSync Today' : 'Welcome Back',
+                          _isSignUpMode ? 'Join SYNCO Today' : 'Welcome Back',
                           style: GoogleFonts.outfit(
                             fontSize: 22,
                             fontWeight: FontWeight.bold,
