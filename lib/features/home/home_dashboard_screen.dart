@@ -9,6 +9,7 @@ import 'widgets/dashboard_hero_header.dart';
 import 'widgets/health_score_card.dart';
 import 'widgets/period_cycle_overview_card.dart';
 import 'widgets/dashboard_feature_row.dart';
+import 'widgets/symptoms_assessment_card.dart';
 import 'widgets/upcoming_reminders_card.dart';
 
 class HomeDashboardScreen extends ConsumerWidget {
@@ -72,9 +73,13 @@ class HomeDashboardScreen extends ConsumerWidget {
                 onTap: () => _showDialogInfo(context, 'Health Score Details'),
                 onViewReportTap: () => _showDialogInfo(context, 'View Full Report'),
               ),
+              const SizedBox(height: 20),
+
+              // 6. SYMPTOMS ASSESSMENT CARD
+              const SymptomsAssessmentCard(),
               const SizedBox(height: 24),
 
-              // 5. UPCOMING REMINDERS
+              // 7. UPCOMING REMINDERS
               const UpcomingRemindersCard(),
               const SizedBox(height: 24),
             ],

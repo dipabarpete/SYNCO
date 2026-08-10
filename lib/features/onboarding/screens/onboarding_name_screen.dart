@@ -70,7 +70,7 @@ class _OnboardingNameScreenState extends ConsumerState<OnboardingNameScreen> {
 
     return OnboardingScreenLayout(
       currentStep: 1,
-      totalSteps: 3,
+      totalSteps: 12,
       onBackTap: () => Navigator.pop(context),
       bottomButton: SizedBox(
         width: double.infinity,

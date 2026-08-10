@@ -41,6 +41,7 @@ dependencies:
   intl: ^0.20.3
   percent_indicator: ^4.2.5
   supabase_flutter: ^2.17.1
+  file_picker: ^10.3.3
   shared_preferences: ^2.2.2
 
 dev_dependencies:
@@ -113,7 +114,9 @@ flutter_native_splash:
 flutter_launcher_icons:
   android: "ic_launcher"
   ios: true
-  image_path: "assets/images/app_logo_padded.png"
+  image_path: "assets/images/synco.png"
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: "assets/images/synco.png"
   min_sdk_android: 21
   remove_alpha_ios: true
 

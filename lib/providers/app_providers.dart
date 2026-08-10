@@ -428,7 +428,13 @@ class KyraNotifier extends StateNotifier<List<KyraMessage>> {
       String? foodSuggestion;
 
       final lower = userText.toLowerCase();
-      if (lower.contains('lab') || lower.contains('report')) {
+      if ((lower.contains('do i have pcos') || lower.contains('mean i have pcos') || lower.contains('diagnose')) && lower.contains('pcos')) {
+        replyText =
+            'No. The screening only found features that can be associated with PCOS. It cannot diagnose PCOS. A qualified healthcare professional is needed to assess your symptoms and determine whether further evaluation is appropriate.';
+      } else if (lower.contains('endometriosis') && (lower.contains('diagnose') || lower.contains('do i have') || lower.contains('mean i have'))) {
+        replyText =
+            'No. The screening found some symptoms that can be associated with endometriosis, but it cannot diagnose the condition. Other conditions can cause similar symptoms. A healthcare professional can evaluate your symptoms and determine whether further assessment is appropriate.';
+      } else if (lower.contains('lab') || lower.contains('report')) {
         replyText =
             'I have scanned your recent hormonal panel! Your Vitamin D and Iron levels are within healthy ranges. Thyroid (TSH 2.1 mIU/L) is optimal for your follicular phase.';
         labInsight =
