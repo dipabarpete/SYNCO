@@ -81,6 +81,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   StreamSubscription<sb.AuthState>? _authSubscription;
 
   AuthNotifier(this._authService) : super(AuthState.initial()) {
+    debugPrint('[DIAGNOSTIC] AuthNotifier created.');
     _initSupabaseListener();
   }
 
@@ -90,6 +91,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
     // 2. Listen to Supabase auth state changes (initialSession, signedIn, tokenRefreshed, userUpdated, signedOut)
     _authSubscription = _authService.authStateChanges.listen((data) {
+      debugPrint('[DIAGNOSTIC] _handleAuthStateChange event: ${data.event}, session user: ${data.session?.user.id}');
       _handleAuthStateChange(data.event, data.session);
     });
   }
@@ -100,10 +102,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
             event == sb.AuthChangeEvent.tokenRefreshed ||
             event == sb.AuthChangeEvent.userUpdated) &&
         session?.user != null) {
-      _setAuthenticatedState(session!.user);
+      debugPrint('[DIAGNOSTIC] Setting authenticated state for user: ${session!.user.id}');
+      _setAuthenticatedState(session.user);
     } else if (event == sb.AuthChangeEvent.signedOut) {
+      debugPrint('[DIAGNOSTIC] AuthChangeEvent.signedOut -> Setting state to unauthenticated');
       state = AuthState.unauthenticated();
     } else if (event == sb.AuthChangeEvent.initialSession && session == null) {
+      debugPrint('[DIAGNOSTIC] AuthChangeEvent.initialSession with null session -> Setting state to unauthenticated');
       state = AuthState.unauthenticated();
     }
   }
@@ -151,6 +156,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
   void checkInitialAuthStatus() {
     final session = _authService.currentSession;
     final user = _authService.currentUser;
+
+    debugPrint('[DIAGNOSTIC] checkInitialAuthStatus: currentSession exists = ${session != null}, user ID = ${user?.id ?? "NONE"}');
 
     if (session != null && user != null) {
       _setAuthenticatedState(user);
@@ -255,6 +262,22 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<void> logout() async {
     await _authService.signOut();
     state = AuthState.unauthenticated();
+  }
+
+  /// Update user profile in active state and persist it to Supabase.
+  Future<bool> updateLocalProfile(UserProfile newProfile) async {
+    state = state.copyWith(
+      userProfile: newProfile,
+      status: AuthStatus.authenticated,
+    );
+    try {
+      await _authService.updateProfile(newProfile);
+      debugPrint('Profile updated in Supabase.');
+      return true;
+    } catch (e) {
+      debugPrint('Error syncing profile to Supabase (continuing with local state): $e');
+      return true;
+    }
   }
 
   /// Clear inline messages

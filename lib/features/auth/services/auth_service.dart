@@ -85,6 +85,9 @@ class AuthService {
         redirectTo: redirectUrl,
       );
 
+      debugPrint('[DIAGNOSTIC] signInWithOAuth launched: $success');
+      debugPrint('[DIAGNOSTIC] currentSession immediately after signInWithOAuth launch: ${client.auth.currentSession != null ? "EXISTS" : "NULL (OAuth browser in progress)"}');
+
       if (success) {
         return AuthResult.success(user: client.auth.currentUser);
       } else {
@@ -327,8 +330,18 @@ class AuthService {
     return UserProfile.fromMap(newProfileMap);
   }
 
+  /// Persists changes made to an existing profile.
+  Future<void> updateProfile(UserProfile profile) async {
+    final client = _supabase;
+    if (client == null) {
+      throw StateError('Supabase client is not initialized.');
+    }
+    await client.from('profiles').upsert(profile.toMap());
+  }
+
   /// Signs out the user from Supabase.
   Future<void> signOut() async {
+    debugPrint('[DIAGNOSTIC] signOut() WAS CALLED in AuthService!');
     final client = _supabase;
     if (client != null) {
       try {

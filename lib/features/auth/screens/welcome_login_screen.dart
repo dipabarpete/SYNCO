@@ -117,18 +117,22 @@ class WelcomeLoginScreen extends ConsumerWidget {
                           ),
                         ],
                       ),
-                      child: Image.asset(
-                        'assets/images/app_logo_padded.png',
-                        width: 80,
-                        height: 80,
-                        errorBuilder: (ctx, err, st) => Image.asset(
-                          'assets/images/app_logo.png',
+                      child: ClipOval(
+                        child: Image.asset(
+                          'assets/images/synco.png',
                           width: 80,
                           height: 80,
-                          errorBuilder: (c, e, s) => const Icon(
-                            Icons.favorite_rounded,
-                            size: 54,
-                            color: AppColors.softPurple,
+                          fit: BoxFit.cover,
+                          errorBuilder: (ctx, err, st) => Image.asset(
+                            'assets/images/app_logo.png',
+                            width: 80,
+                            height: 80,
+                            fit: BoxFit.cover,
+                            errorBuilder: (c, e, s) => const Icon(
+                              Icons.favorite_rounded,
+                              size: 54,
+                              color: AppColors.softPurple,
+                            ),
                           ),
                         ),
                       ),
@@ -349,7 +353,7 @@ class WelcomeLoginScreen extends ConsumerWidget {
                       ),
                     ),
 
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 24),
 
                     // Bottom Terms / Privacy notice
                     Text(

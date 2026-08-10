@@ -98,18 +98,22 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                         ),
                       ],
                     ),
-                    child: Image.asset(
-                      'assets/images/app_logo_padded.png',
-                      width: 140,
-                      height: 140,
-                      errorBuilder: (ctx, err, st) => Image.asset(
-                        'assets/images/app_logo.png',
+                    child: ClipOval(
+                      child: Image.asset(
+                        'assets/images/synco.png',
                         width: 140,
                         height: 140,
-                        errorBuilder: (c, e, s) => const Icon(
-                          Icons.favorite_rounded,
-                          size: 90,
-                          color: AppColors.softPurple,
+                        fit: BoxFit.cover,
+                        errorBuilder: (ctx, err, st) => Image.asset(
+                          'assets/images/app_logo.png',
+                          width: 140,
+                          height: 140,
+                          fit: BoxFit.cover,
+                          errorBuilder: (c, e, s) => const Icon(
+                            Icons.favorite_rounded,
+                            size: 90,
+                            color: AppColors.softPurple,
+                          ),
                         ),
                       ),
                     ),
