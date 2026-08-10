@@ -3,14 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/theme/app_colors.dart';
 import '../auth/providers/auth_provider.dart';
+import '../cycle/my_cycle_screen.dart';
 import 'widgets/app_bar_header.dart';
+import 'widgets/dashboard_hero_header.dart';
 import 'widgets/health_score_card.dart';
-import 'widgets/health_data_glance_grid.dart';
 import 'widgets/period_cycle_overview_card.dart';
-import 'widgets/daily_insights_card.dart';
+import 'widgets/dashboard_feature_row.dart';
+import 'widgets/symptoms_assessment_card.dart';
 import 'widgets/upcoming_reminders_card.dart';
-
-import '../health/health_tracking_screen.dart';
 
 class HomeDashboardScreen extends ConsumerWidget {
   const HomeDashboardScreen({super.key});
@@ -18,13 +18,9 @@ class HomeDashboardScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authNotifierProvider);
-    final userEmail = authState.userProfile?.email ?? authState.user?.email;
-    final userPhone = authState.userProfile?.phone ?? authState.user?.phone;
-    final displayName = authState.userProfile?.username.isNotEmpty == true
-        ? authState.userProfile!.username
-        : (userEmail != null
-            ? userEmail.split('@').first
-            : (userPhone != null ? 'User' : 'Ananya'));
+    final firstName = _resolveFirstName(authState);
+    final displayName = _resolveDisplayName(authState);
+    final avatarUrl = authState.userProfile?.avatarUrl ?? '';
 
     return Scaffold(
       backgroundColor: const Color(0xFFFAF8F5), // Premium pastel cream background
@@ -38,60 +34,52 @@ class HomeDashboardScreen extends ConsumerWidget {
               // 1. APP BAR
               AppBarHeader(
                 userName: displayName,
-                isPartnerLinked: false,
+                avatarUrl: avatarUrl,
                 onAvatarTap: () => _showProfileDialog(context, ref, displayName, authState),
-                onPartnerTap: () => _showDialogInfo(context, 'Link With Partner'),
                 onNotificationTap: () => _showDialogInfo(context, 'Notifications'),
               ),
               const SizedBox(height: 20),
 
-              // 2. HEALTH SCORE CARD (Hero Card)
-              HealthScoreCard(
-                score: 84,
-                percentile: 78,
-                title: 'Health Score',
-                description: 'Your consistency is paying off.',
-                onTap: () => _showDialogInfo(context, 'Health Score Details'),
-                onViewReportTap: () => _showDialogInfo(context, 'View Full Report'),
-                onSuggestionTap: () => _showDialogInfo(context, 'Better Sleep Suggestion'),
-              ),
-              const SizedBox(height: 24),
+              // 2. DASHBOARD HERO GREETING
+              DashboardHeroHeader(firstName: firstName),
+              const SizedBox(height: 18),
 
-              // 3. HEALTH AT A GLANCE
-              HealthDataGlanceGrid(
-                onTileTap: (title) => _showDialogInfo(context, title),
-                onViewAllTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const HealthTrackingScreen(),
-                    ),
-                  );
-                },
-              ),
-              const SizedBox(height: 24),
-
-              // 4. PERIOD CYCLE OVERVIEW
-              _buildSectionTitle('Period Cycle Overview'),
-              const SizedBox(height: 12),
+              // 3. PERIOD CYCLE OVERVIEW
               PeriodCycleOverviewCard(
                 currentPhase: 'Follicular Phase',
                 currentDay: 8,
                 totalDays: 28,
                 daysUntilNextPeriod: 16,
-                onTap: () => _showDialogInfo(context, 'Period Cycle Details'),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (ctx) => const MyCycleScreen(),
+                    ),
+                  );
+                },
               ),
+              const SizedBox(height: 18),
+
+              // 4. NEW 3-FEATURE ROW (Food Scanner | Kyra AI | Lab Report Interpreter)
+              const DashboardFeatureRow(),
+              const SizedBox(height: 20),
+
+              // 5. HEALTH SCORE CARD (Hero Card)
+              HealthScoreCard(
+                score: 84,
+                percentile: 78,
+                title: 'Health Score',
+                onTap: () => _showDialogInfo(context, 'Health Score Details'),
+                onViewReportTap: () => _showDialogInfo(context, 'View Full Report'),
+              ),
+              const SizedBox(height: 20),
+
+              // 6. SYMPTOMS ASSESSMENT CARD
+              const SymptomsAssessmentCard(),
               const SizedBox(height: 24),
 
-              // 5. MY DAILY INSIGHTS
-              _buildSectionTitle('My Daily Insights'),
-              const SizedBox(height: 12),
-              DailyInsightsCard(
-                onActionTap: () => _showDialogInfo(context, 'Daily Guidance'),
-              ),
-              const SizedBox(height: 24),
-
-              // 6. UPCOMING REMINDERS
+              // 7. UPCOMING REMINDERS
               const UpcomingRemindersCard(),
               const SizedBox(height: 24),
             ],
@@ -101,37 +89,53 @@ class HomeDashboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildSectionTitle(String title, {String? subtitle}) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      crossAxisAlignment: CrossAxisAlignment.baseline,
-      textBaseline: TextBaseline.alphabetic,
-      children: [
-        Expanded(
-          child: Text(
-            title,
-            style: GoogleFonts.outfit(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: AppColors.textDark,
-            ),
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-        if (subtitle != null) ...[
-          const SizedBox(width: 8),
-          Text(
-            subtitle,
-            style: GoogleFonts.inter(
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: AppColors.softPurple,
-            ),
-          ),
-        ],
-      ],
-    );
+  String _resolveDisplayName(AuthState authState) {
+    final username = authState.userProfile?.username ?? '';
+    if (username.trim().isNotEmpty) {
+      return username.trim();
+    }
+
+    final email = authState.userProfile?.email ?? authState.user?.email;
+    if (email != null && email.contains('@')) {
+      return email.split('@').first;
+    }
+
+    final phone = authState.userProfile?.phone ?? authState.user?.phone;
+    if (phone != null && phone.trim().isNotEmpty) {
+      return 'User';
+    }
+
+    return 'Ananya';
   }
+
+  String _resolveFirstName(AuthState authState) {
+    final username = authState.userProfile?.username ?? '';
+    if (username.trim().isNotEmpty) {
+      return _capitalizeFirst(username.trim().split(RegExp(r'\s+')).first);
+    }
+
+    final email = authState.userProfile?.email ?? authState.user?.email;
+    if (email != null && email.contains('@')) {
+      final localPart = email.split('@').first.trim();
+      if (localPart.isNotEmpty) {
+        return _capitalizeFirst(localPart.split(RegExp(r'[._-]')).first);
+      }
+    }
+
+    final phone = authState.userProfile?.phone ?? authState.user?.phone;
+    if (phone != null && phone.trim().isNotEmpty) {
+      return 'User';
+    }
+
+    return 'Ananya';
+  }
+
+  String _capitalizeFirst(String value) {
+    if (value.isEmpty) return value;
+    return value[0].toUpperCase() + value.substring(1);
+  }
+
+
 
   void _showProfileDialog(
     BuildContext context,
@@ -174,7 +178,7 @@ class HomeDashboardScreen extends ConsumerWidget {
                   Text(
                     (authState.userProfile?.email ?? authState.user?.email) ??
                         (authState.userProfile?.phone ?? authState.user?.phone) ??
-                        'HerSync Account',
+                        'SYNCO Account',
                     style: GoogleFonts.inter(
                       fontSize: 12,
                       color: AppColors.textMedium,

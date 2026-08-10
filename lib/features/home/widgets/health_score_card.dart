@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:percent_indicator/circular_percent_indicator.dart';
+import '../../../core/theme/app_colors.dart';
 
 class HealthScoreCard extends StatelessWidget {
   final int score;
@@ -16,7 +17,7 @@ class HealthScoreCard extends StatelessWidget {
     this.score = 84,
     this.percentile = 78,
     this.title = 'HEALTH SCORE',
-    this.description = 'Your consistency is paying off.',
+    this.description = '',
     this.onTap,
     this.onViewReportTap,
     this.onSuggestionTap,
@@ -28,315 +29,176 @@ class HealthScoreCard extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFFFCF5FB),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(24.0),
         border: Border.all(
-          color: const Color(0xFFF3E4F3),
+          color: AppColors.softPurple.withValues(alpha: 0.15),
           width: 1.2,
         ),
-        boxShadow: [
+        boxShadow: const [
           BoxShadow(
-            color: const Color(0xFF7B4397).withValues(alpha: 0.06),
+            color: AppColors.shadowColor,
             blurRadius: 16,
-            offset: const Offset(0, 6),
+            offset: Offset(0, 6),
           ),
         ],
       ),
-      child: ClipRRect(
+      child: Material(
+        color: Colors.transparent,
         borderRadius: BorderRadius.circular(24.0),
-        child: Stack(
-          children: [
-            // Background Decorative Glow Circles
-            Positioned(
-              right: -30,
-              top: -30,
-              child: Container(
-                width: 140,
-                height: 140,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: const Color(0xFFFFE0EE).withValues(alpha: 0.5),
+        child: InkWell(
+          onTap: onViewReportTap ?? onTap,
+          borderRadius: BorderRadius.circular(24.0),
+          child: Padding(
+            padding: const EdgeInsets.all(18.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // 1. TOP HEADER ROW: Pulse Icon + HEALTH SCORE Title
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.show_chart_rounded,
+                      size: 16,
+                      color: AppColors.rosePink,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      title,
+                      style: GoogleFonts.outfit(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.softPurple,
+                        letterSpacing: 1.1,
+                      ),
+                    ),
+                    const SizedBox(width: 5),
+                    Icon(
+                      Icons.info_outline_rounded,
+                      size: 15,
+                      color: AppColors.softPurple.withValues(alpha: 0.6),
+                    ),
+                  ],
                 ),
-              ),
-            ),
-            Positioned(
-              left: -20,
-              bottom: -20,
-              child: Container(
-                width: 110,
-                height: 110,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: const Color(0xFFF4E8FB).withValues(alpha: 0.4),
-                ),
-              ),
-            ),
+                const SizedBox(height: 14),
 
-            Padding(
-              padding: const EdgeInsets.all(18.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // 1. TOP HEADER ROW: Pulse Icon + HEALTH SCORE + Info Icon
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.show_chart_rounded,
-                        size: 16,
-                        color: Color(0xFFFF4081),
+                // 2. MAIN CONTENT ROW: Circular Progress (Left) + Heading & View Full Report Button (Right)
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    // Left: Circular Progress Ring
+                    CircularPercentIndicator(
+                      radius: 44.0,
+                      lineWidth: 8.5,
+                      animation: true,
+                      animationDuration: 1000,
+                      percent: percent,
+                      circularStrokeCap: CircularStrokeCap.round,
+                      backgroundColor: AppColors.softLavender.withValues(alpha: 0.6),
+                      linearGradient: const LinearGradient(
+                        colors: [
+                          AppColors.softPurpleLight,
+                          AppColors.softPurple,
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
                       ),
-                      const SizedBox(width: 6),
-                      Text(
-                        title,
-                        style: GoogleFonts.outfit(
-                          fontSize: 12.5,
-                          fontWeight: FontWeight.w700,
-                          color: const Color(0xFF9D658B),
-                          letterSpacing: 1.1,
-                        ),
-                      ),
-                      const SizedBox(width: 5),
-                      Icon(
-                        Icons.info_outline_rounded,
-                        size: 15,
-                        color: const Color(0xFF9D658B).withValues(alpha: 0.6),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 14),
-
-                  // 2. MAIN SECTION: Circular Progress (Left) + Heading & Suggestion Card (Right)
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Left: Circular Progress Ring
-                      Padding(
-                        padding: const EdgeInsets.only(top: 2.0),
-                        child: CircularPercentIndicator(
-                          radius: 46.0,
-                          lineWidth: 9.0,
-                          animation: true,
-                          animationDuration: 1000,
-                          percent: percent,
-                          circularStrokeCap: CircularStrokeCap.round,
-                          backgroundColor: const Color(0xFFFFE3EC),
-                          linearGradient: const LinearGradient(
-                            colors: [
-                              Color(0xFFFF5EA3),
-                              Color(0xFFFF2D75),
-                            ],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
+                      center: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            '$score',
+                            style: GoogleFonts.outfit(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.softPurple,
+                              height: 1.0,
+                            ),
                           ),
-                          center: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
+                          const SizedBox(height: 2),
+                          Text(
+                            '/100',
+                            style: GoogleFonts.inter(
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w500,
+                              color: AppColors.textMedium,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+
+                    // Right Section: Title & View Full Report Button
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
                             children: [
-                              Text(
-                                '$score',
-                                style: GoogleFonts.outfit(
-                                  fontSize: 26,
-                                  fontWeight: FontWeight.bold,
-                                  color: const Color(0xFFFF2D75),
-                                  height: 1.0,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                '/100',
-                                style: GoogleFonts.inter(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w500,
-                                  color: const Color(0xFF7B6D86),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 14),
-
-                      // Right Section: Title, Subtitle, Emoji & Suggestion Card
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Primary Heading
-                            Text(
-                              "You're doing amazing!",
-                              style: GoogleFonts.newsreader(
-                                fontSize: 18.5,
-                                fontWeight: FontWeight.bold,
-                                color: const Color(0xFF2B2035),
-                                height: 1.15,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Row(
-                              children: [
-                                const Text(
-                                  '👏',
-                                  style: TextStyle(fontSize: 14),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              description,
-                              style: GoogleFonts.inter(
-                                fontSize: 11.5,
-                                fontWeight: FontWeight.w400,
-                                color: const Color(0xFF756A80),
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-
-                            // Suggestion Card
-                            GestureDetector(
-                              onTap: onSuggestionTap ?? onTap,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10.0,
-                                  vertical: 9.0,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(16.0),
-                                  border: Border.all(
-                                    color: const Color(0xFFF1E5F6),
-                                    width: 1.1,
+                              Flexible(
+                                child: Text(
+                                  "You're doing amazing!",
+                                  style: GoogleFonts.outfit(
+                                    fontSize: 16.5,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.textDark,
+                                    height: 1.2,
                                   ),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: const Color(0xFF7B4397)
-                                          .withValues(alpha: 0.03),
-                                      blurRadius: 8,
-                                      offset: const Offset(0, 3),
-                                    ),
-                                  ],
-                                ),
-                                child: Row(
-                                  children: [
-                                    // Moon/Sleep Icon Badge
-                                    Container(
-                                      width: 34,
-                                      height: 34,
-                                      decoration: const BoxDecoration(
-                                        color: Color(0xFFF3EAF8),
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: const Icon(
-                                        Icons.nightlight_round_outlined,
-                                        size: 17,
-                                        color: Color(0xFF9D65C9),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    // Suggestion Text
-                                    Expanded(
-                                      child: Text(
-                                        'Better sleep can\nimprove your score',
-                                        style: GoogleFonts.inter(
-                                          fontSize: 11.5,
-                                          fontWeight: FontWeight.w500,
-                                          color: const Color(0xFF382A45),
-                                          height: 1.25,
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 4),
-                                    // Arrow Icon
-                                    const Icon(
-                                      Icons.chevron_right_rounded,
-                                      size: 18,
-                                      color: Color(0xFFB893D9),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 14),
-                  // Thin Separator Line
-                  Container(
-                    height: 1.0,
-                    color: const Color(0xFFF1E4F2),
-                  ),
-                  const SizedBox(height: 12),
-
-                  // 3. BOTTOM ROW: "Great job!" (Left) + Gradient Pill Button "View Full Report →" (Right)
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Flexible(
-                        child: Text(
-                          'Great job!',
-                          style: GoogleFonts.inter(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                            color: const Color(0xFF7B6D86),
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      GestureDetector(
-                        onTap: onViewReportTap ?? onTap,
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 18.0,
-                            vertical: 9.0,
-                          ),
-                          decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [
-                                Color(0xFFFF5EA3),
-                                Color(0xFFFF3366),
-                              ],
-                              begin: Alignment.centerLeft,
-                              end: Alignment.centerRight,
-                            ),
-                            borderRadius: BorderRadius.circular(30.0),
-                            boxShadow: [
-                              BoxShadow(
-                                color: const Color(0xFFFF3366)
-                                    .withValues(alpha: 0.35),
-                                blurRadius: 10,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                'View Full Report',
-                                style: GoogleFonts.outfit(
-                                  fontSize: 12.5,
-                                  fontWeight: FontWeight.w700,
-                                  color: Colors.white,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
                               const SizedBox(width: 4),
-                              const Icon(
-                                Icons.arrow_forward_rounded,
-                                size: 14,
-                                color: Colors.white,
-                              ),
+                              const Text('👏', style: TextStyle(fontSize: 14)),
                             ],
                           ),
-                        ),
+                          const SizedBox(height: 12),
+
+                          // View Full Report Button/Card
+                          GestureDetector(
+                            onTap: onViewReportTap ?? onTap,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12.0,
+                                vertical: 9.0,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.softPurple.withValues(alpha: 0.08),
+                                borderRadius: BorderRadius.circular(14.0),
+                                border: Border.all(
+                                  color: AppColors.softPurple.withValues(alpha: 0.2),
+                                  width: 1,
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    'View Full Report',
+                                    style: GoogleFonts.inter(
+                                      fontSize: 12.0,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.softPurple,
+                                    ),
+                                  ),
+                                  const Icon(
+                                    Icons.chevron_right_rounded,
+                                    size: 18,
+                                    color: AppColors.softPurple,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                ],
-              ),
+                    ),
+                  ],
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );

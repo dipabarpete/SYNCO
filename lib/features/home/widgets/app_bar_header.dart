@@ -59,52 +59,18 @@ class AppBarHeader extends StatelessWidget {
         ),
         const SizedBox(width: 14),
 
-        // Greeting, User Name & Tagline
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text.rich(
-                TextSpan(
-                  children: [
-                    TextSpan(
-                      text: 'Good Morning, ',
-                      style: GoogleFonts.outfit(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w500,
-                        color: AppColors.textMedium,
-                      ),
-                    ),
-                    TextSpan(
-                      text: '$userName! ',
-                      style: GoogleFonts.outfit(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.softPurple,
-                      ),
-                    ),
-                    const TextSpan(
-                      text: '✨',
-                      style: TextStyle(fontSize: 14),
-                    ),
-                  ],
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 2),
-              Text(
-                'Take charge of your health today.',
-                style: GoogleFonts.inter(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.textLight,
-                  letterSpacing: 0.2,
-                ),
-              ),
-            ],
+        // SYNCO Brand Name
+        Text(
+          'SYNCO',
+          style: GoogleFonts.outfit(
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+            color: AppColors.textDark,
+            letterSpacing: 1.5,
           ),
         ),
+
+        const Spacer(),
 
         // Right Side: Notification Icon with Badge
         GestureDetector(
@@ -113,65 +79,35 @@ class AppBarHeader extends StatelessWidget {
             clipBehavior: Clip.none,
             children: [
               Container(
-                padding: const EdgeInsets.all(9),
+                padding: const EdgeInsets.all(11),
                 decoration: BoxDecoration(
                   color: AppColors.softLavender.withValues(alpha: 0.4),
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: AppColors.softPurpleLight.withValues(alpha: 0.2),
-                    width: 1,
+                    color: AppColors.softPurpleLight.withValues(alpha: 0.25),
+                    width: 1.2,
                   ),
                 ),
                 child: const Icon(
                   Icons.notifications_none_rounded,
                   color: AppColors.softPurple,
-                  size: 20,
+                  size: 24,
                 ),
               ),
               Positioned(
-                right: 2,
-                top: 2,
+                right: 3,
+                top: 3,
                 child: Container(
-                  width: 9,
-                  height: 9,
+                  width: 10,
+                  height: 10,
                   decoration: BoxDecoration(
                     color: AppColors.rosePink,
                     shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: 1.5),
+                    border: Border.all(color: Colors.white, width: 1.8),
                   ),
                 ),
               ),
             ],
-          ),
-        ),
-        const SizedBox(width: 10),
-
-        // Right Side: Link With Partner Icon
-        GestureDetector(
-          onTap: onPartnerTap,
-          child: Container(
-            padding: const EdgeInsets.all(9),
-            decoration: BoxDecoration(
-              color: isPartnerLinked
-                  ? AppColors.babyPink
-                  : AppColors.softLavender.withValues(alpha: 0.4),
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: isPartnerLinked
-                    ? AppColors.rosePink.withValues(alpha: 0.4)
-                    : AppColors.softPurpleLight.withValues(alpha: 0.2),
-                width: 1,
-              ),
-            ),
-            child: Icon(
-              isPartnerLinked
-                  ? Icons.people_rounded
-                  : Icons.people_outline_rounded,
-              color: isPartnerLinked
-                  ? AppColors.rosePink
-                  : AppColors.softPurple,
-              size: 20,
-            ),
           ),
         ),
       ],

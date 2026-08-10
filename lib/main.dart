@@ -36,6 +36,11 @@ try {
     anonKey: 'sb_publishable_6GrenvrBLCjhjmmEQsBKwQ_wHbi5_s7',
   );
 
+  final initialSession = Supabase.instance.client.auth.currentSession;
+  debugPrint('[DIAGNOSTIC] Supabase initialized in main.dart.');
+  debugPrint('[DIAGNOSTIC] Restored currentSession on startup: ${initialSession != null ? "EXISTS" : "NULL"}');
+  debugPrint('[DIAGNOSTIC] Startup User ID: ${initialSession?.user.id ?? "NONE"}');
+
   runApp(
     const ProviderScope(
       child: HerSyncApp(),
