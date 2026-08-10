@@ -1,0 +1,210 @@
+import '../models/endometriosis_question.dart';
+
+const endometriosisQuestions = <EndometriosisQuestion>[
+  // Section 1 — Period Pain
+  EndometriosisQuestion(
+    id: 'endo_q1',
+    questionNumber: 1,
+    section: 'Period Pain',
+    question: 'How painful are your periods usually?',
+    options: ['No pain', 'Mild', 'Moderate', 'Severe', 'Very severe or disabling'],
+    scores: [0, 1, 2, 3, 3],
+  ),
+  EndometriosisQuestion(
+    id: 'endo_q2',
+    questionNumber: 2,
+    section: 'Period Pain',
+    question: 'Does your period pain interfere with your normal activities, such as school, work, exercise, or social activities?',
+    options: ['Never', 'Occasionally', 'Frequently', 'Almost every period'],
+    scores: [0, 1, 2, 3],
+  ),
+  EndometriosisQuestion(
+    id: 'endo_q3',
+    questionNumber: 3,
+    section: 'Period Pain',
+    question: 'Do you need pain-relieving medication to manage your period pain?',
+    options: ['Never', 'Sometimes', 'Most periods', 'Every period or multiple times during a period'],
+    scores: [0, 1, 2, 2],
+  ),
+  EndometriosisQuestion(
+    id: 'endo_q4',
+    questionNumber: 4,
+    section: 'Period Pain',
+    question: 'Has your period pain become worse over time?',
+    options: ['No', 'Slightly', 'Noticeably', 'Significantly'],
+    scores: [0, 1, 2, 2],
+  ),
+  EndometriosisQuestion(
+    id: 'endo_q5',
+    questionNumber: 5,
+    section: 'Period Pain',
+    question: 'Does your pelvic or abdominal pain begin before your period and continue during your period?',
+    options: ['No', 'Sometimes', 'Often', 'Almost every cycle'],
+    scores: [0, 1, 2, 2],
+  ),
+
+  // Section 2 — Pelvic and Abdominal Pain
+  EndometriosisQuestion(
+    id: 'endo_q6',
+    questionNumber: 6,
+    section: 'Pelvic & Abdominal Pain',
+    question: 'Do you experience pelvic pain even when you are not having your period?',
+    options: ['Never', 'Occasionally', 'Frequently', 'Almost constantly'],
+    scores: [0, 1, 2, 3],
+  ),
+  EndometriosisQuestion(
+    id: 'endo_q7',
+    questionNumber: 7,
+    section: 'Pelvic & Abdominal Pain',
+    question: 'Do you experience lower abdominal or pelvic pain that repeatedly gets worse around your period?',
+    options: ['No', 'Sometimes', 'Often', 'Every cycle'],
+    scores: [0, 1, 2, 2],
+  ),
+  EndometriosisQuestion(
+    id: 'endo_q8',
+    questionNumber: 8,
+    section: 'Pelvic & Abdominal Pain',
+    question: 'Does the pain sometimes spread to your lower back, hips, thighs, or legs?',
+    options: ['No', 'Occasionally', 'Frequently', 'Every cycle'],
+    scores: [0, 1, 1, 2],
+  ),
+  EndometriosisQuestion(
+    id: 'endo_q9',
+    questionNumber: 9,
+    section: 'Pelvic & Abdominal Pain',
+    question: 'Do you experience pelvic pressure, heaviness, or a deep aching sensation?',
+    options: ['No', 'Occasionally', 'Frequently', 'Almost every cycle'],
+    scores: [0, 1, 1, 2],
+  ),
+
+  // Section 3 — Pain During or After Sex
+  EndometriosisQuestion(
+    id: 'endo_q10',
+    questionNumber: 10,
+    section: 'Pain During/After Sex',
+    question: 'If you have vaginal sex, do you experience deep pelvic pain during sex?',
+    options: ['No', 'Occasionally', 'Frequently', 'Almost every time', 'Not applicable'],
+    scores: [0, 1, 2, 3, 0],
+  ),
+  EndometriosisQuestion(
+    id: 'endo_q11',
+    questionNumber: 11,
+    section: 'Pain During/After Sex',
+    question: 'If you have vaginal sex, do you experience pelvic pain after sex?',
+    options: ['No', 'Occasionally', 'Frequently', 'Almost every time', 'Not applicable'],
+    scores: [0, 1, 2, 2, 0],
+  ),
+
+  // Section 4 — Bowel Symptoms
+  EndometriosisQuestion(
+    id: 'endo_q12',
+    questionNumber: 12,
+    section: 'Bowel Symptoms',
+    question: 'Do you experience pain when having a bowel movement?',
+    options: ['Never', 'Occasionally', 'Frequently', 'Mainly around my period', 'Almost every period'],
+    scores: [0, 1, 2, 2, 3],
+  ),
+  EndometriosisQuestion(
+    id: 'endo_q13',
+    questionNumber: 13,
+    section: 'Bowel Symptoms',
+    question: 'Do you experience constipation, diarrhea, or significant bloating that becomes worse around your period?',
+    options: ['No', 'Occasionally', 'Frequently', 'Almost every cycle'],
+    scores: [0, 1, 2, 2],
+  ),
+  EndometriosisQuestion(
+    id: 'endo_q14',
+    questionNumber: 14,
+    section: 'Bowel Symptoms',
+    question: 'Do you experience abdominal or bowel pain during your period?',
+    options: ['No', 'Mild', 'Moderate', 'Severe'],
+    scores: [0, 1, 2, 2],
+  ),
+  EndometriosisQuestion(
+    id: 'endo_q15',
+    questionNumber: 15,
+    section: 'Bowel Symptoms',
+    question: 'Have you noticed blood in your stool, particularly around the time of your period?',
+    options: ['No', 'Yes', 'Not sure'],
+    scores: [0, 3, 0],
+  ),
+
+  // Section 5 — Urinary Symptoms
+  EndometriosisQuestion(
+    id: 'endo_q16',
+    questionNumber: 16,
+    section: 'Urinary Symptoms',
+    question: 'Do you experience pain or burning when urinating that becomes worse around your period?',
+    options: ['No', 'Occasionally', 'Frequently', 'Almost every cycle'],
+    scores: [0, 1, 2, 3],
+  ),
+  EndometriosisQuestion(
+    id: 'endo_q17',
+    questionNumber: 17,
+    section: 'Urinary Symptoms',
+    question: 'Do you notice blood in your urine around the time of your period?',
+    options: ['No', 'Yes', 'Not sure'],
+    scores: [0, 3, 0],
+  ),
+  EndometriosisQuestion(
+    id: 'endo_q18',
+    questionNumber: 18,
+    section: 'Urinary Symptoms',
+    question: 'Do you experience bladder or pelvic pain even when you do not have a urinary infection?',
+    options: ['No', 'Occasionally', 'Frequently', 'Not sure'],
+    scores: [0, 1, 2, 0],
+  ),
+
+  // Section 6 — Bleeding & Fertility
+  EndometriosisQuestion(
+    id: 'endo_q19',
+    questionNumber: 19,
+    section: 'Bleeding & Fertility',
+    question: 'How would you describe your menstrual bleeding?',
+    options: ['Light', 'Moderate', 'Heavy', 'Very heavy or difficult to manage'],
+    scores: [0, 0, 1, 2],
+  ),
+  EndometriosisQuestion(
+    id: 'endo_q20',
+    questionNumber: 20,
+    section: 'Bleeding & Fertility',
+    question: 'Have you experienced spotting or bleeding between periods?',
+    options: ['Never', 'Occasionally', 'Frequently', 'Not sure'],
+    scores: [0, 1, 2, 0],
+  ),
+  EndometriosisQuestion(
+    id: 'endo_q21',
+    questionNumber: 21,
+    section: 'Bleeding & Fertility',
+    question: 'Are you currently trying to become pregnant?',
+    options: ['No', 'Yes', 'Prefer not to say'],
+    scores: [0, 0, 0],
+    isScored: false,
+  ),
+  EndometriosisQuestion(
+    id: 'endo_q22',
+    questionNumber: 22,
+    section: 'Bleeding & Fertility',
+    question: 'If you have been trying to become pregnant, have you experienced difficulty becoming pregnant?',
+    options: ['No', 'Yes', 'Not applicable', 'Prefer not to say'],
+    scores: [0, 3, 0, 0],
+  ),
+
+  // Section 7 — Existing Medical History
+  EndometriosisQuestion(
+    id: 'endo_q23',
+    questionNumber: 23,
+    section: 'Existing Medical History',
+    question: 'Have you ever been diagnosed with endometriosis or been told by a healthcare professional that you may have it?',
+    options: ['No', 'Yes', 'Currently being evaluated'],
+    scores: [0, 3, 2],
+  ),
+  EndometriosisQuestion(
+    id: 'endo_q24',
+    questionNumber: 24,
+    section: 'Existing Medical History',
+    question: 'Have you ever had an ovarian endometrioma (\'chocolate cyst\') or another scan/surgical finding that was associated with endometriosis?',
+    options: ['No', 'Yes', 'Not sure', 'Never had an evaluation'],
+    scores: [0, 3, 0, 0],
+  ),
+];

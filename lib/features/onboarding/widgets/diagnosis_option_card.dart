@@ -6,12 +6,16 @@ class DiagnosisOptionCard extends StatelessWidget {
   final String label;
   final bool isSelected;
   final VoidCallback onTap;
+  final String? subtitle;
+  final Widget? leading;
 
   const DiagnosisOptionCard({
     super.key,
     required this.label,
     required this.isSelected,
     required this.onTap,
+    this.subtitle,
+    this.leading,
   });
 
   @override
@@ -49,14 +53,36 @@ class DiagnosisOptionCard extends StatelessWidget {
             ),
             child: Row(
               children: [
+                if (leading != null) ...[leading!, const SizedBox(width: 12)],
                 Expanded(
-                  child: Text(
-                    label,
-                    style: GoogleFonts.inter(
-                      fontSize: 15,
-                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                      color: isSelected ? AppColors.textDark : AppColors.textMedium,
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        label,
+                        style: GoogleFonts.inter(
+                          fontSize: 15,
+                          fontWeight: isSelected
+                              ? FontWeight.w600
+                              : FontWeight.w500,
+                          color: isSelected
+                              ? AppColors.textDark
+                              : AppColors.textMedium,
+                        ),
+                      ),
+                      if (subtitle != null) ...[
+                        const SizedBox(height: 3),
+                        Text(
+                          subtitle!,
+                          style: GoogleFonts.inter(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w400,
+                            color: AppColors.textLight,
+                            height: 1.3,
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -66,10 +92,14 @@ class DiagnosisOptionCard extends StatelessWidget {
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: isSelected ? AppColors.softPurple : AppColors.textLight,
+                      color: isSelected
+                          ? AppColors.softPurple
+                          : AppColors.textLight,
                       width: 2,
                     ),
-                    color: isSelected ? AppColors.softPurple : Colors.transparent,
+                    color: isSelected
+                        ? AppColors.softPurple
+                        : Colors.transparent,
                   ),
                   child: isSelected
                       ? const Icon(

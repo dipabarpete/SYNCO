@@ -16,14 +16,13 @@ class OnboardingWelcomeScreen extends ConsumerWidget {
 
     return OnboardingScreenLayout(
       currentStep: 2,
-      totalSteps: 3,
+      totalSteps: 12,
       onBackTap: () => Navigator.pop(context),
       bottomButton: SizedBox(
         width: double.infinity,
         height: 56,
         child: Container(
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
             gradient: AppColors.primaryGradient,
             boxShadow: [
               BoxShadow(

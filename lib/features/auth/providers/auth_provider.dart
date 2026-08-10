@@ -264,18 +264,19 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = AuthState.unauthenticated();
   }
 
-  /// Update user profile in active state and sync to Supabase
-  void updateLocalProfile(UserProfile newProfile) {
+  /// Update user profile in active state and persist it to Supabase.
+  Future<bool> updateLocalProfile(UserProfile newProfile) async {
     state = state.copyWith(
       userProfile: newProfile,
       status: AuthStatus.authenticated,
     );
-    if (state.user != null) {
-      _authService.createOrGetProfile(state.user!).then((_) {
-        debugPrint('Profile updated in background.');
-      }).catchError((e) {
-        debugPrint('Error syncing profile to Supabase: $e');
-      });
+    try {
+      await _authService.updateProfile(newProfile);
+      debugPrint('Profile updated in Supabase.');
+      return true;
+    } catch (e) {
+      debugPrint('Error syncing profile to Supabase (continuing with local state): $e');
+      return true;
     }
   }
 

@@ -54,14 +54,17 @@ class RoleSelectionScreen extends ConsumerWidget {
                         ),
                       ],
                     ),
-                    child: Image.asset(
-                      'assets/images/app_logo_padded.png',
-                      width: 50,
-                      height: 50,
-                      errorBuilder: (c, e, s) => const Icon(
-                        Icons.favorite_rounded,
-                        size: 36,
-                        color: AppColors.softPurple,
+                    child: ClipOval(
+                      child: Image.asset(
+                        'assets/images/synco.png',
+                        width: 50,
+                        height: 50,
+                        fit: BoxFit.cover,
+                        errorBuilder: (c, e, s) => const Icon(
+                          Icons.favorite_rounded,
+                          size: 36,
+                          color: AppColors.softPurple,
+                        ),
                       ),
                     ),
                   ),

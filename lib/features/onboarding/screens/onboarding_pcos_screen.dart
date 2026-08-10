@@ -6,7 +6,8 @@ import '../../../models/user_profile.dart';
 import '../providers/onboarding_provider.dart';
 import '../widgets/onboarding_screen_layout.dart';
 import '../widgets/diagnosis_option_card.dart';
-import '../../../app.dart';
+import 'management_profile_screens.dart';
+import 'early_risk_assessment_screens.dart';
 
 class OnboardingPcosScreen extends ConsumerWidget {
   const OnboardingPcosScreen({super.key});
@@ -21,22 +22,69 @@ class OnboardingPcosScreen extends ConsumerWidget {
     Future<void> onContinuePressed() async {
       if (!isOptionSelected) return;
 
-      final success = await onboardingNotifier.completeOnboarding();
-      if (success && context.mounted) {
-        // Navigate cleanly to Main App Layout
-        Navigator.pushAndRemoveUntil(
+      if (onboardingState.diagnosisStatus == PcosDiagnosisStatus.diagnosed) {
+        Navigator.push(
           context,
-          MaterialPageRoute(
-            builder: (context) => const HerSyncMainLayout(),
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) =>
+                const DiagnosedByScreen(),
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) {
+                  return FadeTransition(
+                    opacity: animation,
+                    child: SlideTransition(
+                      position:
+                          Tween<Offset>(
+                            begin: const Offset(0.1, 0.0),
+                            end: Offset.zero,
+                          ).animate(
+                            CurvedAnimation(
+                              parent: animation,
+                              curve: Curves.easeOutCubic,
+                            ),
+                          ),
+                      child: child,
+                    ),
+                  );
+                },
+            transitionDuration: const Duration(milliseconds: 300),
           ),
-          (route) => false,
         );
+        return;
       }
+
+      // No / Prefer not to say -> Early Risk Assessment branch.
+      Navigator.push(
+        context,
+        PageRouteBuilder(
+          pageBuilder: (context, animation, secondaryAnimation) =>
+              const EarlyRiskAgeScreen(),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            return FadeTransition(
+              opacity: animation,
+              child: SlideTransition(
+                position:
+                    Tween<Offset>(
+                      begin: const Offset(0.1, 0.0),
+                      end: Offset.zero,
+                    ).animate(
+                      CurvedAnimation(
+                        parent: animation,
+                        curve: Curves.easeOutCubic,
+                      ),
+                    ),
+                child: child,
+              ),
+            );
+          },
+          transitionDuration: const Duration(milliseconds: 300),
+        ),
+      );
     }
 
     return OnboardingScreenLayout(
       currentStep: 3,
-      totalSteps: 3,
+      totalSteps: 12,
       onBackTap: () => Navigator.pop(context),
       bottomButton: SizedBox(
         width: double.infinity,
@@ -82,7 +130,9 @@ class OnboardingPcosScreen extends ConsumerWidget {
                     style: GoogleFonts.inter(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
-                      color: isOptionSelected ? Colors.white : AppColors.textLight,
+                      color: isOptionSelected
+                          ? Colors.white
+                          : AppColors.textLight,
                     ),
                   ),
           ),
@@ -108,27 +158,39 @@ class OnboardingPcosScreen extends ConsumerWidget {
           // Option 1: Yes
           DiagnosisOptionCard(
             label: 'Yes, I have PCOS, PCOD, or PMOS',
-            isSelected: onboardingState.diagnosisStatus == PcosDiagnosisStatus.diagnosed,
+            isSelected:
+                onboardingState.diagnosisStatus ==
+                PcosDiagnosisStatus.diagnosed,
             onTap: () {
-              onboardingNotifier.setDiagnosisStatus(PcosDiagnosisStatus.diagnosed);
+              onboardingNotifier.setDiagnosisStatus(
+                PcosDiagnosisStatus.diagnosed,
+              );
             },
           ),
 
           // Option 2: No
           DiagnosisOptionCard(
             label: 'No',
-            isSelected: onboardingState.diagnosisStatus == PcosDiagnosisStatus.notDiagnosed,
+            isSelected:
+                onboardingState.diagnosisStatus ==
+                PcosDiagnosisStatus.notDiagnosed,
             onTap: () {
-              onboardingNotifier.setDiagnosisStatus(PcosDiagnosisStatus.notDiagnosed);
+              onboardingNotifier.setDiagnosisStatus(
+                PcosDiagnosisStatus.notDiagnosed,
+              );
             },
           ),
 
           // Option 3: Prefer not to say
           DiagnosisOptionCard(
             label: 'Prefer not to say',
-            isSelected: onboardingState.diagnosisStatus == PcosDiagnosisStatus.preferNotToSay,
+            isSelected:
+                onboardingState.diagnosisStatus ==
+                PcosDiagnosisStatus.preferNotToSay,
             onTap: () {
-              onboardingNotifier.setDiagnosisStatus(PcosDiagnosisStatus.preferNotToSay);
+              onboardingNotifier.setDiagnosisStatus(
+                PcosDiagnosisStatus.preferNotToSay,
+              );
             },
           ),
 
