@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "510590899188",
+    "project_id": "synco-75c06",
+    "storage_bucket": "synco-75c06.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:510590899188:android:7b0c7885e4a2f0efffdfa1",
+        "android_client_info": {
+          "package_name": "com.hersync.app.hersync"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD8cVAOaa0Eg29UfbUbWyBKoJFJ0oGrdgk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

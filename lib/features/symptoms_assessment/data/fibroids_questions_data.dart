@@ -1,0 +1,211 @@
+import '../models/fibroids_question.dart';
+
+const fibroidsQuestions = <UterineFibroidQuestion>[
+  // Section 1 — Menstrual Bleeding
+  UterineFibroidQuestion(
+    id: 'fib_q1',
+    questionNumber: 1,
+    section: 'Menstrual Bleeding',
+    question: 'How would you describe your menstrual bleeding?',
+    options: ['Light', 'Moderate', 'Heavy', 'Very heavy'],
+    scores: [0, 0, 2, 3],
+  ),
+  UterineFibroidQuestion(
+    id: 'fib_q2',
+    questionNumber: 2,
+    section: 'Menstrual Bleeding',
+    question: 'How many days does your period usually last?',
+    options: ['1–5 days', '6–7 days', '8–10 days', 'More than 10 days', 'Very unpredictable'],
+    scores: [0, 0, 1, 2, 1],
+  ),
+  UterineFibroidQuestion(
+    id: 'fib_q3',
+    questionNumber: 3,
+    section: 'Menstrual Bleeding',
+    question: 'Do you ever need to change your pad, tampon, or menstrual product unusually frequently because of heavy bleeding?',
+    options: ['Never', 'Occasionally', 'Frequently', 'Almost every period'],
+    scores: [0, 1, 2, 3],
+  ),
+  UterineFibroidQuestion(
+    id: 'fib_q4',
+    questionNumber: 4,
+    section: 'Menstrual Bleeding',
+    question: 'Do you experience bleeding that soaks through your menstrual product or clothes unexpectedly?',
+    options: ['Never', 'Occasionally', 'Frequently', 'Almost every period'],
+    scores: [0, 1, 2, 3],
+  ),
+  UterineFibroidQuestion(
+    id: 'fib_q5',
+    questionNumber: 5,
+    section: 'Menstrual Bleeding',
+    question: 'Do you pass blood clots that are larger than usual during your period?',
+    options: ['Never', 'Occasionally', 'Frequently', 'Almost every period', 'Not sure'],
+    scores: [0, 1, 2, 2, 0],
+  ),
+  UterineFibroidQuestion(
+    id: 'fib_q6',
+    questionNumber: 6,
+    section: 'Menstrual Bleeding',
+    question: 'Have your periods become noticeably heavier or longer over time?',
+    options: ['No', 'Slightly', 'Noticeably', 'Significantly'],
+    scores: [0, 1, 2, 2],
+  ),
+
+  // Section 2 — Bleeding Between Periods
+  UterineFibroidQuestion(
+    id: 'fib_q7',
+    questionNumber: 7,
+    section: 'Bleeding Between Periods',
+    question: 'Do you experience spotting or bleeding between your periods?',
+    options: ['Never', 'Occasionally', 'Frequently', 'Very frequently'],
+    scores: [0, 1, 2, 2],
+  ),
+  UterineFibroidQuestion(
+    id: 'fib_q8',
+    questionNumber: 8,
+    section: 'Bleeding Between Periods',
+    question: 'Do you experience bleeding after sexual intercourse?',
+    options: ['Never', 'Occasionally', 'Frequently', 'Not sure'],
+    scores: [0, 1, 2, 0],
+  ),
+
+  // Section 3 — Pelvic Pressure and Pain
+  UterineFibroidQuestion(
+    id: 'fib_q9',
+    questionNumber: 9,
+    section: 'Pelvic Pressure and Pain',
+    question: 'Do you experience a feeling of pressure, heaviness, or fullness in your lower abdomen or pelvis?',
+    options: ['Never', 'Occasionally', 'Frequently', 'Almost constantly'],
+    scores: [0, 1, 2, 3],
+  ),
+  UterineFibroidQuestion(
+    id: 'fib_q10',
+    questionNumber: 10,
+    section: 'Pelvic Pressure and Pain',
+    question: 'Do you experience pelvic or lower abdominal pain?',
+    options: ['No', 'Occasionally', 'Frequently', 'Almost constantly'],
+    scores: [0, 1, 2, 2],
+  ),
+  UterineFibroidQuestion(
+    id: 'fib_q11',
+    questionNumber: 11,
+    section: 'Pelvic Pressure and Pain',
+    question: 'Do you experience lower back pain or aching that you think may be related to your pelvic symptoms?',
+    options: ['No', 'Occasionally', 'Frequently', 'Almost constantly'],
+    scores: [0, 1, 1, 2],
+  ),
+  UterineFibroidQuestion(
+    id: 'fib_q12',
+    questionNumber: 12,
+    section: 'Pelvic Pressure and Pain',
+    question: 'Do you feel that your lower abdomen has become more enlarged, swollen, or unusually full?',
+    options: ['No', 'Occasionally', 'Frequently', 'Not sure'],
+    scores: [0, 1, 2, 0],
+  ),
+
+  // Section 4 — Bladder and Bowel Symptoms
+  UterineFibroidQuestion(
+    id: 'fib_q13',
+    questionNumber: 13,
+    section: 'Bladder and Bowel Symptoms',
+    question: 'Do you need to urinate more frequently than usual, particularly during the day or night?',
+    options: ['No', 'Occasionally', 'Frequently', 'Almost every day'],
+    scores: [0, 1, 2, 2],
+  ),
+  UterineFibroidQuestion(
+    id: 'fib_q14',
+    questionNumber: 14,
+    section: 'Bladder and Bowel Symptoms',
+    question: 'Do you feel pressure on your bladder or feel that you cannot empty your bladder completely?',
+    options: ['No', 'Occasionally', 'Frequently', 'Almost every day'],
+    scores: [0, 1, 2, 2],
+  ),
+  UterineFibroidQuestion(
+    id: 'fib_q15',
+    questionNumber: 15,
+    section: 'Bladder and Bowel Symptoms',
+    question: 'Do you experience constipation or difficulty passing stool?',
+    options: ['No', 'Occasionally', 'Frequently', 'Almost every week'],
+    scores: [0, 1, 2, 2],
+  ),
+  UterineFibroidQuestion(
+    id: 'fib_q16',
+    questionNumber: 16,
+    section: 'Bladder and Bowel Symptoms',
+    question: 'Do you feel pressure or discomfort when having a bowel movement?',
+    options: ['No', 'Occasionally', 'Frequently', 'Almost every week'],
+    scores: [0, 1, 2, 2],
+  ),
+
+  // Section 5 — Energy and Anemia-Associated Symptoms
+  UterineFibroidQuestion(
+    id: 'fib_q17',
+    questionNumber: 17,
+    section: 'Energy and Anemia-Associated Symptoms',
+    question: 'Do you frequently feel unusually tired or lacking in energy?',
+    options: ['No', 'Occasionally', 'Frequently', 'Almost every day'],
+    scores: [0, 0, 1, 1],
+  ),
+  UterineFibroidQuestion(
+    id: 'fib_q18',
+    questionNumber: 18,
+    section: 'Energy and Anemia-Associated Symptoms',
+    question: 'Do you experience dizziness, light-headedness, or unusual weakness, particularly during or after your period?',
+    options: ['No', 'Occasionally', 'Frequently', 'Almost every period'],
+    scores: [0, 1, 2, 2],
+  ),
+  UterineFibroidQuestion(
+    id: 'fib_q19',
+    questionNumber: 19,
+    section: 'Energy and Anemia-Associated Symptoms',
+    question: 'Have you ever been told that you have anemia or low iron?',
+    options: ['No', 'Yes', 'Not sure', 'Prefer not to say'],
+    scores: [0, 2, 0, 0],
+  ),
+
+  // Section 6 — Fertility and Reproductive History
+  UterineFibroidQuestion(
+    id: 'fib_q20',
+    questionNumber: 20,
+    section: 'Fertility and Reproductive History',
+    question: 'Are you currently trying to become pregnant?',
+    options: ['No', 'Yes', 'Prefer not to say'],
+    scores: [0, 0, 0],
+    isScored: false,
+    metadata: {'contextual': true},
+  ),
+  UterineFibroidQuestion(
+    id: 'fib_q21',
+    questionNumber: 21,
+    section: 'Fertility and Reproductive History',
+    question: 'If you have been trying to become pregnant, have you experienced difficulty becoming pregnant?',
+    options: ['No', 'Yes', 'Not applicable', 'Prefer not to say'],
+    scores: [0, 2, 0, 0],
+  ),
+  UterineFibroidQuestion(
+    id: 'fib_q22',
+    questionNumber: 22,
+    section: 'Fertility and Reproductive History',
+    question: 'Have you experienced recurrent pregnancy loss or been told that you have difficulty maintaining a pregnancy?',
+    options: ['No', 'Yes', 'Not sure', 'Prefer not to say'],
+    scores: [0, 2, 0, 0],
+  ),
+
+  // Section 7 — Existing Clinical Information
+  UterineFibroidQuestion(
+    id: 'fib_q23',
+    questionNumber: 23,
+    section: 'Existing Clinical Information',
+    question: 'Have you ever been told by a healthcare professional that you have uterine fibroids?',
+    options: ['No', 'Yes', 'Currently being evaluated'],
+    scores: [0, 3, 2],
+  ),
+  UterineFibroidQuestion(
+    id: 'fib_q24',
+    questionNumber: 24,
+    section: 'Existing Clinical Information',
+    question: 'Have you ever had an ultrasound, MRI, or other scan that showed a uterine fibroid or uterine growth?',
+    options: ['No', 'Yes', 'Not sure', 'Never had an evaluation'],
+    scores: [0, 3, 0, 0],
+  ),
+];

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/user_profile.dart';
 import '../models/health_metrics.dart';
 import '../models/cycle_data.dart';
@@ -7,6 +8,8 @@ import '../models/community_post.dart';
 import '../models/kyra_message.dart';
 import '../models/article_item.dart';
 import '../models/reminder_item.dart';
+import '../models/period_record.dart';
+import '../features/cycle/services/period_repository.dart';
 
 // User Profile Provider
 final userProfileProvider = StateNotifierProvider<UserProfileNotifier, UserProfile>((ref) {
@@ -108,6 +111,158 @@ class CycleDataNotifier extends StateNotifier<CycleData> {
       fertilityWindow: state.fertilityWindow,
       symptomLogs: [newLog, ...state.symptomLogs],
     );
+  }
+}
+
+// Period Logs Provider
+final periodRepositoryProvider = Provider<PeriodRepository>((ref) {
+  return PeriodRepository();
+});
+
+class PeriodLogsState {
+  final bool isLoading;
+  final List<PeriodRecord> records;
+  final String? errorMessage;
+
+  const PeriodLogsState({
+    this.isLoading = false,
+    this.records = const [],
+    this.errorMessage,
+  });
+}
+
+final periodLogsProvider =
+    StateNotifierProvider<PeriodLogsNotifier, PeriodLogsState>((ref) {
+  return PeriodLogsNotifier(ref);
+});
+
+class PeriodLogsNotifier extends StateNotifier<PeriodLogsState> {
+  final Ref ref;
+
+  PeriodLogsNotifier(this.ref) : super(const PeriodLogsState());
+
+  PeriodRepository get _repository => ref.read(periodRepositoryProvider);
+
+  String _formatError(Object e) {
+    if (e is FirebaseException) {
+      final fe = e;
+      return 'Database Error [${fe.code}]: ${fe.message}';
+    }
+    if (e is StateError) {
+      return e.message;
+    }
+    return 'Error: ${e.toString()}';
+  }
+
+  /// Loads the signed-in user's periods from Supabase.
+  /// On failure the error is exposed through [PeriodLogsState.errorMessage].
+  Future<void> loadPeriods() async {
+    state = const PeriodLogsState(isLoading: true);
+    try {
+      final records = await _repository.getPeriods();
+      if (mounted) {
+        state = PeriodLogsState(records: records);
+      }
+    } catch (e) {
+      logSupabaseError('PeriodLogsNotifier.loadPeriods', e);
+      if (mounted) {
+        state = PeriodLogsState(
+          errorMessage: _formatError(e),
+        );
+      }
+    }
+  }
+
+  /// Saves a new period to Supabase.
+  /// Returns null on success, or a user-facing error message on failure.
+  Future<String?> addPeriod({
+    required DateTime startDate,
+    DateTime? endDate,
+    String? flowLevel,
+    int? painLevel,
+    String? mood,
+    List<String>? symptoms,
+    String? notes,
+  }) async {
+    try {
+      final record = await _repository.createPeriod(
+        startDate: startDate,
+        endDate: endDate,
+        flowLevel: flowLevel,
+        painLevel: painLevel,
+        mood: mood,
+        symptoms: symptoms,
+        notes: notes,
+      );
+      if (mounted) {
+        state = PeriodLogsState(records: _sorted([record, ...state.records]));
+      }
+      return null;
+    } catch (e) {
+      logSupabaseError('PeriodLogsNotifier.addPeriod', e);
+      return _formatError(e);
+    }
+  }
+
+  /// Updates an existing period in Supabase.
+  /// Returns null on success, or a user-facing error message on failure.
+  Future<String?> updatePeriod(
+    String id, {
+    required DateTime startDate,
+    DateTime? endDate,
+    String? flowLevel,
+    int? painLevel,
+    String? mood,
+    List<String>? symptoms,
+    String? notes,
+  }) async {
+    try {
+      final updated = await _repository.updatePeriod(
+        id,
+        startDate: startDate,
+        endDate: endDate,
+        flowLevel: flowLevel,
+        painLevel: painLevel,
+        mood: mood,
+        symptoms: symptoms,
+        notes: notes,
+      );
+      if (mounted) {
+        state = PeriodLogsState(
+          records: _sorted([
+            for (final r in state.records)
+              if (r.id == id) updated else r
+          ]),
+        );
+      }
+      return null;
+    } catch (e) {
+      logSupabaseError('PeriodLogsNotifier.updatePeriod', e);
+      return _formatError(e);
+    }
+  }
+
+  /// Deletes a period from Supabase.
+  /// Returns null on success, or a user-facing error message on failure.
+  Future<String?> deletePeriod(String id) async {
+    try {
+      await _repository.deletePeriod(id);
+      if (mounted) {
+        state = PeriodLogsState(
+          records: state.records.where((r) => r.id != id).toList(),
+        );
+      }
+      return null;
+    } catch (e) {
+      logSupabaseError('PeriodLogsNotifier.deletePeriod', e);
+      return _formatError(e);
+    }
+  }
+
+  List<PeriodRecord> _sorted(List<PeriodRecord> records) {
+    final sorted = [...records];
+    sorted.sort((a, b) => b.startDate.compareTo(a.startDate));
+    return sorted;
   }
 }
 
