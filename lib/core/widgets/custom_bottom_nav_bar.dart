@@ -46,8 +46,8 @@ class CustomBottomNavBar extends StatelessWidget {
               icon: Icons.forum_rounded,
               label: 'Whisper Room',
             ),
-            // 3. Kyra Tab (Center Highlight)
-            _buildKyraNavItem(
+            // 3. Consult Tab (Center Highlight)
+            _buildConsultNavItem(
               index: 2,
             ),
             // 4. Pink Corner Tab
@@ -110,7 +110,7 @@ class CustomBottomNavBar extends StatelessWidget {
     );
   }
 
-  Widget _buildKyraNavItem({required int index}) {
+  Widget _buildConsultNavItem({required int index}) {
     final bool isSelected = currentIndex == index;
 
     return GestureDetector(
@@ -141,14 +141,14 @@ class CustomBottomNavBar extends StatelessWidget {
               ],
             ),
             child: const Icon(
-              Icons.auto_awesome_rounded,
+              Icons.medical_services_rounded,
               size: 19,
               color: Colors.white,
             ),
           ),
           const SizedBox(height: 2),
           Text(
-            'Kyra',
+            'Consult',
             style: GoogleFonts.inter(
               fontSize: 10,
               fontWeight: FontWeight.bold,

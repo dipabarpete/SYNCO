@@ -76,6 +76,6 @@ void main() {
 
     // Verify FibroidsAssessmentScreen is displayed
     expect(find.byType(FibroidsAssessmentScreen), findsOneWidget);
-    expect(find.text('Uterine Fibroids Screening'), findsOneWidget);
+    expect(find.text('Question 1 of 24'), findsOneWidget);
   });
 }
