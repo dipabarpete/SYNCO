@@ -1,11 +1,19 @@
+import 'dart:async';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart' as fb;
 import 'package:flutter/foundation.dart';
+import 'package:google_sign_in/google_sign_in.dart' as gsi;
 import 'package:supabase_flutter/supabase_flutter.dart';
+
+import '../../../core/backend.dart';
+import '../../../models/app_user.dart';
 import '../../../models/user_profile.dart';
 
 /// Clean authentication result object encapsulating success status, user data, profile, and errors.
 class AuthResult {
   final bool isSuccess;
-  final User? user;
+  final AppUser? user;
   final UserProfile? profile;
   final String? errorMessage;
   final bool isRealAuthPending;
@@ -19,7 +27,7 @@ class AuthResult {
   });
 
   factory AuthResult.success({
-    User? user,
+    AppUser? user,
     UserProfile? profile,
   }) {
     return AuthResult(
@@ -45,8 +53,15 @@ class AuthResult {
   }
 }
 
-/// Service layer providing real Supabase Authentication & Profile Management.
+/// Service layer providing Firebase Authentication as the primary backend
+/// and Supabase Authentication as an automatic fallback.
 class AuthService {
+  // -------------------------------------------------------------------------
+  // BACKEND ACCESS
+  // -------------------------------------------------------------------------
+
+  bool get _useFirebase => Backend.useFirebase;
+
   SupabaseClient? get _supabase {
     try {
       return Supabase.instance.client;
@@ -55,21 +70,135 @@ class AuthService {
     }
   }
 
-  /// Check if user has an active Supabase session
-  Session? get currentSession => _supabase?.auth.currentSession;
+  fb.FirebaseAuth? get _firebaseAuth => Backend.auth;
 
-  /// Current authenticated Supabase User
-  User? get currentUser => _supabase?.auth.currentUser;
-
-  /// Stream of Supabase Auth state changes
-  Stream<AuthState> get authStateChanges {
-    final client = _supabase;
-    if (client == null) return const Stream.empty();
-    return client.auth.onAuthStateChange;
+  /// Current authenticated user across both backends.
+  AppUser? get currentUser {
+    if (_useFirebase) {
+      final user = _firebaseAuth?.currentUser;
+      return user != null ? AppUser.fromFirebase(user) : null;
+    }
+    final user = _supabase?.auth.currentUser;
+    return user != null ? AppUser.fromSupabase(user) : null;
   }
 
-  /// Initiates Google OAuth flow using Supabase.
+  /// Stream of authenticated user changes across both backends.
+  Stream<AppUser?> get authStateChanges {
+    if (_useFirebase) {
+      final auth = _firebaseAuth;
+      if (auth == null) return const Stream.empty();
+      return auth.authStateChanges().map(
+            (user) => user != null ? AppUser.fromFirebase(user) : null,
+          );
+    }
+    final client = _supabase;
+    if (client == null) return const Stream.empty();
+    return client.auth.onAuthStateChange.map((data) {
+      final user = data.session?.user;
+      return user != null ? AppUser.fromSupabase(user) : null;
+    });
+  }
+
+  // -------------------------------------------------------------------------
+  // GOOGLE SIGN-IN
+  // -------------------------------------------------------------------------
+
   Future<AuthResult> signInWithGoogle() async {
+    if (_useFirebase) {
+      final auth = _firebaseAuth;
+      if (auth == null) {
+        return AuthResult.failure('Firebase client is not initialized.');
+      }
+
+      try {
+        // On Android, use the native Google Sign-In flow (Google Play
+        // Services). The browser-based IDP flow (signInWithProvider) is
+        // fragile on Android and intermittently fails with "missing initial
+        // state" when the OAuth state stored by GenericIdpActivity is lost.
+        if (!kIsWeb &&
+            defaultTargetPlatform == TargetPlatform.android) {
+          return _signInWithGoogleNative(auth);
+        }
+
+        final provider = fb.GoogleAuthProvider();
+        provider.setCustomParameters({'prompt': 'select_account'});
+
+        debugPrint(
+          '[DIAGNOSTIC] signInWithGoogle (Firebase) launching...',
+        );
+
+        final cred = await auth.signInWithProvider(provider);
+
+        debugPrint(
+          '[DIAGNOSTIC] Firebase Google sign-in user: '
+          '${cred.user?.uid ?? "NONE"}',
+        );
+
+        if (cred.user != null) {
+          return AuthResult.success(user: AppUser.fromFirebase(cred.user!));
+        }
+        return AuthResult.failure('Google sign-in did not return a user.');
+      } on fb.FirebaseAuthException catch (e) {
+        return AuthResult.failure(_formatFirebaseAuthError(e));
+      } catch (e) {
+        return AuthResult.failure('Google Sign-In failed: ${e.toString()}');
+      }
+    }
+
+    return _signInWithGoogleSupabase();
+  }
+
+  /// Native Android Google Sign-In via Play Services. No browser is
+  /// involved, so the flaky OAuth browser redirect is completely bypassed.
+  Future<AuthResult> _signInWithGoogleNative(fb.FirebaseAuth auth) async {
+    debugPrint(
+      '[DIAGNOSTIC] signInWithGoogle (Firebase native, Android) launching...',
+    );
+
+    try {
+      final gsi.GoogleSignIn googleSignIn = gsi.GoogleSignIn();
+      final gsi.GoogleSignInAccount? googleUser =
+          await googleSignIn.signIn();
+
+      if (googleUser == null) {
+        return AuthResult.failure('Google sign-in was cancelled.');
+      }
+
+      final gsi.GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
+
+      if (googleAuth.idToken == null) {
+        return AuthResult.failure(
+          'Google ID token is missing. The local google-services.json is '
+          'outdated - re-download it from the Firebase console '
+          '(Project settings → Your apps → Android app) and rebuild.',
+        );
+      }
+
+      final fb.AuthCredential credential = fb.GoogleAuthProvider.credential(
+        idToken: googleAuth.idToken,
+        accessToken: googleAuth.accessToken,
+      );
+
+      final cred = await auth.signInWithCredential(credential);
+
+      debugPrint(
+        '[DIAGNOSTIC] Firebase native Google sign-in user: '
+        '${cred.user?.uid ?? "NONE"}',
+      );
+
+      if (cred.user != null) {
+        return AuthResult.success(user: AppUser.fromFirebase(cred.user!));
+      }
+      return AuthResult.failure('Google sign-in did not return a user.');
+    } on fb.FirebaseAuthException catch (e) {
+      return AuthResult.failure(_formatFirebaseAuthError(e));
+    } catch (e) {
+      return AuthResult.failure('Google Sign-In failed: ${e.toString()}');
+    }
+  }
+
+  Future<AuthResult> _signInWithGoogleSupabase() async {
     final client = _supabase;
     if (client == null) {
       return AuthResult.failure('Supabase client is not initialized.');
@@ -86,43 +215,101 @@ class AuthService {
       );
 
       debugPrint('[DIAGNOSTIC] signInWithOAuth launched: $success');
-      debugPrint('[DIAGNOSTIC] currentSession immediately after signInWithOAuth launch: ${client.auth.currentSession != null ? "EXISTS" : "NULL (OAuth browser in progress)"}');
 
       if (success) {
-        return AuthResult.success(user: client.auth.currentUser);
+        final user = client.auth.currentUser;
+        return AuthResult.success(
+          user: user != null ? AppUser.fromSupabase(user) : null,
+        );
       } else {
         return AuthResult.failure('Google OAuth sign-in could not be launched.');
       }
     } on AuthException catch (e) {
-      return AuthResult.failure(e.message);
+      return AuthResult.failure(_formatSupabaseError(e));
     } catch (e) {
       return AuthResult.failure('Google Sign-In failed: ${e.toString()}');
     }
   }
 
-  /// Sends Phone OTP using Supabase Auth.
+  // -------------------------------------------------------------------------
+  // PHONE OTP
+  // -------------------------------------------------------------------------
+
+  String? _pendingVerificationId;
+
+  /// Sends Phone OTP. Firebase resolves the SMS asynchronously, so the
+  /// verification id is stored internally and consumed by [verifyOtp].
   Future<AuthResult> sendOtp({
     required String countryCode,
     required String phoneNumber,
   }) async {
+    final cleanNumber = phoneNumber.replaceAll(RegExp(r'\D'), '');
+    if (cleanNumber.length < 7) {
+      return AuthResult.failure('Please enter a valid phone number.');
+    }
+
+    final formattedCountry = countryCode.startsWith('+') ? countryCode : '+$countryCode';
+    final fullE164Number = '$formattedCountry$cleanNumber';
+
+    if (_useFirebase) {
+      final auth = _firebaseAuth;
+      if (auth == null) {
+        return AuthResult.failure('Firebase client is not initialized.');
+      }
+
+      final completer = Completer<AuthResult>();
+
+      auth.verifyPhoneNumber(
+        phoneNumber: fullE164Number,
+        timeout: const Duration(seconds: 60),
+        verificationCompleted: (phoneAuthCredential) async {
+          if (completer.isCompleted) return;
+          try {
+            final cred = await auth.signInWithCredential(phoneAuthCredential);
+            if (cred.user != null) {
+              final profile =
+                  await createOrGetProfile(AppUser.fromFirebase(cred.user!));
+              completer.complete(AuthResult.success(
+                user: AppUser.fromFirebase(cred.user!),
+                profile: profile,
+              ));
+            } else {
+              completer.complete(
+                AuthResult.failure('Phone verification failed. Please try again.'),
+              );
+            }
+          } catch (e) {
+            completer.complete(
+              AuthResult.failure('Phone verification failed: ${e.toString()}'),
+            );
+          }
+        },
+        verificationFailed: (error) {
+          if (completer.isCompleted) return;
+          completer.complete(
+            AuthResult.failure(_formatFirebaseAuthError(error)),
+          );
+        },
+        codeSent: (verificationId, resendToken) {
+          if (completer.isCompleted) return;
+          _pendingVerificationId = verificationId;
+          completer.complete(AuthResult.success());
+        },
+        codeAutoRetrievalTimeout: (verificationId) {},
+      );
+
+      return completer.future;
+    }
+
     final client = _supabase;
     if (client == null) {
       return AuthResult.failure('Supabase client is not initialized.');
     }
 
     try {
-      final cleanNumber = phoneNumber.replaceAll(RegExp(r'\D'), '');
-      if (cleanNumber.length < 7) {
-        return AuthResult.failure('Please enter a valid phone number.');
-      }
-
-      final formattedCountry = countryCode.startsWith('+') ? countryCode : '+$countryCode';
-      final fullE164Number = '$formattedCountry$cleanNumber';
-
       await client.auth.signInWithOtp(
         phone: fullE164Number,
       );
-
       return AuthResult.success();
     } on AuthException catch (e) {
       return AuthResult.failure(_formatSupabaseError(e));
@@ -131,21 +318,59 @@ class AuthService {
     }
   }
 
-  /// Verifies 6-digit Phone OTP with Supabase Auth.
+  /// Verifies 6-digit Phone OTP.
   Future<AuthResult> verifyOtp({
     required String phoneNumber,
     required String otpCode,
   }) async {
+    if (otpCode.length != 6) {
+      return AuthResult.failure('Please enter all 6 digits of the OTP code.');
+    }
+
+    if (_useFirebase) {
+      final auth = _firebaseAuth;
+      final verificationId = _pendingVerificationId;
+      if (auth == null) {
+        return AuthResult.failure('Firebase client is not initialized.');
+      }
+      if (verificationId == null) {
+        return AuthResult.failure(
+          'No OTP was requested. Please request a new code.',
+        );
+      }
+
+      try {
+        final credential = fb.PhoneAuthProvider.credential(
+          verificationId: verificationId,
+          smsCode: otpCode.trim(),
+        );
+
+        final response = await auth.signInWithCredential(credential);
+
+        if (response.user != null) {
+          _pendingVerificationId = null;
+          final profile =
+              await createOrGetProfile(AppUser.fromFirebase(response.user!));
+          return AuthResult.success(
+            user: AppUser.fromFirebase(response.user!),
+            profile: profile,
+          );
+        } else {
+          return AuthResult.failure('OTP verification failed. Please try again.');
+        }
+      } on fb.FirebaseAuthException catch (e) {
+        return AuthResult.failure(_formatFirebaseAuthError(e));
+      } catch (e) {
+        return AuthResult.failure('Verification failed: ${e.toString()}');
+      }
+    }
+
     final client = _supabase;
     if (client == null) {
       return AuthResult.failure('Supabase client is not initialized.');
     }
 
     try {
-      if (otpCode.length != 6) {
-        return AuthResult.failure('Please enter all 6 digits of the OTP code.');
-      }
-
       final AuthResponse response = await client.auth.verifyOTP(
         type: OtpType.sms,
         token: otpCode.trim(),
@@ -153,8 +378,12 @@ class AuthService {
       );
 
       if (response.user != null) {
-        final profile = await createOrGetProfile(response.user!);
-        return AuthResult.success(user: response.user, profile: profile);
+        final profile =
+            await createOrGetProfile(AppUser.fromSupabase(response.user!));
+        return AuthResult.success(
+          user: AppUser.fromSupabase(response.user!),
+          profile: profile,
+        );
       } else {
         return AuthResult.failure('OTP verification failed. Please try again.');
       }
@@ -165,39 +394,85 @@ class AuthService {
     }
   }
 
-  /// Authenticates using Email and Password with Supabase.
+  // -------------------------------------------------------------------------
+  // EMAIL & PASSWORD
+  // -------------------------------------------------------------------------
+
+  Future<String?> _validateEmailPassword(String email, String password) async {
+    final cleanEmail = email.trim();
+    if (cleanEmail.isEmpty) {
+      return 'Email address is required.';
+    }
+
+    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+    if (!emailRegex.hasMatch(cleanEmail)) {
+      return 'Please enter a valid email address.';
+    }
+
+    if (password.isEmpty) {
+      return 'Password cannot be empty.';
+    }
+    return null;
+  }
+
+  /// Authenticates using Email and Password.
   Future<AuthResult> signInWithEmail({
     required String email,
     required String password,
   }) async {
+    final validationError = await _validateEmailPassword(email, password);
+    if (validationError != null) {
+      return AuthResult.failure(validationError);
+    }
+    final cleanEmail = email.trim();
+
+    if (_useFirebase) {
+      final auth = _firebaseAuth;
+      if (auth == null) {
+        return AuthResult.failure('Firebase client is not initialized.');
+      }
+
+      try {
+        final response = await auth.signInWithEmailAndPassword(
+          email: cleanEmail,
+          password: password,
+        );
+
+        if (response.user != null) {
+          final profile =
+              await createOrGetProfile(AppUser.fromFirebase(response.user!));
+          return AuthResult.success(
+            user: AppUser.fromFirebase(response.user!),
+            profile: profile,
+          );
+        } else {
+          return AuthResult.failure('Invalid email or password.');
+        }
+      } on fb.FirebaseAuthException catch (e) {
+        return AuthResult.failure(_formatFirebaseAuthError(e));
+      } catch (e) {
+        return AuthResult.failure('Sign in failed: ${e.toString()}');
+      }
+    }
+
     final client = _supabase;
     if (client == null) {
       return AuthResult.failure('Supabase client is not initialized.');
     }
 
     try {
-      final cleanEmail = email.trim();
-      if (cleanEmail.isEmpty) {
-        return AuthResult.failure('Email address is required.');
-      }
-
-      final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
-      if (!emailRegex.hasMatch(cleanEmail)) {
-        return AuthResult.failure('Please enter a valid email address.');
-      }
-
-      if (password.isEmpty) {
-        return AuthResult.failure('Password cannot be empty.');
-      }
-
       final AuthResponse response = await client.auth.signInWithPassword(
         email: cleanEmail,
         password: password,
       );
 
       if (response.user != null) {
-        final profile = await createOrGetProfile(response.user!);
-        return AuthResult.success(user: response.user, profile: profile);
+        final profile =
+            await createOrGetProfile(AppUser.fromSupabase(response.user!));
+        return AuthResult.success(
+          user: AppUser.fromSupabase(response.user!),
+          profile: profile,
+        );
       } else {
         return AuthResult.failure('Invalid email or password.');
       }
@@ -208,43 +483,68 @@ class AuthService {
     }
   }
 
-  /// Creates a new user account with Email & Password in Supabase.
+  /// Creates a new user account with Email & Password.
   Future<AuthResult> signUpWithEmail({
     required String email,
     required String password,
   }) async {
+    final validationError = await _validateEmailPassword(email, password);
+    if (validationError != null) {
+      return AuthResult.failure(validationError);
+    }
+    final cleanEmail = email.trim();
+
+    if (password.length < 6) {
+      return AuthResult.failure('Password must be at least 6 characters long.');
+    }
+
+    if (_useFirebase) {
+      final auth = _firebaseAuth;
+      if (auth == null) {
+        return AuthResult.failure('Firebase client is not initialized.');
+      }
+
+      try {
+        final response = await auth.createUserWithEmailAndPassword(
+          email: cleanEmail,
+          password: password,
+        );
+
+        if (response.user != null) {
+          final profile =
+              await createOrGetProfile(AppUser.fromFirebase(response.user!));
+          return AuthResult.success(
+            user: AppUser.fromFirebase(response.user!),
+            profile: profile,
+          );
+        } else {
+          return AuthResult.failure('Sign up failed. Please try again.');
+        }
+      } on fb.FirebaseAuthException catch (e) {
+        return AuthResult.failure(_formatFirebaseAuthError(e));
+      } catch (e) {
+        return AuthResult.failure('Account creation failed: ${e.toString()}');
+      }
+    }
+
     final client = _supabase;
     if (client == null) {
       return AuthResult.failure('Supabase client is not initialized.');
     }
 
     try {
-      final cleanEmail = email.trim();
-      if (cleanEmail.isEmpty) {
-        return AuthResult.failure('Email address is required.');
-      }
-
-      final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
-      if (!emailRegex.hasMatch(cleanEmail)) {
-        return AuthResult.failure('Please enter a valid email address.');
-      }
-
-      if (password.isEmpty) {
-        return AuthResult.failure('Password cannot be empty.');
-      }
-
-      if (password.length < 6) {
-        return AuthResult.failure('Password must be at least 6 characters long.');
-      }
-
       final AuthResponse response = await client.auth.signUp(
         email: cleanEmail,
         password: password,
       );
 
       if (response.user != null) {
-        final profile = await createOrGetProfile(response.user!);
-        return AuthResult.success(user: response.user, profile: profile);
+        final profile =
+            await createOrGetProfile(AppUser.fromSupabase(response.user!));
+        return AuthResult.success(
+          user: AppUser.fromSupabase(response.user!),
+          profile: profile,
+        );
       } else {
         return AuthResult.failure('Sign up failed. Please try again.');
       }
@@ -255,20 +555,39 @@ class AuthService {
     }
   }
 
-  /// Sends password reset email link using Supabase Auth.
+  // -------------------------------------------------------------------------
+  // PASSWORD RESET
+  // -------------------------------------------------------------------------
+
   Future<AuthResult> sendPasswordResetEmail(String email) async {
+    final cleanEmail = email.trim();
+    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+    if (!emailRegex.hasMatch(cleanEmail)) {
+      return AuthResult.failure('Please enter a valid email address.');
+    }
+
+    if (_useFirebase) {
+      final auth = _firebaseAuth;
+      if (auth == null) {
+        return AuthResult.failure('Firebase client is not initialized.');
+      }
+
+      try {
+        await auth.sendPasswordResetEmail(email: cleanEmail);
+        return AuthResult.success();
+      } on fb.FirebaseAuthException catch (e) {
+        return AuthResult.failure(_formatFirebaseAuthError(e));
+      } catch (e) {
+        return AuthResult.failure('Password reset failed: ${e.toString()}');
+      }
+    }
+
     final client = _supabase;
     if (client == null) {
       return AuthResult.failure('Supabase client is not initialized.');
     }
 
     try {
-      final cleanEmail = email.trim();
-      final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
-      if (!emailRegex.hasMatch(cleanEmail)) {
-        return AuthResult.failure('Please enter a valid email address.');
-      }
-
       await client.auth.resetPasswordForEmail(cleanEmail);
       return AuthResult.success();
     } on AuthException catch (e) {
@@ -278,8 +597,60 @@ class AuthService {
     }
   }
 
-  /// Fetches existing profile or creates a new user profile in the `profiles` table.
-  Future<UserProfile> createOrGetProfile(User user) async {
+  // -------------------------------------------------------------------------
+  // PROFILE MANAGEMENT
+  // -------------------------------------------------------------------------
+
+  /// Fetches existing profile or creates a new one.
+  ///
+  /// Firebase backend: `users/{uid}` Firestore document.
+  /// Supabase fallback: `profiles` table.
+  Future<UserProfile> createOrGetProfile(AppUser user) async {
+    if (_useFirebase) {
+      final firestore = Backend.firestore;
+      if (firestore != null) {
+        try {
+          final docRef = firestore.collection('users').doc(user.id);
+          final doc = await docRef.get();
+
+          if (doc.exists) {
+            return UserProfile.fromMap(Map<String, dynamic>.from(doc.data()!));
+          }
+        } catch (e) {
+          debugPrint('Error fetching profile from Firestore users/${
+              user.id}: $e');
+        }
+      }
+
+      // Default values from Firebase account metadata if new profile.
+      final String fallbackName = user.displayName ??
+          (user.email != null && user.email!.contains('@')
+              ? user.email!.split('@').first
+              : 'SYNCO User');
+
+      final newProfileMap = <String, dynamic>{
+        'id': user.id,
+        'name': fallbackName,
+        'email': user.email,
+        'phone': user.phone,
+        'avatar_url': user.photoUrl ?? '',
+        'onboarding_completed': false,
+        'created_at': DateTime.now().toIso8601String(),
+        'updated_at': DateTime.now().toIso8601String(),
+      };
+
+      if (firestore != null) {
+        try {
+          await firestore.collection('users').doc(user.id).set(newProfileMap);
+        } catch (e) {
+          debugPrint('Note: Profile insert to Firestore users/${user.id}: $e');
+        }
+      }
+
+      return UserProfile.fromMap(newProfileMap);
+    }
+
+    // --- Supabase fallback -------------------------------------------------
     final client = _supabase;
     if (client != null) {
       try {
@@ -298,15 +669,13 @@ class AuthService {
     }
 
     // Default values from User metadata if new profile
-    final String fallbackName = user.userMetadata?['full_name'] ??
-        user.userMetadata?['name'] ??
+    final String fallbackName = user.displayName ??
+        user.userMetadata['name'] ??
         (user.email != null && user.email!.contains('@')
             ? user.email!.split('@').first
             : 'SYNCO User');
 
-    final String fallbackAvatar = user.userMetadata?['avatar_url'] ??
-        user.userMetadata?['picture'] ??
-        '';
+    final String fallbackAvatar = user.photoUrl ?? '';
 
     final newProfileMap = {
       'id': user.id,
@@ -332,6 +701,23 @@ class AuthService {
 
   /// Persists changes made to an existing profile.
   Future<void> updateProfile(UserProfile profile) async {
+    if (_useFirebase) {
+      final firestore = Backend.firestore;
+      if (firestore == null) {
+        throw StateError('Firebase client is not initialized.');
+      }
+      try {
+        await firestore
+            .collection('users')
+            .doc(profile.id)
+            .set(profile.toMap(), SetOptions(merge: true));
+      } catch (e) {
+        debugPrint('Note: Profile upsert to Firestore users/${profile.id}: $e');
+        rethrow;
+      }
+      return;
+    }
+
     final client = _supabase;
     if (client == null) {
       throw StateError('Supabase client is not initialized.');
@@ -339,9 +725,23 @@ class AuthService {
     await client.from('profiles').upsert(profile.toMap());
   }
 
-  /// Signs out the user from Supabase.
+  // -------------------------------------------------------------------------
+  // SIGN OUT
+  // -------------------------------------------------------------------------
+
   Future<void> signOut() async {
     debugPrint('[DIAGNOSTIC] signOut() WAS CALLED in AuthService!');
+    if (_useFirebase) {
+      final auth = _firebaseAuth;
+      if (auth != null) {
+        try {
+          await auth.signOut();
+        } catch (e) {
+          debugPrint('Firebase sign out exception: $e');
+        }
+      }
+      return;
+    }
     final client = _supabase;
     if (client != null) {
       try {
@@ -352,7 +752,49 @@ class AuthService {
     }
   }
 
-  /// Helper to map Supabase AuthException into clean user messages
+  // -------------------------------------------------------------------------
+  // ERROR MAPPING
+  // -------------------------------------------------------------------------
+
+  /// Helper to map a Firebase AuthException into clean user messages.
+  String _formatFirebaseAuthError(fb.FirebaseAuthException exception) {
+    final code = exception.code;
+    switch (code) {
+      case 'invalid-credential':
+      case 'wrong-password':
+      case 'invalid-login-credentials':
+      case 'user-not-found':
+        return 'Incorrect email or password. Please try again.';
+      case 'user-disabled':
+        return 'This account has been disabled. Please contact support.';
+      case 'email-already-in-use':
+      case 'account-exists-with-different-credential':
+        return 'An account with this email already exists. Please log in.';
+      case 'weak-password':
+        return 'Password must be at least 6 characters long.';
+      case 'invalid-verification-code':
+      case 'invalid-verification-id':
+      case 'session-expired':
+        return 'Invalid or expired OTP code. Please request a new code.';
+      case 'invalid-phone-number':
+        return 'Invalid phone number format. Please check international format.';
+      case 'too-many-requests':
+        return 'Too many attempts. Please try again later.';
+      case 'network-request-failed':
+        return 'Network error. Please check your connection.';
+      case 'operation-not-allowed':
+      case 'admin-restricted-operation':
+        return 'This sign-in method is currently unavailable.';
+      case 'provider-already-linked':
+        return 'This account is already linked to this sign-in method.';
+      case 'invalid-email':
+        return 'Please enter a valid email address.';
+      default:
+        return exception.message ?? 'Authentication failed. Please try again.';
+    }
+  }
+
+  /// Helper to map Supabase AuthException into clean user messages.
   String _formatSupabaseError(AuthException exception) {
     final msg = exception.message.toLowerCase();
     if (msg.contains('invalid login credentials') || msg.contains('wrong password')) {

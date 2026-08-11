@@ -1,13 +1,14 @@
-import 'dart:io';
-
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'app.dart';
+import 'core/backend.dart';
+import 'firebase_options.dart';
 
 Future<void> main() async {
- 
+
   WidgetsFlutterBinding.ensureInitialized();
 
   await SystemChrome.setPreferredOrientations([
@@ -15,31 +16,33 @@ Future<void> main() async {
     DeviceOrientation.portraitDown,
   ]);
 
-try {
-  final google = await InternetAddress.lookup('google.com');
-  print('GOOGLE DNS RESULT: $google');
-} catch (e) {
-  print('GOOGLE DNS ERROR: $e');
-}
+  // ---------------------------------------------------------------------------
+  // Firebase (primary backend)
+  // ---------------------------------------------------------------------------
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    debugPrint('[DIAGNOSTIC] Firebase initialized in main.dart.');
+  } catch (e) {
+    debugPrint('[DIAGNOSTIC] Firebase initialization FAILED: $e');
+  }
 
-try {
-  final supabase = await InternetAddress.lookup(
-    'kvebcttlyogilsimnywf.supabase.co',
-  );
-  print('SUPABASE DNS RESULT: $supabase');
-} catch (e) {
-  print('SUPABASE DNS ERROR: $e');
-}
+  // ---------------------------------------------------------------------------
+  // Supabase remains initialized as a fallback until the migration is
+  // confirmed working end-to-end.
+  // ---------------------------------------------------------------------------
+  try {
+    await Supabase.initialize(
+      url: 'https://kvebcttlyogilsimnywf.supabase.co',
+      publishableKey: 'sb_publishable_6GrenvrBLCjhjmmEQsBKwQ_wHbi5_s7',
+    );
+    debugPrint('[DIAGNOSTIC] Supabase initialized in main.dart.');
+  } catch (e) {
+    debugPrint('[DIAGNOSTIC] Supabase initialization FAILED: $e');
+  }
 
-  await Supabase.initialize(
-    url: 'https://kvebcttlyogilsimnywf.supabase.co',
-    anonKey: 'sb_publishable_6GrenvrBLCjhjmmEQsBKwQ_wHbi5_s7',
-  );
-
-  final initialSession = Supabase.instance.client.auth.currentSession;
-  debugPrint('[DIAGNOSTIC] Supabase initialized in main.dart.');
-  debugPrint('[DIAGNOSTIC] Restored currentSession on startup: ${initialSession != null ? "EXISTS" : "NULL"}');
-  debugPrint('[DIAGNOSTIC] Startup User ID: ${initialSession?.user.id ?? "NONE"}');
+  debugPrint('[DIAGNOSTIC] Backend state: ${Backend.backends}');
 
   runApp(
     const ProviderScope(
