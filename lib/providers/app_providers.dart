@@ -10,6 +10,7 @@ import '../models/article_item.dart';
 import '../models/reminder_item.dart';
 import '../models/period_record.dart';
 import '../features/cycle/services/period_repository.dart';
+import '../features/doctor/models/appointment.dart';
 
 // User Profile Provider
 final userProfileProvider = StateNotifierProvider<UserProfileNotifier, UserProfile>((ref) {
@@ -665,3 +666,42 @@ final articlesProvider = Provider<List<ArticleItem>>((ref) {
     ),
   ];
 });
+
+// Doctor Appointment Requests Provider
+//
+// Appointments start as [AppointmentStatus.requested]. The doctor can then
+// accept (-> confirmed) or decline (-> declined); the user can cancel (-> cancelled).
+final appointmentsProvider =
+    StateNotifierProvider<AppointmentsNotifier, List<Appointment>>((ref) {
+  return AppointmentsNotifier();
+});
+
+class AppointmentsNotifier extends StateNotifier<List<Appointment>> {
+  AppointmentsNotifier() : super(const []);
+
+  void addRequest(Appointment appointment) {
+    state = [appointment, ...state];
+  }
+
+  void acceptRequest(String id) {
+    _setStatus(id, AppointmentStatus.confirmed);
+  }
+
+  void declineRequest(String id) {
+    _setStatus(id, AppointmentStatus.declined);
+  }
+
+  void cancelRequest(String id) {
+    _setStatus(id, AppointmentStatus.cancelled);
+  }
+
+  void _setStatus(String id, AppointmentStatus status) {
+    state = [
+      for (final appointment in state)
+        if (appointment.id == id)
+          appointment.copyWith(status: status)
+        else
+          appointment
+    ];
+  }
+}

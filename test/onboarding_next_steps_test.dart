@@ -3,8 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hersync/features/onboarding/screens/management_profile_screens.dart';
 import 'package:hersync/app.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
+  });
+
   testWidgets('MainGoalScreen Q8 navigation leads to PersonalizedNextStepsScreen',
       (WidgetTester tester) async {
     await tester.pumpWidget(

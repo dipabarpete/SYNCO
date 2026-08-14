@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../doctor/data/dummy_doctors.dart';
+import '../../doctor/screens/all_doctors_screen.dart';
 import '../models/pcos_assessment_result.dart';
 import '../models/pcos_result_level.dart';
 import '../providers/pcos_assessment_provider.dart';
@@ -179,12 +181,14 @@ class PcosAssessmentResultScreen extends ConsumerWidget {
                                   color: AppColors.softPurple,
                                 ),
                                 const SizedBox(width: 10),
-                                Text(
-                                  'Important: Screening result, not a diagnosis',
-                                  style: GoogleFonts.outfit(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.bold,
-                                    color: AppColors.textDark,
+                                Expanded(
+                                  child: Text(
+                                    'Important: Screening result, not a diagnosis',
+                                    style: GoogleFonts.outfit(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.textDark,
+                                    ),
                                   ),
                                 ),
                               ],
@@ -473,10 +477,7 @@ class PcosAssessmentResultScreen extends ConsumerWidget {
                             gradient: AppColors.primaryGradient,
                           ),
                           child: ElevatedButton(
-                            onPressed: () {
-                              ref.read(pcosAssessmentProvider.notifier).reset();
-                              Navigator.pop(context);
-                            },
+                            onPressed: () => _handleCta(context, ref, result.primaryCta),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.transparent,
                               shadowColor: Colors.transparent,
@@ -502,10 +503,7 @@ class PcosAssessmentResultScreen extends ConsumerWidget {
                           width: double.infinity,
                           height: 52,
                           child: OutlinedButton(
-                            onPressed: () {
-                              ref.read(pcosAssessmentProvider.notifier).reset();
-                              Navigator.pop(context);
-                            },
+                            onPressed: () => _handleCta(context, ref, result.secondaryCta!),
                             style: OutlinedButton.styleFrom(
                               side: const BorderSide(color: AppColors.softPurple),
                               shape: RoundedRectangleBorder(
@@ -599,6 +597,22 @@ class PcosAssessmentResultScreen extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  /// "Discuss With a Doctor" opens the existing Consult/All Doctors screen.
+  /// Other CTAs keep the existing behavior: reset the assessment and leave.
+  void _handleCta(BuildContext context, WidgetRef ref, String label) {
+    if (label.trim().toLowerCase() == 'discuss with a doctor') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => AllDoctorsScreen(doctors: DummyDoctors.all),
+        ),
+      );
+    } else {
+      ref.read(pcosAssessmentProvider.notifier).reset();
+      Navigator.pop(context);
+    }
   }
 
   void _showDoctorSummaryDialog(BuildContext context) {

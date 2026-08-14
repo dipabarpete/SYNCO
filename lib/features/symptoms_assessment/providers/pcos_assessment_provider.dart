@@ -2,7 +2,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/pcos_questions_data.dart';
 import '../models/pcos_assessment_result.dart';
 import '../models/pcos_question.dart';
+import '../models/saved_screening_result.dart';
 import '../services/pcos_assessment_calculator.dart';
+import 'screening_results_provider.dart';
 
 class PcosAssessmentState {
   final int currentQuestionIndex;
@@ -38,11 +40,14 @@ class PcosAssessmentState {
 
 final pcosAssessmentProvider =
     StateNotifierProvider<PcosAssessmentNotifier, PcosAssessmentState>((ref) {
-  return PcosAssessmentNotifier();
+  return PcosAssessmentNotifier(ref.read(screeningResultsProvider.notifier));
 });
 
 class PcosAssessmentNotifier extends StateNotifier<PcosAssessmentState> {
-  PcosAssessmentNotifier() : super(const PcosAssessmentState());
+  PcosAssessmentNotifier(this._screeningResultsNotifier)
+      : super(const PcosAssessmentState());
+
+  final ScreeningResultsNotifier _screeningResultsNotifier;
 
   void selectOption(int optionIndex) {
     final updatedAnswers = Map<int, int>.from(state.answers);
@@ -62,6 +67,9 @@ class PcosAssessmentNotifier extends StateNotifier<PcosAssessmentState> {
       state = state.copyWith(
         result: calculatedResult,
         isCompleted: true,
+      );
+      _screeningResultsNotifier.save(
+        SavedScreeningResult.fromPcos(calculatedResult),
       );
       return true;
     }

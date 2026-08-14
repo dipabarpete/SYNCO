@@ -31,6 +31,22 @@ service cloud.firestore {
             && request.resource.data.user_id == request.auth.uid;
         allow delete: if request.auth != null && request.auth.uid == uid;
       }
+
+      // -----------------------------------------------------------------
+      // Health tracker entries
+      // users/{uid}/{collection}/{entryId}. Each tracker collection is
+      // scoped to the owning user; writes must carry the owner's uid.
+      // -----------------------------------------------------------------
+      match /{healthCollection}/{entryId} {
+        allow read: if request.auth != null && request.auth.uid == uid;
+        allow create: if request.auth != null
+            && request.auth.uid == uid
+            && request.resource.data.user_id == request.auth.uid;
+        allow update: if request.auth != null
+            && request.auth.uid == uid
+            && request.resource.data.user_id == request.auth.uid;
+        allow delete: if request.auth != null && request.auth.uid == uid;
+      }
     }
 
     // Everything else: deny by default.

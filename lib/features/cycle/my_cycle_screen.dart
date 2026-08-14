@@ -197,23 +197,6 @@ class _MyCycleScreenState extends ConsumerState<MyCycleScreen> {
             ),
             const SizedBox(height: 20),
 
-            // Log Daily Symptoms Button
-            SizedBox(
-              width: double.infinity,
-              height: 52,
-              child: ElevatedButton.icon(
-                onPressed: () => _showLogSymptomsSheet(context),
-                icon: const Icon(Icons.add_circle_outline_rounded),
-                label: const Text('Log Today\'s Symptoms & Flow', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.softPurple,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-
             // Add Period Button (saves to Supabase period_logs)
             SizedBox(
               width: double.infinity,
@@ -680,105 +663,6 @@ class _MyCycleScreenState extends ConsumerState<MyCycleScreen> {
           error ?? 'Period deleted successfully!',
         ),
       ),
-    );
-  }
-
-  void _showLogSymptomsSheet(BuildContext context) {
-    String selectedFlow = 'Medium';
-    int painLevel = 2;
-    String selectedMood = 'Calm';
-    final List<String> selectedSymptoms = ['Mild Cramps'];
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
-      builder: (ctx) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            return Padding(
-              padding: EdgeInsets.only(
-                left: 20,
-                right: 20,
-                top: 20,
-                bottom: MediaQuery.of(context).viewInsets.bottom + 20,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Center(
-                    child: Container(
-                      width: 40,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: AppColors.lightGrey,
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Log Period & Symptoms',
-                    style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 16),
-                  Text('Flow Level:', style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: ['Spotting', 'Light', 'Medium', 'Heavy'].map((flow) {
-                      final isSel = selectedFlow == flow;
-                      return ChoiceChip(
-                        label: Text(flow),
-                        selected: isSel,
-                        selectedColor: AppColors.rosePink,
-                        onSelected: (val) {
-                          if (val) setModalState(() => selectedFlow = flow);
-                        },
-                      );
-                    }).toList(),
-                  ),
-                  const SizedBox(height: 16),
-                  Text('Pain Level ($painLevel/5):', style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
-                  Slider(
-                    value: painLevel.toDouble(),
-                    min: 0,
-                    max: 5,
-                    divisions: 5,
-                    activeColor: AppColors.rosePink,
-                    onChanged: (val) => setModalState(() => painLevel = val.toInt()),
-                  ),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () {
-                      ref.read(cycleDataProvider.notifier).logSymptomToday(
-                            selectedSymptoms.first,
-                            selectedFlow,
-                            painLevel,
-                            selectedMood,
-                          );
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Cycle logs updated successfully! 🌸')),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.softPurple,
-                      foregroundColor: Colors.white,
-                      minimumSize: const Size(double.infinity, 48),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    ),
-                    child: const Text('Save Log Entry', style: TextStyle(fontWeight: FontWeight.bold)),
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
     );
   }
 

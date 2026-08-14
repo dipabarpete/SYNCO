@@ -1,19 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../providers/app_providers.dart';
+import '../../../features/auth/providers/auth_provider.dart' show authNotifierProvider;
+import '../models/appointment.dart';
 import '../models/doctor.dart';
-import 'booking_confirmation_screen.dart';
+import 'request_sent_screen.dart';
 
-class BookingScreen extends StatefulWidget {
+class BookingScreen extends ConsumerStatefulWidget {
   final Doctor doctor;
 
   const BookingScreen({super.key, required this.doctor});
 
   @override
-  State<BookingScreen> createState() => _BookingScreenState();
+  ConsumerState<BookingScreen> createState() => _BookingScreenState();
 }
 
-class _BookingScreenState extends State<BookingScreen> {
+class _BookingScreenState extends ConsumerState<BookingScreen> {
   late ConsultationMode _selectedMode;
   late DateTime _selectedDate;
   String? _selectedSlot;
@@ -223,7 +227,7 @@ class _BookingScreenState extends State<BookingScreen> {
         child: Padding(
           padding: const EdgeInsets.fromLTRB(18, 8, 18, 14),
           child: GestureDetector(
-            onTap: _confirmAppointment,
+            onTap: _bookAppointment,
             child: Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 15),
@@ -239,7 +243,7 @@ class _BookingScreenState extends State<BookingScreen> {
                 ],
               ),
               child: Text(
-                'Confirm Appointment',
+                'Book Appointment',
                 textAlign: TextAlign.center,
                 style: GoogleFonts.inter(
                   fontSize: 15,
@@ -254,7 +258,7 @@ class _BookingScreenState extends State<BookingScreen> {
     );
   }
 
-  void _confirmAppointment() {
+  void _bookAppointment() {
     final String? error = _validate();
     if (error != null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -277,18 +281,33 @@ class _BookingScreenState extends State<BookingScreen> {
       return;
     }
 
+    final appointment = Appointment(
+      id: 'SYN${DateTime.now().millisecondsSinceEpoch % 1000000}',
+      doctor: widget.doctor,
+      mode: _selectedMode,
+      date: _selectedDate,
+      slot: _selectedSlot!,
+      fee: widget.doctor.consultationFee,
+      patientName: _patientName,
+      createdAt: DateTime.now(),
+    );
+
+    ref.read(appointmentsProvider.notifier).addRequest(appointment);
+
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
-        builder: (_) => BookingConfirmationScreen(
-          doctor: widget.doctor,
-          mode: _selectedMode,
-          date: _selectedDate,
-          slot: _selectedSlot!,
-          fee: widget.doctor.consultationFee,
-        ),
+        builder: (_) => RequestSentScreen(appointment: appointment),
       ),
     );
+  }
+
+  String get _patientName {
+    final username = ref.read(authNotifierProvider).userProfile?.username;
+    if (username != null && username.trim().isNotEmpty) {
+      return username.trim();
+    }
+    return 'Sneha Iyer';
   }
 
   String? _validate() {

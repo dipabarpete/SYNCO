@@ -2,7 +2,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/endometriosis_questions_data.dart';
 import '../models/endometriosis_assessment_result.dart';
 import '../models/endometriosis_question.dart';
+import '../models/saved_screening_result.dart';
 import '../services/endometriosis_assessment_scoring_service.dart';
+import 'screening_results_provider.dart';
 
 class EndometriosisAssessmentState {
   final int currentQuestionIndex;
@@ -38,11 +40,15 @@ class EndometriosisAssessmentState {
 
 final endometriosisAssessmentProvider =
     StateNotifierProvider<EndometriosisAssessmentNotifier, EndometriosisAssessmentState>((ref) {
-  return EndometriosisAssessmentNotifier();
+  return EndometriosisAssessmentNotifier(
+      ref.read(screeningResultsProvider.notifier));
 });
 
 class EndometriosisAssessmentNotifier extends StateNotifier<EndometriosisAssessmentState> {
-  EndometriosisAssessmentNotifier() : super(const EndometriosisAssessmentState());
+  EndometriosisAssessmentNotifier(this._screeningResultsNotifier)
+      : super(const EndometriosisAssessmentState());
+
+  final ScreeningResultsNotifier _screeningResultsNotifier;
 
   void selectOption(int optionIndex) {
     final updatedAnswers = Map<int, int>.from(state.answers);
@@ -62,6 +68,9 @@ class EndometriosisAssessmentNotifier extends StateNotifier<EndometriosisAssessm
       state = state.copyWith(
         result: calculatedResult,
         isCompleted: true,
+      );
+      _screeningResultsNotifier.save(
+        SavedScreeningResult.fromEndometriosis(calculatedResult),
       );
       return true;
     }

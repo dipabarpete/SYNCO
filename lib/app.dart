@@ -248,7 +248,7 @@ class _HerSyncAuthGatewayState
 // 0 → Home
 // 1 → Whisper Room
 // 2 → Find a Doctor / Consult
-// 3 → Pink Corner
+// 3 → Learn
 // 4 → Health Tracking
 //
 // =============================================================================
@@ -286,7 +286,13 @@ class _HerSyncMainLayoutState
 
       body: IndexedStack(
         index: _currentIndex,
-        children: _screens,
+        children: List.generate(
+          _screens.length,
+          (i) => TickerMode(
+            enabled: i == _currentIndex,
+            child: _screens[i],
+          ),
+        ),
       ),
 
 

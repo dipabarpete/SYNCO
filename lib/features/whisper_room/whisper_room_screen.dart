@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -13,6 +15,10 @@ class WhisperRoomScreen extends ConsumerStatefulWidget {
 
   @override
   ConsumerState<WhisperRoomScreen> createState() => _WhisperRoomScreenState();
+}
+
+bool _isLocalImagePath(String path) {
+  return path.startsWith('/') || path.contains(':\\') || path.startsWith('file://');
 }
 
 class _WhisperRoomScreenState extends ConsumerState<WhisperRoomScreen>
@@ -363,7 +369,10 @@ class _WhisperRoomScreenState extends ConsumerState<WhisperRoomScreen>
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(16),
                       image: DecorationImage(
-                        image: NetworkImage(post.attachedImages![idx]),
+                        image: _isLocalImagePath(post.attachedImages![idx])
+                            ? FileImage(File(post.attachedImages![idx]))
+                                as ImageProvider
+                            : NetworkImage(post.attachedImages![idx]),
                         fit: BoxFit.cover,
                       ),
                     ),

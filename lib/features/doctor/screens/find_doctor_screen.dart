@@ -1,24 +1,28 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../providers/app_providers.dart';
 import '../data/dummy_doctors.dart';
+import '../models/appointment.dart';
 import '../models/doctor.dart';
 import 'all_doctors_screen.dart';
 import 'booking_screen.dart';
 import 'doctor_profile_screen.dart';
+import 'my_appointments_screen.dart';
 import '../widgets/consultation_mode_card.dart';
 import '../widgets/doctor_card.dart';
 import '../widgets/doctor_search_bar.dart';
 import '../widgets/section_header.dart';
 
-class FindDoctorScreen extends StatefulWidget {
+class FindDoctorScreen extends ConsumerStatefulWidget {
   const FindDoctorScreen({super.key});
 
   @override
-  State<FindDoctorScreen> createState() => _FindDoctorScreenState();
+  ConsumerState<FindDoctorScreen> createState() => _FindDoctorScreenState();
 }
 
-class _FindDoctorScreenState extends State<FindDoctorScreen> {
+class _FindDoctorScreenState extends ConsumerState<FindDoctorScreen> {
   final TextEditingController _searchController = TextEditingController();
   ConsultationMode? _selectedMode;
   String _query = '';
@@ -43,7 +47,11 @@ class _FindDoctorScreenState extends State<FindDoctorScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final suggested = _filter(DummyDoctors.suggestedDoctors);
+    final isOfflineMode = _selectedMode == ConsultationMode.offline;
+    final suggestedSource = isOfflineMode
+        ? DummyDoctors.suggestedNearbyDoctors
+        : DummyDoctors.suggestedDoctors;
+    final suggested = _filter(suggestedSource);
     final nearby = _filter(DummyDoctors.nearbyDoctors);
 
     return Scaffold(
@@ -58,6 +66,30 @@ class _FindDoctorScreenState extends State<FindDoctorScreen> {
           ),
         ),
         actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: GestureDetector(
+              onTap: _openMyAppointments,
+              child: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppColors.softLavender.withValues(alpha: 0.4),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: AppColors.softPurpleLight.withValues(
+                      alpha: 0.25,
+                    ),
+                    width: 1.2,
+                  ),
+                ),
+                child: const Icon(
+                  Icons.calendar_month_rounded,
+                  color: AppColors.softPurple,
+                  size: 23,
+                ),
+              ),
+            ),
+          ),
           Padding(
             padding: const EdgeInsets.only(right: 16),
             child: GestureDetector(
@@ -83,19 +115,21 @@ class _FindDoctorScreenState extends State<FindDoctorScreen> {
                       size: 23,
                     ),
                   ),
-                  Positioned(
-                    right: 2,
-                    top: 2,
-                    child: Container(
-                      width: 10,
-                      height: 10,
-                      decoration: BoxDecoration(
-                        color: AppColors.rosePink,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 1.8),
+                  if (_hasPendingRequest) ...[
+                    Positioned(
+                      right: 2,
+                      top: 2,
+                      child: Container(
+                        width: 10,
+                        height: 10,
+                        decoration: BoxDecoration(
+                          color: AppColors.pendingAmber,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 1.8),
+                        ),
                       ),
                     ),
-                  ),
+                  ],
                 ],
               ),
             ),
@@ -144,10 +178,12 @@ class _FindDoctorScreenState extends State<FindDoctorScreen> {
               const SizedBox(height: 26),
 
               // -------------------------------------------------------------
-              // SUGGESTED DOCTORS
+              // SUGGESTED DOCTORS (offline mode: "Suggested Nearby Doctors")
               // -------------------------------------------------------------
               SectionHeader(
-                title: 'Suggested Doctors',
+                title: isOfflineMode
+                    ? 'Suggested Nearby Doctors'
+                    : 'Suggested Doctors',
                 actionLabel: 'View All',
                 onActionTap: () => _openAllDoctors(suggested),
               ),
@@ -238,7 +274,32 @@ class _FindDoctorScreenState extends State<FindDoctorScreen> {
     );
   }
 
+  bool get _hasPendingRequest =>
+      ref.watch(appointmentsProvider).any(
+            (a) => a.status == AppointmentStatus.requested,
+          );
+
+  List<String> _appointmentNotifications() {
+    return ref.read(appointmentsProvider).map((appointment) {
+      switch (appointment.status) {
+        case AppointmentStatus.requested:
+          return 'Appointment request sent to ${appointment.doctor.name} '
+              '- awaiting doctor confirmation.';
+        case AppointmentStatus.confirmed:
+          return '${appointment.doctor.name} accepted your consultation '
+              'request.';
+        case AppointmentStatus.declined:
+          return '${appointment.doctor.name} declined your appointment '
+              'request.';
+        case AppointmentStatus.cancelled:
+          return 'Your appointment with ${appointment.doctor.name} was '
+              'cancelled.';
+      }
+    }).toList();
+  }
+
   void _showNotifications() {
+    final updates = _appointmentNotifications();
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -248,11 +309,44 @@ class _FindDoctorScreenState extends State<FindDoctorScreen> {
           'Notifications',
           style: GoogleFonts.outfit(fontWeight: FontWeight.bold),
         ),
-        content: Text(
-          'You have 1 new update: Your consultation reminders and doctor '
-          'appointment updates will appear here.',
-          style: GoogleFonts.inter(fontSize: 13),
-        ),
+        content: updates.isEmpty
+            ? Text(
+                'Your consultation reminders and doctor appointment updates '
+                'will appear here.',
+                style: GoogleFonts.inter(fontSize: 13),
+              )
+            : Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  for (final update in updates) ...[
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Padding(
+                          padding: EdgeInsets.only(top: 5),
+                          child: Icon(
+                            Icons.circle,
+                            size: 8,
+                            color: AppColors.pendingAmber,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            update,
+                            style: GoogleFonts.inter(
+                              fontSize: 13,
+                              height: 1.35,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                ],
+              ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
@@ -265,6 +359,15 @@ class _FindDoctorScreenState extends State<FindDoctorScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  void _openMyAppointments() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const MyAppointmentsScreen(),
       ),
     );
   }

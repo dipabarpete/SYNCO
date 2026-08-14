@@ -5,6 +5,7 @@ import '../../core/theme/app_colors.dart';
 import 'pcos_article_screen.dart';
 import 'placeholder_topic_screen.dart';
 import 'widgets/faq_card.dart';
+import 'widgets/learn_hero_card.dart';
 import 'widgets/topic_card.dart';
 
 class PinkCornerScreen extends ConsumerWidget {
@@ -15,7 +16,9 @@ class PinkCornerScreen extends ConsumerWidget {
     // 6 Topic Cards configuration for Explore Topics
     final topicItems = [
       {
-        'title': 'PCOS/PCOD',
+        'title': 'PMOS',
+        'subtitle': 'PCOS / PCOD',
+        'route': 'pcos',
         'icon': Icons.spa_rounded,
         'backgroundColor': const Color(0xFFF4EFFB), // Lavender
         'borderColor': const Color(0xFFD8B4F8).withValues(alpha: 0.6),
@@ -23,36 +26,41 @@ class PinkCornerScreen extends ConsumerWidget {
       },
       {
         'title': 'Menstrual Health',
+        'route': 'placeholder',
         'icon': Icons.water_drop_rounded,
-        'backgroundColor': const Color(0xFFFFF0F3), // Pink
+        'backgroundColor': const Color(0xFFFFF0F3), // Soft Pink
         'borderColor': const Color(0xFFFFD1DC).withValues(alpha: 0.6),
         'iconColor': AppColors.deepRose,
       },
       {
         'title': 'Reproductive Health',
+        'route': 'placeholder',
         'icon': Icons.favorite_rounded,
-        'backgroundColor': const Color(0xFFF4EFFB), // Lavender
-        'borderColor': const Color(0xFFD8B4F8).withValues(alpha: 0.6),
-        'iconColor': AppColors.softPurple,
+        'backgroundColor': const Color(0xFFFBF3E7), // Warm Cream
+        'borderColor': const Color(0xFFE9D6B5).withValues(alpha: 0.7),
+        'iconColor': const Color(0xFFB08968),
       },
       {
         'title': 'Nutrition',
+        'route': 'placeholder',
         'icon': Icons.restaurant_rounded,
-        'backgroundColor': const Color(0xFFFFF7ED), // Peach
+        'backgroundColor': const Color(0xFFFFF7ED), // Light Peach
         'borderColor': const Color(0xFFFFB085).withValues(alpha: 0.6),
         'iconColor': AppColors.peachCoral,
       },
       {
         'title': 'Stress & Wellbeing',
+        'route': 'placeholder',
         'icon': Icons.self_improvement_rounded,
-        'backgroundColor': const Color(0xFFF0FDF4), // Mint
+        'backgroundColor': const Color(0xFFF0FDF4), // Soft Mint
         'borderColor': const Color(0xFFB5EAD7).withValues(alpha: 0.6),
         'iconColor': const Color(0xFF45B69C),
       },
       {
-        'title': 'Sleep',
-        'icon': Icons.bedtime_rounded,
-        'backgroundColor': const Color(0xFFF0F4FF), // Soft Blue
+        'title': 'Exercise & Movement',
+        'route': 'placeholder',
+        'icon': Icons.directions_walk_rounded,
+        'backgroundColor': const Color(0xFFF0F4FF), // Pale Blue
         'borderColor': const Color(0xFFC7CEEA).withValues(alpha: 0.6),
         'iconColor': const Color(0xFF5B7FFF),
       },
@@ -71,7 +79,7 @@ class PinkCornerScreen extends ConsumerWidget {
           children: [
             const Icon(Icons.menu_book_rounded, color: AppColors.softPurple),
             const SizedBox(width: 8),
-            Text('Pink Corner', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+            Text('Learn', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
           ],
         ),
       ),
@@ -80,7 +88,11 @@ class PinkCornerScreen extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 1. Explore Topics (2-Column Grid)
+            // 1. Hero Banner (Animated Visual + Tagline)
+            const LearnHeroCard(),
+            const SizedBox(height: 22),
+
+            // 2. Explore Topics (2-Column Grid)
             Text(
               'Explore Topics',
               style: GoogleFonts.outfit(
@@ -104,12 +116,13 @@ class PinkCornerScreen extends ConsumerWidget {
                 final topic = topicItems[index];
                 return TopicCard(
                   title: topic['title'] as String,
+                  subtitle: topic['subtitle'] as String?,
                   icon: topic['icon'] as IconData,
                   backgroundColor: topic['backgroundColor'] as Color,
                   borderColor: topic['borderColor'] as Color,
                   iconColor: topic['iconColor'] as Color,
                   onTap: () {
-                    if (topic['title'] == 'PCOS/PCOD') {
+                    if (topic['route'] == 'pcos') {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -125,6 +138,9 @@ class PinkCornerScreen extends ConsumerWidget {
                             icon: topic['icon'] as IconData,
                             accentColor: topic['iconColor'] as Color,
                             backgroundColor: topic['backgroundColor'] as Color,
+                            description: topic['title'] == 'Exercise & Movement'
+                                ? 'Why movement matters, simple daily movement, walking, strength training, stretching, beginner-friendly exercise, and building a consistent routine.'
+                                : null,
                           ),
                         ),
                       );
@@ -135,7 +151,7 @@ class PinkCornerScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 28),
 
-            // 2. FAQs Answered Section
+            // 3. FAQs Answered Section
             Text(
               'FAQs Answered',
               style: GoogleFonts.outfit(
