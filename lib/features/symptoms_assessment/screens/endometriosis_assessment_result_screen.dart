@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../doctor/data/dummy_doctors.dart';
-import '../../doctor/screens/all_doctors_screen.dart';
 import '../models/endometriosis_assessment_result.dart';
 import '../models/endometriosis_result_level.dart';
 import '../providers/endometriosis_assessment_provider.dart';
@@ -392,7 +390,10 @@ class EndometriosisAssessmentResultScreen extends ConsumerWidget {
                             gradient: AppColors.primaryGradient,
                           ),
                           child: ElevatedButton(
-                            onPressed: () => _handleCta(context, ref, result.primaryCta),
+                            onPressed: () {
+                              ref.read(endometriosisAssessmentProvider.notifier).reset();
+                              Navigator.pop(context);
+                            },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.transparent,
                               shadowColor: Colors.transparent,
@@ -418,7 +419,10 @@ class EndometriosisAssessmentResultScreen extends ConsumerWidget {
                           width: double.infinity,
                           height: 52,
                           child: OutlinedButton(
-                            onPressed: () => _handleCta(context, ref, result.secondaryCta!),
+                            onPressed: () {
+                              ref.read(endometriosisAssessmentProvider.notifier).reset();
+                              Navigator.pop(context);
+                            },
                             style: OutlinedButton.styleFrom(
                               side: const BorderSide(color: AppColors.softPurple),
                               shape: RoundedRectangleBorder(
@@ -481,33 +485,13 @@ class EndometriosisAssessmentResultScreen extends ConsumerWidget {
         children: [
           Icon(icon, size: 16, color: AppColors.softPurple),
           const SizedBox(width: 8),
-          Flexible(
-            child: Text(
-              label,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textDark),
-            ),
+          Text(
+            label,
+            style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textDark),
           ),
         ],
       ),
     );
-  }
-
-  /// "Discuss With a Doctor" opens the existing Consult/All Doctors screen.
-  /// Other CTAs keep the existing behavior: reset the assessment and leave.
-  void _handleCta(BuildContext context, WidgetRef ref, String label) {
-    if (label.trim().toLowerCase() == 'discuss with a doctor') {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => AllDoctorsScreen(doctors: DummyDoctors.all),
-        ),
-      );
-    } else {
-      ref.read(endometriosisAssessmentProvider.notifier).reset();
-      Navigator.pop(context);
-    }
   }
 
   void _showDoctorSummaryDialog(BuildContext context) {

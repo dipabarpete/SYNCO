@@ -1,50 +1,34 @@
 {
   "project_info": {
-    "project_number": "510590899188",
-    "firebase_url": "https://synco-75c06-default-rtdb.firebaseio.com",
-    "project_id": "synco-75c06",
-    "storage_bucket": "synco-75c06.firebasestorage.app"
+    "project_number": "880941815126",
+    "project_id": "syncobackend",
+    "storage_bucket": "syncobackend.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:510590899188:android:7b0c7885e4a2f0efffdfa1",
+        "mobilesdk_app_id": "1:880941815126:android:8052fe1f5ebd1f3b4272f7",
         "android_client_info": {
           "package_name": "com.hersync.app.hersync"
         }
       },
       "oauth_client": [
         {
-          "client_id": "510590899188-qd4qr10u33va9jcteefv82npevm5vke9.apps.googleusercontent.com",
-          "client_type": 1,
-          "android_info": {
-            "package_name": "com.hersync.app.hersync",
-            "certificate_hash": "197ed72d2a882c2e43a735d74ab4234a2c43a0ee"
-          }
-        },
-        {
-          "client_id": "510590899188-5o8cothdu8ohvj1dgcc0a0b65p2i05b1.apps.googleusercontent.com",
+          "client_id": "880941815126-luab0d4a04bqamjo0fl1hpio3rlvk040.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
       "api_key": [
         {
-          "current_key": "AIzaSyD8cVAOaa0Eg29UfbUbWyBKoJFJ0oGrdgk"
+          "current_key": "AIzaSyAE8DaQA5tnv9IjpMRN6Xn9r9rOWbC7Hd8"
         }
       ],
       "services": {
         "appinvite_service": {
           "other_platform_oauth_client": [
             {
-              "client_id": "510590899188-5o8cothdu8ohvj1dgcc0a0b65p2i05b1.apps.googleusercontent.com",
+              "client_id": "880941815126-luab0d4a04bqamjo0fl1hpio3rlvk040.apps.googleusercontent.com",
               "client_type": 3
-            },
-            {
-              "client_id": "510590899188-3luqfr83a6117bf799df8i7t1edhe68l.apps.googleusercontent.com",
-              "client_type": 2,
-              "ios_info": {
-                "bundle_id": "com.hersync.app.hersync"
-              }
             }
           ]
         }

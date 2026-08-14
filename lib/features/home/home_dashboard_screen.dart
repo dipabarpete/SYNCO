@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/theme/app_colors.dart';
 import '../auth/providers/auth_provider.dart';
+import 'providers/dashboard_provider.dart';
 import '../cycle/my_cycle_screen.dart';
 import 'widgets/app_bar_header.dart';
 import 'widgets/dashboard_hero_header.dart';
@@ -18,6 +19,9 @@ class HomeDashboardScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authNotifierProvider);
+    final cycleState = ref.watch(cycleProvider);
+    final healthScoreState = ref.watch(healthScoreProvider);
+
     final firstName = _resolveFirstName(authState);
     final displayName = _resolveDisplayName(authState);
     final avatarUrl = authState.userProfile?.avatarUrl ?? '';
@@ -45,20 +49,25 @@ class HomeDashboardScreen extends ConsumerWidget {
               const SizedBox(height: 18),
 
               // 3. PERIOD CYCLE OVERVIEW
-              PeriodCycleOverviewCard(
-                currentPhase: 'Follicular Phase',
-                currentDay: 8,
-                totalDays: 28,
-                daysUntilNextPeriod: 16,
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (ctx) => const MyCycleScreen(),
-                    ),
-                  );
-                },
-              ),
+              if (cycleState.isLoading)
+                const Center(child: CircularProgressIndicator(color: AppColors.softPurple))
+              else
+                PeriodCycleOverviewCard(
+                  currentPhase: cycleState.currentPhase,
+                  currentDay: cycleState.currentDay,
+                  totalDays: cycleState.activeCycle?.cycleLength ?? 28,
+                  daysUntilNextPeriod: cycleState.daysUntilNextPeriod,
+                  fertilityWindow: 'Days 11–16', // Keeping mock string for now
+                  daysUntilOvulation: 14 - cycleState.currentDay > 0 ? 14 - cycleState.currentDay : 0,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (ctx) => const MyCycleScreen(),
+                      ),
+                    );
+                  },
+                ),
               const SizedBox(height: 18),
 
               // 4. NEW 3-FEATURE ROW (Food Scanner | Kyra AI | Lab Report Interpreter)
@@ -67,8 +76,8 @@ class HomeDashboardScreen extends ConsumerWidget {
 
               // 5. HEALTH SCORE CARD (Hero Card)
               HealthScoreCard(
-                score: 84,
-                percentile: 78,
+                score: healthScoreState.score,
+                percentile: healthScoreState.percentile,
                 title: 'Health Score',
                 onTap: () => _showDialogInfo(context, 'Health Score Details'),
                 onViewReportTap: () => _showDialogInfo(context, 'View Full Report'),

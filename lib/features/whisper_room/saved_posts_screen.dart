@@ -24,7 +24,8 @@ class _SavedPostsScreenState extends ConsumerState<SavedPostsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final allPosts = ref.watch(whisperRoomProvider);
+    final whisperState = ref.watch(whisperRoomProvider);
+    final allPosts = whisperState;
     final savedPosts = allPosts.where((p) => p.isSaved).toList();
 
     final filteredPosts = savedPosts.where((p) {

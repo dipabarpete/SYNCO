@@ -212,6 +212,23 @@ class _MyCycleScreenState extends ConsumerState<MyCycleScreen> {
                 ),
               ),
             ),
+            const SizedBox(height: 12),
+
+            // Add Period Button (saves to Firebase period_logs)
+            SizedBox(
+              width: double.infinity,
+              height: 52,
+              child: ElevatedButton.icon(
+                onPressed: _showAddPeriodSheet,
+                icon: const Icon(Icons.event_note_rounded),
+                label: const Text('Add Period', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.rosePink,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                ),
+              ),
+            ),
             const SizedBox(height: 24),
 
             // Symptoms History Section
@@ -355,6 +372,322 @@ class _MyCycleScreenState extends ConsumerState<MyCycleScreen> {
         ),
       ];
     }
+
+    final errorMessage = logs.errorMessage;
+    if (errorMessage != null) {
+      return [
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppColors.babyPink.withValues(alpha: 0.4),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: AppColors.rosePink.withValues(alpha: 0.3),
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.cloud_off_rounded,
+                      color: AppColors.rosePink, size: 20),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      errorMessage,
+                      style: GoogleFonts.inter(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textDark,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              TextButton.icon(
+                onPressed: () =>
+                    ref.read(periodLogsProvider.notifier).loadPeriods(),
+                icon: const Icon(Icons.refresh_rounded, size: 18),
+                label: const Text('Retry'),
+                style: TextButton.styleFrom(
+                  foregroundColor: AppColors.softPurple,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ];
+    }
+
+    if (logs.records.isEmpty) {
+      return [_buildEmptyPeriodState()];
+    }
+
+    return logs.records.map(_buildPeriodRecordCard).toList();
+  }
+
+  Widget _buildEmptyPeriodState() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: AppColors.borderGrey.withValues(alpha: 0.4),
+        ),
+      ),
+      child: Column(
+        children: [
+          const Icon(
+            Icons.water_drop_outlined,
+            color: AppColors.softPurple,
+            size: 44,
+          ),
+          const SizedBox(height: 10),
+          Text(
+            'Start tracking your period',
+            style: GoogleFonts.outfit(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textDark,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Tap "Add Period" to log and save your first period.',
+            textAlign: TextAlign.center,
+            style: GoogleFonts.inter(
+              fontSize: 12.5,
+              color: AppColors.textMedium,
+            ),
+          ),
+          const SizedBox(height: 14),
+          ElevatedButton.icon(
+            onPressed: _showAddPeriodSheet,
+            icon: const Icon(Icons.add_rounded, size: 18),
+            label: const Text('Add Period'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.rosePink,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPeriodRecordCard(PeriodRecord record) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: AppColors.borderGrey.withValues(alpha: 0.4),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  _formatPeriodRange(record),
+                  style: GoogleFonts.inter(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                    color: AppColors.textDark,
+                  ),
+                ),
+              ),
+              if (record.flowLevelDisplay != null)
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppColors.softLavender,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    record.flowLevelDisplay!,
+                    style: GoogleFonts.inter(
+                      fontSize: 11,
+                      color: AppColors.softPurple,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          if (record.mood != null || record.painLevel != null)
+            Text(
+              [
+                if (record.mood != null) 'Mood: ${record.mood}',
+                if (record.painLevel != null) 'Pain: ${record.painLevel}/5',
+              ].join(' • '),
+              style: GoogleFonts.inter(
+                fontSize: 12,
+                color: AppColors.textMedium,
+              ),
+            ),
+          if (record.symptoms.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: record.symptoms
+                  .map(
+                    (s) => Chip(
+                      label: Text(s, style: const TextStyle(fontSize: 11)),
+                      backgroundColor: AppColors.babyPink,
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  )
+                  .toList(),
+            ),
+          ],
+          if (record.notes != null && record.notes!.trim().isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              record.notes!,
+              style: GoogleFonts.inter(
+                fontSize: 12.5,
+                fontStyle: FontStyle.italic,
+                color: AppColors.textMedium,
+              ),
+            ),
+          ],
+          const SizedBox(height: 6),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              TextButton.icon(
+                onPressed: () => _editPeriod(record),
+                icon: const Icon(Icons.edit_outlined, size: 16),
+                label: const Text('Edit'),
+                style: TextButton.styleFrom(
+                  foregroundColor: AppColors.softPurple,
+                  visualDensity: VisualDensity.compact,
+                ),
+              ),
+              const SizedBox(width: 4),
+              TextButton.icon(
+                onPressed: () => _confirmDeletePeriod(record),
+                icon: const Icon(Icons.delete_outline_rounded, size: 16),
+                label: const Text('Delete'),
+                style: TextButton.styleFrom(
+                  foregroundColor: AppColors.deepRose,
+                  visualDensity: VisualDensity.compact,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatPeriodRange(PeriodRecord record) {
+    final start = DateFormat('dd MMM yyyy').format(record.startDate);
+    final end = record.endDate;
+    if (end == null || isSameDay(record.startDate, end)) {
+      return start;
+    }
+    return '$start – ${DateFormat('dd MMM yyyy').format(end)}';
+  }
+
+  Set<DateTime> _collectPeriodDays(List<PeriodRecord> records) {
+    final days = <DateTime>{};
+    for (final record in records) {
+      var day = DateTime(
+        record.startDate.year,
+        record.startDate.month,
+        record.startDate.day,
+      );
+      final end = record.endDate ?? record.startDate;
+      final lastDay = DateTime(end.year, end.month, end.day);
+      while (!day.isAfter(lastDay)) {
+        days.add(day);
+        day = day.add(const Duration(days: 1));
+      }
+    }
+    return days;
+  }
+
+  Future<void> _showAddPeriodSheet() async {
+    final saved = await PeriodFormSheet.show(context);
+    if (!mounted || saved != true) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Period saved successfully!')),
+    );
+  }
+
+  Future<void> _editPeriod(PeriodRecord record) async {
+    final saved = await PeriodFormSheet.show(context, record: record);
+    if (!mounted || saved != true) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Period updated successfully!')),
+    );
+  }
+
+  Future<void> _confirmDeletePeriod(PeriodRecord record) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: const Text('Delete this period?'),
+        content: Text(
+          'This will permanently remove your period starting '
+          '${DateFormat('dd MMM yyyy').format(record.startDate)}.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.deepRose,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    final error =
+        await ref.read(periodLogsProvider.notifier).deletePeriod(record.id);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          error ?? 'Period deleted successfully!',
+        ),
+      ),
+    );
+  }
+
+  void _showLogSymptomsSheet(BuildContext context) {
+    String selectedFlow = 'Medium';
+    int painLevel = 2;
+    String selectedMood = 'Calm';
+    final List<String> selectedSymptoms = ['Mild Cramps'];
 
     final errorMessage = logs.errorMessage;
     if (errorMessage != null) {

@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../providers/app_providers.dart';
-import '../../../features/auth/providers/auth_provider.dart' show authNotifierProvider;
-import '../models/appointment.dart';
 import '../models/doctor.dart';
-import 'request_sent_screen.dart';
+import 'booking_confirmation_screen.dart';
 
 class BookingScreen extends ConsumerStatefulWidget {
   final Doctor doctor;
@@ -227,7 +225,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
         child: Padding(
           padding: const EdgeInsets.fromLTRB(18, 8, 18, 14),
           child: GestureDetector(
-            onTap: _bookAppointment,
+            onTap: _confirmAppointment,
             child: Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 15),
@@ -243,7 +241,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
                 ],
               ),
               child: Text(
-                'Book Appointment',
+                'Confirm Appointment',
                 textAlign: TextAlign.center,
                 style: GoogleFonts.inter(
                   fontSize: 15,
@@ -258,7 +256,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
     );
   }
 
-  void _bookAppointment() {
+  void _confirmAppointment() async {
     final String? error = _validate();
     if (error != null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -281,33 +279,41 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
       return;
     }
 
-    final appointment = Appointment(
-      id: 'SYN${DateTime.now().millisecondsSinceEpoch % 1000000}',
-      doctor: widget.doctor,
-      mode: _selectedMode,
-      date: _selectedDate,
-      slot: _selectedSlot!,
-      fee: widget.doctor.consultationFee,
-      patientName: _patientName,
-      createdAt: DateTime.now(),
-    );
+    // Call Firebase
+    try {
+      final doctorService = ref.read(doctorServiceProvider);
+      // Hardcoded userId for now since we don't have full auth state
+      await doctorService.bookAppointment(
+        'user_123',
+        widget.doctor.id,
+        _selectedDate.toIso8601String(),
+        _selectedSlot!,
+      );
 
-    ref.read(appointmentsProvider.notifier).addRequest(appointment);
-
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (_) => RequestSentScreen(appointment: appointment),
-      ),
-    );
-  }
-
-  String get _patientName {
-    final username = ref.read(authNotifierProvider).userProfile?.username;
-    if (username != null && username.trim().isNotEmpty) {
-      return username.trim();
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => BookingConfirmationScreen(
+              doctor: widget.doctor,
+              mode: _selectedMode,
+              date: _selectedDate,
+              slot: _selectedSlot!,
+              fee: widget.doctor.consultationFee,
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to book appointment: $e'),
+            backgroundColor: AppColors.deepRose,
+          ),
+        );
+      }
     }
-    return 'Sneha Iyer';
   }
 
   String? _validate() {

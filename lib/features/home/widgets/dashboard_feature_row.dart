@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../kyra/kyra_ai_screen.dart';
+import '../../kyra/food_scanner_screen.dart';
+import '../../kyra/lab_report_screen.dart';
 
 class DashboardFeatureRow extends StatelessWidget {
   final VoidCallback? onFoodScannerTap;
@@ -30,9 +32,10 @@ class DashboardFeatureRow extends StatelessWidget {
             badgeBgColor: AppColors.softLavender.withValues(alpha: 0.5),
             onTap: onFoodScannerTap ??
                 () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Food Scanner feature coming soon! 🥗'),
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (ctx) => const FoodScannerScreen(),
                     ),
                   );
                 },
@@ -100,9 +103,10 @@ class DashboardFeatureRow extends StatelessWidget {
             badgeBgColor: AppColors.babyPink,
             onTap: onLabReportTap ??
                 () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Lab Report Interpreter feature coming soon! 📊'),
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (ctx) => const LabReportScreen(),
                     ),
                   );
                 },

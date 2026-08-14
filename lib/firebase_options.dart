@@ -25,15 +25,9 @@ class DefaultFirebaseOptions {
       case TargetPlatform.iOS:
         return ios;
       case TargetPlatform.macOS:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for macos - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
+        return macos;
       case TargetPlatform.windows:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for windows - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
+        return windows;
       case TargetPlatform.linux:
         throw UnsupportedError(
           'DefaultFirebaseOptions have not been configured for linux - '
@@ -47,29 +41,48 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyBC0xPkj3WBMl11wR3L1lpD9C7RQpWplpI',
-    appId: '1:510590899188:web:b0ec18252cebf323ffdfa1',
-    messagingSenderId: '510590899188',
-    projectId: 'synco-75c06',
-    authDomain: 'synco-75c06.firebaseapp.com',
-    storageBucket: 'synco-75c06.firebasestorage.app',
-    measurementId: 'G-6R9PKC3LRK',
+    apiKey: 'AIzaSyAJW0w-25X05R-JWUVRG-hGjJKr7rpkJ4E',
+    appId: '1:880941815126:web:4ff097e14f3ab4554272f7',
+    messagingSenderId: '880941815126',
+    projectId: 'syncobackend',
+    authDomain: 'syncobackend.firebaseapp.com',
+    storageBucket: 'syncobackend.firebasestorage.app',
+    measurementId: 'G-VFM403NQEE',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyD8cVAOaa0Eg29UfbUbWyBKoJFJ0oGrdgk',
-    appId: '1:510590899188:android:7b0c7885e4a2f0efffdfa1',
-    messagingSenderId: '510590899188',
-    projectId: 'synco-75c06',
-    storageBucket: 'synco-75c06.firebasestorage.app',
+    apiKey: 'AIzaSyAE8DaQA5tnv9IjpMRN6Xn9r9rOWbC7Hd8',
+    appId: '1:880941815126:android:8052fe1f5ebd1f3b4272f7',
+    messagingSenderId: '880941815126',
+    projectId: 'syncobackend',
+    storageBucket: 'syncobackend.firebasestorage.app',
+  );
+  static const FirebaseOptions ios = FirebaseOptions(
+    apiKey: 'AIzaSyBtR6uqpe3U1AZJgB7MWPkmwCg7hZhVDGU',
+    appId: '1:880941815126:ios:cc665b220556a8cf4272f7',
+    messagingSenderId: '880941815126',
+    projectId: 'syncobackend',
+    storageBucket: 'syncobackend.firebasestorage.app',
+    iosClientId: '880941815126-vph3ioee3opso6o3idv1f0lcimrcc2sl.apps.googleusercontent.com',
+    iosBundleId: 'com.hersync.app.hersync',
+  );
+  static const FirebaseOptions macos = FirebaseOptions(
+    apiKey: 'AIzaSyBtR6uqpe3U1AZJgB7MWPkmwCg7hZhVDGU',
+    appId: '1:880941815126:ios:cc665b220556a8cf4272f7',
+    messagingSenderId: '880941815126',
+    projectId: 'syncobackend',
+    storageBucket: 'syncobackend.firebasestorage.app',
+    iosClientId: '880941815126-vph3ioee3opso6o3idv1f0lcimrcc2sl.apps.googleusercontent.com',
+    iosBundleId: 'com.hersync.app.hersync',
   );
 
-  static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyAovHBgU_q7pid-2SoD4rmhLDcieHfUgPI',
-    appId: '1:510590899188:ios:de05fcf548aa8078ffdfa1',
-    messagingSenderId: '510590899188',
-    projectId: 'synco-75c06',
-    storageBucket: 'synco-75c06.firebasestorage.app',
-    iosBundleId: 'com.hersync.app.hersync',
+  static const FirebaseOptions windows = FirebaseOptions(
+    apiKey: 'AIzaSyAJW0w-25X05R-JWUVRG-hGjJKr7rpkJ4E',
+    appId: '1:880941815126:web:bdc349c01a2945ea4272f7',
+    messagingSenderId: '880941815126',
+    projectId: 'syncobackend',
+    authDomain: 'syncobackend.firebaseapp.com',
+    storageBucket: 'syncobackend.firebasestorage.app',
+    measurementId: 'G-K5T0KFH61S',
   );
 }

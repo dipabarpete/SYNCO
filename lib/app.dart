@@ -51,7 +51,7 @@ class HerSyncApp extends ConsumerWidget {
 //
 // 1. AuthStatus.initial
 //       ↓
-//    Splash screen while Supabase session is restored
+//    Splash screen while session is restored
 //
 // 2. AuthStatus.authenticated
 //       ↓
@@ -95,7 +95,7 @@ class _HerSyncAuthGatewayState
     //
     // During this period it checks:
     //
-    //     Supabase.instance.client.auth.currentSession
+    //     Firebase Auth session
     //
     // If a previous session exists, AuthNotifier changes the state to:
     //
@@ -226,7 +226,7 @@ class _HerSyncAuthGatewayState
     // -------------------------------------------------------------------------
     //
     // This is reached only after authentication initialization has completed
-    // and Supabase confirmed that there is no active session.
+    // and backend confirmed that there is no active session.
     // -------------------------------------------------------------------------
 
     debugPrint(
@@ -248,7 +248,7 @@ class _HerSyncAuthGatewayState
 // 0 → Home
 // 1 → Whisper Room
 // 2 → Find a Doctor / Consult
-// 3 → Learn
+// 3 → Pink Corner
 // 4 → Health Tracking
 //
 // =============================================================================

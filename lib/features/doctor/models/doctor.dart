@@ -36,6 +36,58 @@ class Doctor {
     this.avatarBackground = AppColors.babyPink,
   });
 
+  factory Doctor.fromFirestore(dynamic doc) {
+    final data = doc.data() as Map<String, dynamic>;
+    
+    String safeStr(String key) {
+      final val = data[key];
+      if (val == null) return '';
+      if (val is String) return val;
+      return val.toString();
+    }
+    
+    List<String> safeList(String key) {
+      final val = data[key];
+      if (val is List) {
+        return val.map((e) => e.toString()).toList();
+      }
+      return [];
+    }
+
+    return Doctor(
+      id: doc.id,
+      name: safeStr('name'),
+      specialization: safeStr('specialization'),
+      experience: safeStr('experience'),
+      rating: (data['rating'] is num) ? (data['rating'] as num).toDouble() : 0.0,
+      consultationFee: (data['consultationFee'] is num) ? (data['consultationFee'] as num).toInt() : 0,
+      availability: safeStr('availability'),
+      mode: safeStr('mode') == 'offline' ? ConsultationMode.offline : ConsultationMode.online,
+      distanceKm: (data['distanceKm'] is num) ? (data['distanceKm'] as num).toDouble() : null,
+      clinicLocation: data['clinicLocation']?.toString(),
+      about: safeStr('about'),
+      availableDays: safeList('availableDays'),
+      timeSlots: safeList('timeSlots'),
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'name': name,
+      'specialization': specialization,
+      'experience': experience,
+      'rating': rating,
+      'consultationFee': consultationFee,
+      'availability': availability,
+      'mode': mode == ConsultationMode.offline ? 'offline' : 'online',
+      'distanceKm': distanceKm,
+      'clinicLocation': clinicLocation,
+      'about': about,
+      'availableDays': availableDays,
+      'timeSlots': timeSlots,
+    };
+  }
+
   String get initials {
     final parts = name.replaceAll('Dr. ', '').trim().split(RegExp(r'\s+'));
     if (parts.isEmpty) return '?';
