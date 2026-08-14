@@ -18,7 +18,9 @@ class PinkCornerScreen extends ConsumerWidget {
     // 6 Topic Cards configuration for Explore Topics
     final topicItems = [
       {
-        'title': 'PCOS/PCOD',
+        'title': 'PMOS',
+        'subtitle': 'PCOS / PCOD',
+        'route': 'pcos',
         'icon': Icons.spa_rounded,
         'backgroundColor': const Color(0xFFF4EFFB), // Lavender
         'borderColor': const Color(0xFFD8B4F8).withValues(alpha: 0.6),
@@ -27,7 +29,7 @@ class PinkCornerScreen extends ConsumerWidget {
       {
         'title': 'Menstrual Health',
         'icon': Icons.water_drop_rounded,
-        'backgroundColor': const Color(0xFFFFF0F3), // Pink
+        'backgroundColor': const Color(0xFFFFF0F3), // Soft Pink
         'borderColor': const Color(0xFFFFD1DC).withValues(alpha: 0.6),
         'iconColor': AppColors.deepRose,
       },
@@ -76,7 +78,7 @@ class PinkCornerScreen extends ConsumerWidget {
           children: [
             const Icon(Icons.menu_book_rounded, color: AppColors.softPurple),
             const SizedBox(width: 8),
-            Text('Pink Corner', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+            Text('Learn', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
           ],
         ),
       ),
@@ -109,12 +111,13 @@ class PinkCornerScreen extends ConsumerWidget {
                 final topic = topicItems[index];
                 return TopicCard(
                   title: topic['title'] as String,
+                  subtitle: topic['subtitle'] as String?,
                   icon: topic['icon'] as IconData,
                   backgroundColor: topic['backgroundColor'] as Color,
                   borderColor: topic['borderColor'] as Color,
                   iconColor: topic['iconColor'] as Color,
                   onTap: () {
-                    if (topic['title'] == 'PCOS/PCOD') {
+                    if (topic['route'] == 'pcos') {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -137,6 +140,9 @@ class PinkCornerScreen extends ConsumerWidget {
                             icon: topic['icon'] as IconData,
                             accentColor: topic['iconColor'] as Color,
                             backgroundColor: topic['backgroundColor'] as Color,
+                            description: topic['title'] == 'Exercise & Movement'
+                                ? 'Why movement matters, simple daily movement, walking, strength training, stretching, beginner-friendly exercise, and building a consistent routine.'
+                                : null,
                           ),
                         ),
                       );

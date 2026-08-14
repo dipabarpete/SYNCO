@@ -286,7 +286,13 @@ class _HerSyncMainLayoutState
 
       body: IndexedStack(
         index: _currentIndex,
-        children: _screens,
+        children: List.generate(
+          _screens.length,
+          (i) => TickerMode(
+            enabled: i == _currentIndex,
+            child: _screens[i],
+          ),
+        ),
       ),
 
 

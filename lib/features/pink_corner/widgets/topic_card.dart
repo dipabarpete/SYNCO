@@ -4,6 +4,7 @@ import '../../../core/theme/app_colors.dart';
 
 class TopicCard extends StatefulWidget {
   final String title;
+  final String? subtitle;
   final IconData icon;
   final Color backgroundColor;
   final Color borderColor;
@@ -13,6 +14,7 @@ class TopicCard extends StatefulWidget {
   const TopicCard({
     super.key,
     required this.title,
+    this.subtitle,
     required this.icon,
     required this.backgroundColor,
     required this.borderColor,
@@ -57,43 +59,61 @@ class _TopicCardState extends State<TopicCard> {
               ),
             ],
           ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.85),
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: widget.iconColor.withValues(alpha: 0.15),
-                      blurRadius: 6,
-                      offset: const Offset(0, 2),
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.85),
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: widget.iconColor.withValues(alpha: 0.15),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Icon(
+                    widget.icon,
+                    color: widget.iconColor,
+                    size: 26,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  widget.title,
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.outfit(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textDark,
+                    height: 1.2,
+                  ),
+                ),
+                if (widget.subtitle != null) ...[
+                  const SizedBox(height: 3),
+                  Text(
+                    widget.subtitle!,
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.inter(
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.textMedium,
+                      height: 1.2,
                     ),
-                  ],
-                ),
-                child: Icon(
-                  widget.icon,
-                  color: widget.iconColor,
-                  size: 26,
-                ),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                widget.title,
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: GoogleFonts.outfit(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textDark,
-                  height: 1.2,
-                ),
-              ),
-            ],
+                  ),
+                ],
+              ],
+            ),
           ),
         ),
       ),

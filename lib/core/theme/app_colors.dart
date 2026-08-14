@@ -21,6 +21,9 @@ class AppColors {
   static const Color peachCoral = Color(0xFFFFB085);
   static const Color mintGreen = Color(0xFFB5EAD7);
   static const Color skyBlue = Color(0xFFC7CEEA);
+  static const Color pendingAmber = Color(0xFFE8A33D);
+  static const Color pendingAmberSoft = Color(0xFFFBF0DF);
+  static const Color confirmedGreen = Color(0xFF2E8B76);
   
   // Neutrals & Surface Colors
   static const Color textDark = Color(0xFF2D2335);

@@ -1,10 +1,32 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:fl_chart/fl_chart.dart';
-import '../../core/theme/app_colors.dart';
-import '../../providers/app_providers.dart';
 
+import '../../core/theme/app_colors.dart';
+import 'models/ai_insight.dart';
+import 'models/health_entries.dart';
+import 'providers/health_data_provider.dart';
+import 'screens/ai_insights_screen.dart';
+import 'screens/health_history_screen.dart';
+import 'services/health_analytics.dart';
+import 'widgets/health_dashboard_widgets.dart';
+import 'widgets/food_tracker_sheet.dart';
+import 'widgets/sleep_tracker_sheet.dart';
+import 'widgets/steps_tracker_sheet.dart';
+import 'widgets/sugar_tracker_sheet.dart';
+import 'widgets/supplement_tracker_sheet.dart';
+import 'widgets/water_tracker_sheet.dart';
+import 'widgets/weight_tracker_sheet.dart';
+import 'widgets/wellness_tracker_sheet.dart';
+
+/// SYNCO Health module dashboard.
+///
+/// Layout:
+///  1. App bar: "Health"
+///  2. Kyra AI (first and most prominent section)
+///  3. Today summary
+///  4. Health Trackers (8 loggable trackers in a 2 x 4 card grid)
+///  5. Privacy note
 class HealthTrackingScreen extends ConsumerStatefulWidget {
   const HealthTrackingScreen({super.key});
 
@@ -13,82 +35,74 @@ class HealthTrackingScreen extends ConsumerStatefulWidget {
       _HealthTrackingScreenState();
 }
 
-class _HealthTrackingScreenState extends ConsumerState<HealthTrackingScreen>
-    with SingleTickerProviderStateMixin {
-  late TabController _reportTabController;
-
+class _HealthTrackingScreenState extends ConsumerState<HealthTrackingScreen> {
   @override
   void initState() {
     super.initState();
-    _reportTabController = TabController(length: 2, vsync: this);
+    Future.microtask(() => ref.read(healthDataProvider.notifier).loadAll());
   }
 
-  @override
-  void dispose() {
-    _reportTabController.dispose();
-    super.dispose();
+  Future<void> _refresh() async {
+    await ref.read(healthDataProvider.notifier).loadAll();
+  }
+
+  void _openHistory() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const HealthHistoryScreen()),
+    );
+  }
+
+  void _openAllInsights() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const AiInsightsScreen()),
+    );
+  }
+
+  void _showInsightDetails(AiInsight insight) {
+    showAiInsightDetails(context, insight);
+  }
+
+  Future<void> _openTracker(HealthTrackerType type) async {
+    final data = ref.read(healthDataProvider);
+    final today = DateTime.now();
+
+    switch (type) {
+      case HealthTrackerType.sleep:
+        final existing = data.sleepOn(today).firstOrNull;
+        await SleepSheet.show(context, entry: existing);
+      case HealthTrackerType.water:
+        await WaterSheet.show(context);
+      case HealthTrackerType.steps:
+        final existing = data.steps
+            .where((e) => HealthDataState.sameDay(e.date, today))
+            .firstOrNull;
+        await StepsSheet.show(context, entry: existing);
+      case HealthTrackerType.sugarCravings:
+        await SugarCravingSheet.show(context);
+      case HealthTrackerType.supplements:
+        await SupplementSheet.show(context);
+      case HealthTrackerType.mentalWellness:
+        final existing = data.wellness
+            .where((e) => HealthDataState.sameDay(e.date, today))
+            .firstOrNull;
+        await WellnessSheet.show(context, entry: existing);
+      case HealthTrackerType.food:
+        await FoodSheet.show(context);
+      case HealthTrackerType.weight:
+        await WeightSheet.show(context);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final health = ref.watch(healthMetricsProvider);
-
-    final trackers = [
-      {
-        'title': 'Sleep Tracker',
-        'value': '${health.sleepHours}h Today',
-        'icon': Icons.bedtime_rounded,
-        'color': AppColors.sleepColor,
-      },
-      {
-        'title': 'Weight Tracker',
-        'value': '${health.weightKg} kg',
-        'icon': Icons.monitor_weight_rounded,
-        'color': AppColors.weightColor,
-      },
-      {
-        'title': 'Water Intake',
-        'value': '${health.waterIntakeLiters} / ${health.targetWaterLiters} L',
-        'icon': Icons.water_drop_rounded,
-        'color': AppColors.waterColor,
-      },
-      {
-        'title': 'Exercise Tracker',
-        'value': '${health.stepsCount} Steps',
-        'icon': Icons.directions_run_rounded,
-        'color': AppColors.stepsColor,
-      },
-      {
-        'title': 'Food & Nutrition',
-        'value': 'Balanced Follicular',
-        'icon': Icons.restaurant_rounded,
-        'color': AppColors.mintGreen,
-      },
-      {
-        'title': 'Mental Wellness',
-        'value': 'Stress Low (25%)',
-        'icon': Icons.spa_rounded,
-        'color': AppColors.softPurpleLight,
-      },
-      {
-        'title': 'Skin Tracker',
-        'value': health.acneStatus,
-        'icon': Icons.face_retouching_natural_rounded,
-        'color': AppColors.acneColor,
-      },
-      {
-        'title': 'Supplement Tracker',
-        'value': health.supplementsTaken ? 'All Taken ✨' : 'Pending',
-        'icon': Icons.medication_rounded,
-        'color': AppColors.rosePink,
-      },
-      {
-        'title': 'Lab Reports AI',
-        'value': 'Thyroid & Iron Normal',
-        'icon': Icons.document_scanner_rounded,
-        'color': AppColors.softPurple,
-      },
-    ];
+    final data = ref.watch(healthDataProvider);
+    final insights = ref.watch(aiInsightsProvider);
+    final now = DateTime.now();
+    final today = HealthAnalytics.daily(all: data.allEntries, date: now);
+    final dataDays =
+        HealthAnalytics.dataDaysLastDays(data.allEntries, now, days: 30);
 
     return Scaffold(
       appBar: AppBar(
@@ -97,275 +111,141 @@ class _HealthTrackingScreenState extends ConsumerState<HealthTrackingScreen>
             const Icon(Icons.favorite_rounded, color: AppColors.rosePink),
             const SizedBox(width: 8),
             Text(
-              'Health & Analytics',
-              style: GoogleFonts.outfit(fontWeight: FontWeight.bold),
+              'Health',
+              style: GoogleFonts.outfit(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textDark,
+              ),
             ),
           ],
         ),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // AI Pattern Detection Banner
-            Container(
-              padding: const EdgeInsets.all(18),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [AppColors.softPurple, AppColors.softPurpleLight],
-                ),
-                borderRadius: BorderRadius.circular(24),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.auto_awesome_rounded,
-                        color: Colors.white,
-                        size: 20,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'AI Pattern Detection System',
-                        style: GoogleFonts.outfit(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Pattern Detected: Higher sleep duration (7.8h+) directly correlates with lower stress levels (25%) and reduced sugar cravings during your follicular phase.',
-                    style: GoogleFonts.inter(
-                      fontSize: 12,
-                      color: Colors.white.withValues(alpha: 0.9),
-                      height: 1.4,
-                    ),
-                  ),
-                ],
-              ),
+        actions: [
+          TextButton.icon(
+            onPressed: _openHistory,
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.softPurple,
             ),
-            const SizedBox(height: 22),
-
-            // Weekly & Monthly Reports Tabs with Charts
-            Text(
-              'Weekly & Monthly Reports',
-              style: GoogleFonts.outfit(
-                fontSize: 18,
+            icon: const Icon(Icons.history_rounded, size: 18),
+            label: Text(
+              'History',
+              style: GoogleFonts.inter(
+                fontSize: 12.5,
                 fontWeight: FontWeight.bold,
               ),
             ),
-            const SizedBox(height: 12),
-            Container(
-              height: 250,
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Theme.of(context).cardColor,
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(
-                  color: AppColors.borderGrey.withValues(alpha: 0.4),
-                ),
-              ),
-              child: Column(
-                children: [
-                  TabBar(
-                    controller: _reportTabController,
-                    labelColor: AppColors.softPurple,
-                    unselectedLabelColor: AppColors.textMedium,
-                    indicatorColor: AppColors.softPurple,
-                    tabs: const [
-                      Tab(text: 'Weekly Trend'),
-                      Tab(text: 'Monthly Overview'),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  Expanded(
-                    child: TabBarView(
-                      controller: _reportTabController,
-                      children: [
-                        _buildSimpleBarChart(),
-                        _buildSimpleLineChart(),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 22),
-
-            // Health Trackers Suite Grid
-            Text(
-              'Health Trackers Suite',
-              style: GoogleFonts.outfit(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 12),
-            GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: trackers.length,
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,
-                crossAxisSpacing: 10,
-                mainAxisSpacing: 10,
-                childAspectRatio: 0.95,
-              ),
-              itemBuilder: (ctx, i) {
-                final t = trackers[i];
-                return GestureDetector(
-                  onTap: () => _openTrackerActionSheet(
-                    context,
-                    ref,
-                    t['title'] as String,
-                  ),
-                  child: Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).cardColor,
-                      borderRadius: BorderRadius.circular(18),
-                      border: Border.all(
-                        color: (t['color'] as Color).withValues(alpha: 0.3),
-                      ),
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          t['icon'] as IconData,
-                          color: t['color'] as Color,
-                          size: 22,
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          t['title'] as String,
-                          textAlign: TextAlign.center,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: GoogleFonts.inter(
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.textDark,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          t['value'] as String,
-                          textAlign: TextAlign.center,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: GoogleFonts.inter(
-                            fontSize: 9,
-                            color: AppColors.textMedium,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSimpleBarChart() {
-    return BarChart(
-      BarChartData(
-        alignment: BarChartAlignment.spaceAround,
-        maxY: 100,
-        barTouchData: BarTouchData(enabled: false),
-        titlesData: FlTitlesData(
-          show: true,
-          bottomTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              getTitlesWidget: (val, meta) {
-                const days = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
-                return Text(
-                  days[val.toInt() % 7],
-                  style: const TextStyle(fontSize: 10),
-                );
-              },
-            ),
           ),
-          leftTitles: const AxisTitles(
-            sideTitles: SideTitles(showTitles: false),
-          ),
-          rightTitles: const AxisTitles(
-            sideTitles: SideTitles(showTitles: false),
-          ),
-          topTitles: const AxisTitles(
-            sideTitles: SideTitles(showTitles: false),
-          ),
-        ),
-        gridData: const FlGridData(show: false),
-        borderData: FlBorderData(show: false),
-        barGroups: [
-          BarChartGroupData(
-            x: 0,
-            barRods: [BarChartRodData(toY: 75, color: AppColors.softPurple)],
-          ),
-          BarChartGroupData(
-            x: 1,
-            barRods: [BarChartRodData(toY: 82, color: AppColors.softPurple)],
-          ),
-          BarChartGroupData(
-            x: 2,
-            barRods: [BarChartRodData(toY: 88, color: AppColors.softPurple)],
-          ),
-          BarChartGroupData(
-            x: 3,
-            barRods: [BarChartRodData(toY: 79, color: AppColors.softPurple)],
-          ),
-          BarChartGroupData(
-            x: 4,
-            barRods: [BarChartRodData(toY: 85, color: AppColors.softPurple)],
-          ),
-          BarChartGroupData(
-            x: 5,
-            barRods: [BarChartRodData(toY: 90, color: AppColors.softPurple)],
-          ),
-          BarChartGroupData(
-            x: 6,
-            barRods: [BarChartRodData(toY: 82, color: AppColors.rosePink)],
-          ),
+          const SizedBox(width: 4),
         ],
       ),
+      body: data.isLoading && data.allEntries.isEmpty
+          ? const Center(
+              child: CircularProgressIndicator(color: AppColors.softPurple),
+            )
+          : RefreshIndicator(
+              onRefresh: _refresh,
+              color: AppColors.softPurple,
+              child: ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+                children: [
+                  // -----------------------------------------------------------------
+                  // 1. KYRA AI
+                  // -----------------------------------------------------------------
+                  const HealthSectionHeader(
+                    title: 'Kyra AI',
+                    subtitle: 'Personalized patterns from your health data',
+                  ),
+                  const SizedBox(height: 12),
+                  const AiHeroBanner(),
+                  const SizedBox(height: 12),
+
+                  if (data.errorMessage != null) ...[
+                    _buildErrorBanner(data.errorMessage!),
+                    const SizedBox(height: 12),
+                  ],
+
+                  if (insights.isEmpty || dataDays < 3)
+                    AiEmptyState(hasAnyData: dataDays > 0)
+                  else ...[
+                    for (final insight in insights.take(2))
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: AiInsightCard(
+                          insight: insight,
+                          onViewDetails: () => _showInsightDetails(insight),
+                        ),
+                      ),
+                    if (insights.length > 2)
+                      Center(
+                        child: TextButton.icon(
+                          onPressed: _openAllInsights,
+                          icon: const Icon(
+                            Icons.view_list_rounded,
+                            size: 17,
+                            color: AppColors.softPurple,
+                          ),
+                          label: Text(
+                            'View all insights (${insights.length})',
+                            style: GoogleFonts.inter(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.softPurple,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+
+                  const SizedBox(height: 20),
+
+                  // -----------------------------------------------------------------
+                  // 2. TODAY SUMMARY
+                  // -----------------------------------------------------------------
+                  TodaySummaryCard(snapshot: today),
+                  const SizedBox(height: 22),
+
+                  // -----------------------------------------------------------------
+                  // 3. HEALTH TRACKERS (2 x 4 card grid)
+                  // -----------------------------------------------------------------
+                  const HealthSectionHeader(
+                    title: 'Health Trackers',
+                    subtitle: 'Track the small things that shape your wellbeing.',
+                  ),
+                  const SizedBox(height: 12),
+                  _buildTrackerGrid(today, data),
+
+                  const SizedBox(height: 10),
+
+                  // -----------------------------------------------------------------
+                  // 4. PRIVACY NOTE
+                  // -----------------------------------------------------------------
+                  _buildPrivacyNote(),
+                ],
+              ),
+            ),
     );
   }
 
-  Widget _buildSimpleLineChart() {
-    return LineChart(
-      LineChartData(
-        gridData: const FlGridData(show: false),
-        titlesData: const FlTitlesData(show: false),
-        borderData: FlBorderData(show: false),
-        lineBarsData: [
-          LineChartBarData(
-            spots: const [
-              FlSpot(0, 70),
-              FlSpot(1, 75),
-              FlSpot(2, 80),
-              FlSpot(3, 78),
-              FlSpot(4, 85),
-              FlSpot(5, 88),
-              FlSpot(6, 92),
-            ],
-            isCurved: true,
-            color: AppColors.softPurple,
-            barWidth: 3,
-            belowBarData: BarAreaData(
-              show: true,
-              color: AppColors.softLavender.withValues(alpha: 0.4),
+  Widget _buildErrorBanner(String message) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.pendingAmberSoft,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.warning_amber_rounded,
+              size: 18, color: AppColors.pendingAmber),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              message,
+              style: GoogleFonts.inter(
+                fontSize: 12,
+                color: AppColors.textDark,
+              ),
             ),
           ),
         ],
@@ -373,64 +253,163 @@ class _HealthTrackingScreenState extends ConsumerState<HealthTrackingScreen>
     );
   }
 
-  void _openTrackerActionSheet(
-    BuildContext context,
-    WidgetRef ref,
-    String title,
-  ) {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+  Widget _buildTrackerGrid(DailySnapshot today, HealthDataState data) {
+    final entries = <(HealthTrackerType, String?, String?)>[
+      (
+        HealthTrackerType.sleep,
+        today.sleep == null
+            ? null
+            : formatDurationMinutes(today.sleep!.durationMinutes),
+        today.sleep == null ? 'Not logged' : today.sleep!.quality,
       ),
-      builder: (ctx) => Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'Manage $title',
-              style: GoogleFonts.outfit(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
+      (
+        HealthTrackerType.water,
+        today.water.isEmpty
+            ? null
+            : '${_cupsLabel(today.totalWaterCups)} cups',
+        today.water.isEmpty
+            ? 'Not logged'
+            : _hydrationLabel(today.water.last.hydrationLevel),
+      ),
+      (
+        HealthTrackerType.steps,
+        today.steps == null ? null : '${_thousands(today.steps!.count)} steps',
+        today.steps == null ? 'Not logged' : 'Manual entry',
+      ),
+      (
+        HealthTrackerType.sugarCravings,
+        today.cravings.isEmpty ? null : today.cravings.last.craving,
+        today.cravings.isEmpty
+            ? 'Not logged'
+            : '${today.cravings.last.level} \u00B7 ${today.cravings.length} today',
+      ),
+      (
+        HealthTrackerType.supplements,
+        today.supplements.isEmpty ? null : today.supplements.first.name,
+        today.supplements.isEmpty
+            ? 'Not logged'
+            : today.supplements.length > 1
+                ? '+${today.supplements.length - 1} more'
+                : '1 today',
+      ),
+      (
+        HealthTrackerType.mentalWellness,
+        today.wellness?.mood,
+        today.wellness == null
+            ? 'Not logged'
+            : 'Stress ${today.wellness!.stressLevel}/5',
+      ),
+      (
+        HealthTrackerType.food,
+        today.mealCount == 0
+            ? null
+            : '${today.mealCount} '
+                '${today.mealCount == 1 ? 'meal' : 'meals'} today',
+        today.mealCount == 0
+            ? 'No meals logged'
+            : (today.meals.last.mealType.isNotEmpty
+                ? today.meals.last.mealType
+                : 'Logged'),
+      ),
+      (
+        HealthTrackerType.weight,
+        data.weight.firstOrNull == null
+            ? null
+            : _weightLabel(data.weight.first.weight, data.weight.first.unit),
+        data.weight.firstOrNull == null
+            ? 'Not logged'
+            : 'Latest \u00B7 ${data.weight.first.date.day} '
+                '${_monthName(data.weight.first.date)}',
+      ),
+    ];
+
+    final isWide = MediaQuery.of(context).size.width >= 600;
+    const spacing = 12.0;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final itemWidth = (constraints.maxWidth - spacing) / 2;
+        final itemHeight = (itemWidth * 0.96)
+            .clamp(isWide ? 170.0 : 150.0, 195.0)
+            .toDouble();
+        return GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            crossAxisSpacing: spacing,
+            mainAxisSpacing: spacing,
+            mainAxisExtent: itemHeight,
+          ),
+          itemCount: entries.length,
+          itemBuilder: (context, index) {
+            final (type, value, summary) = entries[index];
+            return TrackerGridCard(
+              type: type,
+              value: value,
+              summary: summary,
+              onTap: () => _openTracker(type),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  static String _cupsLabel(double cups) =>
+      cups % 1 == 0 ? cups.toInt().toString() : cups.toStringAsFixed(1);
+
+  static String _hydrationLabel(String level) =>
+      level.isEmpty ? 'Logged' : level;
+
+  static String _weightLabel(double weight, String unit) =>
+      '${weight % 1 == 0 ? weight.toInt() : weight} $unit';
+
+  Widget _buildPrivacyNote() {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.babyPink.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: AppColors.blushPinkLight.withValues(alpha: 0.6),
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(
+            Icons.shield_outlined,
+            size: 18,
+            color: AppColors.rosePink,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'Your health data stays private to you. Insights are educational '
+              'observations of your own patterns - never a diagnosis. Share it '
+              'with professionals only when you choose to.',
+              style: GoogleFonts.inter(
+                fontSize: 11.5,
+                height: 1.45,
+                color: AppColors.textMedium,
               ),
             ),
-            const SizedBox(height: 12),
-            if (title.contains('Water')) ...[
-              ElevatedButton.icon(
-                onPressed: () {
-                  ref
-                      .read(healthMetricsProvider.notifier)
-                      .updateWaterIntake(0.25);
-                  Navigator.pop(ctx);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('+250 ml Water Logged! 💧')),
-                  );
-                },
-                icon: const Icon(Icons.add),
-                label: const Text('Log +250 ml Water'),
-              ),
-            ] else ...[
-              Text(
-                'Log your daily metric or scan reports to update your AI Health Score.',
-                textAlign: TextAlign.center,
-                style: GoogleFonts.inter(),
-              ),
-              const SizedBox(height: 12),
-              ElevatedButton(
-                onPressed: () => Navigator.pop(ctx),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.softPurple,
-                ),
-                child: const Text(
-                  'Update Metric Log',
-                  style: TextStyle(color: Colors.white),
-                ),
-              ),
-            ],
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
+
+  static String _thousands(int value) {
+    final digits = value.toString();
+    final buffer = StringBuffer();
+    for (var i = 0; i < digits.length; i++) {
+      if (i > 0 && (digits.length - i) % 3 == 0) buffer.write(',');
+      buffer.write(digits[i]);
+    }
+    return buffer.toString();
+  }
+
+  static String _monthName(DateTime d) =>
+      const ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][d.month - 1];
 }

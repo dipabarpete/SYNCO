@@ -50,11 +50,11 @@ class CustomBottomNavBar extends StatelessWidget {
             _buildConsultNavItem(
               index: 2,
             ),
-            // 4. Pink Corner Tab
+            // 4. Learn Tab
             _buildNavItem(
               index: 3,
               icon: Icons.menu_book_rounded,
-              label: 'Pink Corner',
+              label: 'Learn',
             ),
             // 5. Health Tab
             _buildNavItem(

@@ -1,6 +1,9 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../core/theme/app_colors.dart';
 import '../../models/community_post.dart';
 import '../../providers/app_providers.dart';
@@ -31,7 +34,9 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
   ];
 
   // Image Attachment state
-  final List<String> _attachedImageUrls = [];
+  String? _selectedImagePath;
+
+  final ImagePicker _imagePicker = ImagePicker();
 
   // Poll state
   bool _showPollSection = false;
@@ -51,17 +56,35 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
     super.dispose();
   }
 
-  void _addImageSample() {
-    // Adds a demo image attachment preview
-    final sampleImages = [
-      'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=400',
-      'https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=400',
-      'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=400',
-    ];
-    setState(() {
-      _attachedImageUrls.add(
-        sampleImages[_attachedImageUrls.length % sampleImages.length],
+  Future<void> _pickImage() async {
+    try {
+      final XFile? picked = await _imagePicker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1600,
+        maxHeight: 1600,
+        imageQuality: 85,
       );
+      if (picked == null) {
+        return; // User cancelled or denied permission - keep screen usable
+      }
+      setState(() {
+        _selectedImagePath = picked.path;
+      });
+    } catch (e) {
+      debugPrint('Error picking image: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not open the image gallery. Try again.'),
+          ),
+        );
+      }
+    }
+  }
+
+  void _removeSelectedImage() {
+    setState(() {
+      _selectedImagePath = null;
     });
   }
 
@@ -133,7 +156,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
       likesCount: 0,
       commentsCount: 0,
       pollOptions: pollOptions,
-      attachedImages: _attachedImageUrls.isNotEmpty ? _attachedImageUrls : null,
+      attachedImages: _selectedImagePath != null ? [_selectedImagePath!] : null,
     );
 
     ref.read(whisperRoomProvider.notifier).addPost(newPost);
@@ -359,7 +382,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
               children: [
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: _addImageSample,
+                    onPressed: _pickImage,
                     icon: const Text('📷'),
                     label: Text(
                       'Add Image',
@@ -412,56 +435,61 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
               ],
             ),
 
-            // IMAGE PREVIEWS LIST
-            if (_attachedImageUrls.isNotEmpty) ...[
+            // IMAGE PREVIEW
+            if (_selectedImagePath != null) ...[
               const SizedBox(height: 12),
-              SizedBox(
-                height: 80,
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: _attachedImageUrls.length,
-                  itemBuilder: (ctx, idx) {
-                    return Stack(
+              Stack(
+                alignment: Alignment.topRight,
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: Image.file(
+                      File(_selectedImagePath!),
+                      height: 180,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(8),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
                       children: [
-                        Container(
-                          margin: const EdgeInsets.only(right: 10),
-                          width: 80,
-                          height: 80,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(16),
-                            image: DecorationImage(
-                              image: NetworkImage(_attachedImageUrls[idx]),
-                              fit: BoxFit.cover,
+                        GestureDetector(
+                          onTap: _pickImage,
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: const BoxDecoration(
+                              color: Colors.black54,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.refresh_rounded,
+                              size: 16,
+                              color: Colors.white,
                             ),
                           ),
                         ),
-                        Positioned(
-                          top: 4,
-                          right: 14,
-                          child: GestureDetector(
-                            onTap: () {
-                              setState(() {
-                                _attachedImageUrls.removeAt(idx);
-                              });
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.all(2),
-                              decoration: const BoxDecoration(
-                                color: Colors.black54,
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(
-                                Icons.close_rounded,
-                                size: 14,
-                                color: Colors.white,
-                              ),
+                        const SizedBox(width: 8),
+                        GestureDetector(
+                          onTap: _removeSelectedImage,
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: const BoxDecoration(
+                              color: Colors.black54,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.close_rounded,
+                              size: 16,
+                              color: Colors.white,
                             ),
                           ),
                         ),
                       ],
-                    );
-                  },
-                ),
+                    ),
+                  ),
+                ],
               ),
             ],
 
