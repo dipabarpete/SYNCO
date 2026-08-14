@@ -164,6 +164,7 @@ class _KyraAiScreenState extends ConsumerState<KyraAiScreen> {
           ),
           const SizedBox(height: 6),
 
+
           // Bottom Input Bar with Voice Input
           Container(
             padding: const EdgeInsets.all(12),

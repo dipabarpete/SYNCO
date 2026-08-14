@@ -7,7 +7,7 @@ import '../../../models/period_record.dart';
 import '../../../providers/app_providers.dart';
 
 /// Bottom sheet used to add a new period or edit an existing one.
-/// Saves through [periodLogsProvider] so data lands in Supabase `period_logs`.
+/// Saves through [periodLogsProvider] so data lands in Firebase `period_logs`.
 class PeriodFormSheet extends ConsumerStatefulWidget {
   /// When provided, the sheet edits that period; otherwise it adds a new one.
   final PeriodRecord? record;

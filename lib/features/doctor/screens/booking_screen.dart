@@ -1,19 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../providers/app_providers.dart';
 import '../models/doctor.dart';
 import 'booking_confirmation_screen.dart';
 
-class BookingScreen extends StatefulWidget {
+class BookingScreen extends ConsumerStatefulWidget {
   final Doctor doctor;
 
   const BookingScreen({super.key, required this.doctor});
 
   @override
-  State<BookingScreen> createState() => _BookingScreenState();
+  ConsumerState<BookingScreen> createState() => _BookingScreenState();
 }
 
-class _BookingScreenState extends State<BookingScreen> {
+class _BookingScreenState extends ConsumerState<BookingScreen> {
   late ConsultationMode _selectedMode;
   late DateTime _selectedDate;
   String? _selectedSlot;
@@ -254,7 +256,7 @@ class _BookingScreenState extends State<BookingScreen> {
     );
   }
 
-  void _confirmAppointment() {
+  void _confirmAppointment() async {
     final String? error = _validate();
     if (error != null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -277,18 +279,41 @@ class _BookingScreenState extends State<BookingScreen> {
       return;
     }
 
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (_) => BookingConfirmationScreen(
-          doctor: widget.doctor,
-          mode: _selectedMode,
-          date: _selectedDate,
-          slot: _selectedSlot!,
-          fee: widget.doctor.consultationFee,
-        ),
-      ),
-    );
+    // Call Firebase
+    try {
+      final doctorService = ref.read(doctorServiceProvider);
+      // Hardcoded userId for now since we don't have full auth state
+      await doctorService.bookAppointment(
+        'user_123',
+        widget.doctor.id,
+        _selectedDate.toIso8601String(),
+        _selectedSlot!,
+      );
+
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => BookingConfirmationScreen(
+              doctor: widget.doctor,
+              mode: _selectedMode,
+              date: _selectedDate,
+              slot: _selectedSlot!,
+              fee: widget.doctor.consultationFee,
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to book appointment: $e'),
+            backgroundColor: AppColors.deepRose,
+          ),
+        );
+      }
+    }
   }
 
   String? _validate() {

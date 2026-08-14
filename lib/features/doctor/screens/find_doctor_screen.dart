@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
-import '../data/dummy_doctors.dart';
+import '../../../providers/app_providers.dart';
 import '../models/doctor.dart';
 import 'all_doctors_screen.dart';
 import 'booking_screen.dart';
@@ -11,14 +12,14 @@ import '../widgets/doctor_card.dart';
 import '../widgets/doctor_search_bar.dart';
 import '../widgets/section_header.dart';
 
-class FindDoctorScreen extends StatefulWidget {
+class FindDoctorScreen extends ConsumerStatefulWidget {
   const FindDoctorScreen({super.key});
 
   @override
-  State<FindDoctorScreen> createState() => _FindDoctorScreenState();
+  ConsumerState<FindDoctorScreen> createState() => _FindDoctorScreenState();
 }
 
-class _FindDoctorScreenState extends State<FindDoctorScreen> {
+class _FindDoctorScreenState extends ConsumerState<FindDoctorScreen> {
   final TextEditingController _searchController = TextEditingController();
   ConsultationMode? _selectedMode;
   String _query = '';
@@ -43,8 +44,7 @@ class _FindDoctorScreenState extends State<FindDoctorScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final suggested = _filter(DummyDoctors.suggestedDoctors);
-    final nearby = _filter(DummyDoctors.nearbyDoctors);
+    final doctorsAsync = ref.watch(doctorsProvider);
 
     return Scaffold(
       backgroundColor: AppColors.creamWhite,
@@ -143,53 +143,85 @@ class _FindDoctorScreenState extends State<FindDoctorScreen> {
               ),
               const SizedBox(height: 26),
 
-              // -------------------------------------------------------------
-              // SUGGESTED DOCTORS
-              // -------------------------------------------------------------
-              SectionHeader(
-                title: 'Suggested Doctors',
-                actionLabel: 'View All',
-                onActionTap: () => _openAllDoctors(suggested),
-              ),
-              const SizedBox(height: 14),
-              if (suggested.isEmpty)
-                _buildEmptyState()
-              else
-                ...suggested.map(
-                  (doctor) => Padding(
-                    padding: const EdgeInsets.only(bottom: 14),
-                    child: DoctorCard(
-                      doctor: doctor,
-                      onTap: () => _openProfile(doctor),
-                      onBookNow: () => _openBooking(doctor),
-                    ),
-                  ),
-                ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 26),
 
-              // -------------------------------------------------------------
-              // NEARBY DOCTORS
-              // -------------------------------------------------------------
-              SectionHeader(
-                title: 'Nearby Doctors',
-                actionLabel: 'View All',
-                onActionTap: () => _openAllDoctors(nearby),
-              ),
-              const SizedBox(height: 14),
-              if (nearby.isEmpty)
-                _buildEmptyState()
-              else
-                ...nearby.map(
-                  (doctor) => Padding(
-                    padding: const EdgeInsets.only(bottom: 14),
-                    child: DoctorCard(
-                      doctor: doctor,
-                      onTap: () => _openProfile(doctor),
-                      onBookNow: () => _openBooking(doctor),
-                    ),
+              // SEED DATA BUTTON (TEMPORARY)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Doctors List', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16)),
+                  TextButton(
+                    onPressed: () => seedMockDoctors(ref),
+                    child: const Text('Seed Mock Data', style: TextStyle(color: AppColors.softPurple)),
                   ),
+                ],
+              ),
+              const SizedBox(height: 10),
+
+              doctorsAsync.when(
+                data: (allDoctors) {
+                  final filteredDoctors = _filter(allDoctors);
+                  final suggested = filteredDoctors.where((d) => d.rating >= 4.8).toList();
+                  final nearby = filteredDoctors.where((d) => d.mode == ConsultationMode.offline).toList();
+
+                  return Column(
+                    children: [
+                      // -------------------------------------------------------------
+                      // SUGGESTED DOCTORS
+                      // -------------------------------------------------------------
+                      SectionHeader(
+                        title: 'Suggested Doctors',
+                        actionLabel: 'View All',
+                        onActionTap: () => _openAllDoctors(suggested),
+                      ),
+                      const SizedBox(height: 14),
+                      if (suggested.isEmpty)
+                        _buildEmptyState()
+                      else
+                        ...suggested.map(
+                          (doctor) => Padding(
+                            padding: const EdgeInsets.only(bottom: 14),
+                            child: DoctorCard(
+                              doctor: doctor,
+                              onTap: () => _openProfile(doctor),
+                              onBookNow: () => _openBooking(doctor),
+                            ),
+                          ),
+                        ),
+                      const SizedBox(height: 12),
+
+                      // -------------------------------------------------------------
+                      // NEARBY DOCTORS
+                      // -------------------------------------------------------------
+                      SectionHeader(
+                        title: 'Nearby Doctors',
+                        actionLabel: 'View All',
+                        onActionTap: () => _openAllDoctors(nearby),
+                      ),
+                      const SizedBox(height: 14),
+                      if (nearby.isEmpty)
+                        _buildEmptyState()
+                      else
+                        ...nearby.map(
+                          (doctor) => Padding(
+                            padding: const EdgeInsets.only(bottom: 14),
+                            child: DoctorCard(
+                              doctor: doctor,
+                              onTap: () => _openProfile(doctor),
+                              onBookNow: () => _openBooking(doctor),
+                            ),
+                          ),
+                        ),
+                      const SizedBox(height: 8),
+                    ],
+                  );
+                },
+                loading: () => const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 40),
+                  child: Center(child: CircularProgressIndicator(color: AppColors.softPurple)),
                 ),
-              const SizedBox(height: 8),
+                error: (error, _) => Center(child: Text('Error: $error')),
+              ),
             ],
           ),
         ),

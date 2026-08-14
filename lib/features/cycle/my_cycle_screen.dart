@@ -214,7 +214,7 @@ class _MyCycleScreenState extends ConsumerState<MyCycleScreen> {
             ),
             const SizedBox(height: 12),
 
-            // Add Period Button (saves to Supabase period_logs)
+            // Add Period Button (saves to Firebase period_logs)
             SizedBox(
               width: double.infinity,
               height: 52,

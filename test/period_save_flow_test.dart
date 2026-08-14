@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+
 import 'package:hersync/models/period_record.dart';
 import 'package:hersync/features/cycle/services/period_repository.dart';
 
@@ -53,7 +53,7 @@ void main() {
     test('Unauthenticated user attempt throws clear StateError', () async {
       final repo = PeriodRepository();
 
-      // Case 1: Before Supabase is initialized
+      // Case 1: Before Firebase is initialized or user logged out
       expect(
         () => repo.createPeriod(
           startDate: DateTime.now(),
@@ -62,27 +62,7 @@ void main() {
         throwsA(isA<StateError>().having(
           (e) => e.message,
           'message',
-          contains('Supabase client is not initialized'),
-        )),
-      );
-
-      // Case 2: After Supabase initialized, but user logged out
-      try {
-        await Supabase.initialize(
-          url: 'https://kvebcttlyogilsimnywf.supabase.co',
-          publishableKey: 'sb_publishable_6GrenvrBLCjhjmmEQsBKwQ_wHbi5_s7',
-        );
-      } catch (_) {}
-
-      expect(
-        () => repo.createPeriod(
-          startDate: DateTime.now(),
-          flowLevel: 'medium',
-        ),
-        throwsA(isA<StateError>().having(
-          (e) => e.message,
-          'message',
-          contains('You are not signed in'),
+          contains('Firebase client is not initialized'),
         )),
       );
 
@@ -94,7 +74,7 @@ void main() {
         throwsA(isA<StateError>().having(
           (e) => e.message,
           'message',
-          contains('You are not signed in'),
+          contains('Firebase client is not initialized'),
         )),
       );
     });

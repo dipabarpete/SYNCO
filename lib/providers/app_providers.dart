@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../features/pink_corner/services/pink_corner_service.dart';
+import '../features/doctor/models/doctor.dart';
+import '../features/doctor/services/doctor_service.dart';
+import '../features/kyra/services/kyra_api_service.dart';
 import '../models/user_profile.dart';
 import '../models/health_metrics.dart';
 import '../models/cycle_data.dart';
@@ -164,7 +168,7 @@ class PeriodLogsNotifier extends StateNotifier<PeriodLogsState> {
         state = PeriodLogsState(records: records);
       }
     } catch (e) {
-      logSupabaseError('PeriodLogsNotifier.loadPeriods', e);
+      debugPrint('Error in PeriodLogsNotifier.loadPeriods: $e');
       if (mounted) {
         state = PeriodLogsState(
           errorMessage: _formatError(e),
@@ -199,7 +203,7 @@ class PeriodLogsNotifier extends StateNotifier<PeriodLogsState> {
       }
       return null;
     } catch (e) {
-      logSupabaseError('PeriodLogsNotifier.addPeriod', e);
+      debugPrint('Error in PeriodLogsNotifier.addPeriod: $e');
       return _formatError(e);
     }
   }
@@ -237,7 +241,7 @@ class PeriodLogsNotifier extends StateNotifier<PeriodLogsState> {
       }
       return null;
     } catch (e) {
-      logSupabaseError('PeriodLogsNotifier.updatePeriod', e);
+      debugPrint('Error in PeriodLogsNotifier.updatePeriod: $e');
       return _formatError(e);
     }
   }
@@ -254,7 +258,7 @@ class PeriodLogsNotifier extends StateNotifier<PeriodLogsState> {
       }
       return null;
     } catch (e) {
-      logSupabaseError('PeriodLogsNotifier.deletePeriod', e);
+      debugPrint('Error in PeriodLogsNotifier.deletePeriod: $e');
       return _formatError(e);
     }
   }
@@ -360,7 +364,7 @@ class WhisperRoomNotifier extends StateNotifier<List<CommunityPost>> {
             title: 'Managing PCOS cravings naturally - what worked for me!',
             content:
                 'Adding spearmint tea and cinnamon morning water helped reduce my sweet cravings significantly during follicular phase. Has anyone else tried this?',
-            timeAgo: '2h ago',
+            createdAt: DateTime.now().subtract(const Duration(hours: 2)),
             likesCount: 142,
             commentsCount: 28,
             isLiked: true,
@@ -369,8 +373,8 @@ class WhisperRoomNotifier extends StateNotifier<List<CommunityPost>> {
                 id: 'c1',
                 authorName: 'Sarah M.',
                 authorAvatar: '🌺',
+                createdAt: DateTime.now().subtract(const Duration(hours: 1)),
                 text: 'Spearmint tea helped my hormonal acne so much as well!',
-                timeAgo: '1h ago',
                 likesCount: 12,
               )
             ],
@@ -383,7 +387,7 @@ class WhisperRoomNotifier extends StateNotifier<List<CommunityPost>> {
             category: 'Periods & Flow Talk',
             title: 'POLL: How do you handle day 1 cramps?',
             content: 'Let us know your go-to ritual for comfort during day 1 of your cycle!',
-            timeAgo: '5h ago',
+            createdAt: DateTime.now().subtract(const Duration(hours: 5)),
             likesCount: 289,
             commentsCount: 64,
             pollOptions: [
@@ -401,7 +405,7 @@ class WhisperRoomNotifier extends StateNotifier<List<CommunityPost>> {
             title: 'Feeling anxious during ovulation phase? You are not alone.',
             content:
                 'I used to think ovulation only brings high energy, but sometimes estrogen spikes cause mild anxiety for me. Be gentle with yourselves today ladies! 💖',
-            timeAgo: '1d ago',
+            createdAt: DateTime.now().subtract(const Duration(days: 1)),
             likesCount: 412,
             commentsCount: 53,
           ),
@@ -415,7 +419,7 @@ class WhisperRoomNotifier extends StateNotifier<List<CommunityPost>> {
             title: 'My top 5 seed cycling tips for hormonal balance ✨',
             content:
                 'Started seed cycling 3 months ago: pumpkin & flax seeds during follicular, sesame & sunflower during luteal. My cycle has been so much more regular!',
-            timeAgo: '2d ago',
+            createdAt: DateTime.now().subtract(const Duration(days: 2)),
             likesCount: 198,
             commentsCount: 34,
             isSaved: true,
@@ -429,7 +433,7 @@ class WhisperRoomNotifier extends StateNotifier<List<CommunityPost>> {
             title: 'Understanding intimacy & cycle phase changes',
             content:
                 'Libido and energy change dynamically across your menstrual cycle due to fluctuating estrogen and progesterone. Knowing your cycle helps build confidence.',
-            timeAgo: '3d ago',
+            createdAt: DateTime.now().subtract(const Duration(days: 3)),
             likesCount: 320,
             commentsCount: 42,
           ),
@@ -442,7 +446,7 @@ class WhisperRoomNotifier extends StateNotifier<List<CommunityPost>> {
             title: 'First trimester morning sickness relief ideas 🍼',
             content:
                 'Small frequent meals, ginger water, and vitamin B6 made a huge difference during weeks 6-10!',
-            timeAgo: '4d ago',
+            createdAt: DateTime.now().subtract(const Duration(days: 4)),
             likesCount: 156,
             commentsCount: 19,
           ),
@@ -456,7 +460,7 @@ class WhisperRoomNotifier extends StateNotifier<List<CommunityPost>> {
             title: 'Welcome to Whisper Room! Safe space for all of us 💬',
             content:
                 'Feel free to ask any question, share your wins, or seek support from this amazing community.',
-            timeAgo: '5d ago',
+            createdAt: DateTime.now().subtract(const Duration(days: 5)),
             likesCount: 530,
             commentsCount: 88,
           ),
@@ -516,13 +520,14 @@ class WhisperRoomNotifier extends StateNotifier<List<CommunityPost>> {
     ];
   }
 
-  void addComment(String postId, String commentText) {
+  void addComment(String postId, String commentText, {bool isAnonymous = false}) {
     final newComment = CommentItem(
       id: 'c_${DateTime.now().millisecondsSinceEpoch}',
-      authorName: 'Sonali',
-      authorAvatar: '👑',
+      authorName: isAnonymous ? 'Anonymous' : 'Sonali',
+      authorAvatar: isAnonymous ? '🌸' : '👑',
       text: commentText,
-      timeAgo: 'Just now',
+      createdAt: DateTime.now(),
+      likesCount: 0,
     );
 
     state = [
@@ -537,6 +542,11 @@ class WhisperRoomNotifier extends StateNotifier<List<CommunityPost>> {
     ];
   }
 }
+
+// Kyra API Service Provider
+final kyraApiServiceProvider = Provider<KyraApiService>((ref) {
+  return KyraApiService();
+});
 
 // Kyra AI Companion Provider
 final kyraMessagesProvider = StateNotifierProvider<KyraNotifier, List<KyraMessage>>((ref) {
@@ -563,7 +573,7 @@ class KyraNotifier extends StateNotifier<List<KyraMessage>> {
           )
         ]);
 
-  void sendMessage(String userText) {
+  Future<void> sendMessage(String userText) async {
     final userMsg = KyraMessage(
       id: 'u_${DateTime.now().millisecondsSinceEpoch}',
       sender: KyraSender.user,
@@ -571,64 +581,72 @@ class KyraNotifier extends StateNotifier<List<KyraMessage>> {
       timestamp: DateTime.now(),
     );
 
+    // Append user message immediately
     state = [...state, userMsg];
 
-    // Generate Contextual Intelligent Response from Kyra
-    Future.delayed(const Duration(milliseconds: 1000), () {
-      final health = ref.read(healthMetricsProvider);
-      final cycle = ref.read(cycleDataProvider);
+    // Read necessary context (e.g., current phase, health score) to pass to Kyra
+    // Although the backend fetches last 7 days of logs directly from Firestore,
+    // we can pass additional frontend-specific context if needed.
+    final health = ref.read(healthMetricsProvider);
+    final cycle = ref.read(cycleDataProvider);
 
-      String replyText = '';
-      String? labInsight;
-      String? foodSuggestion;
+    final contextData = {
+      'currentPhase': cycle.currentPhase.displayName,
+      'dayOfCycle': cycle.currentDayOfCycle,
+      'healthScore': health.calculatedScore,
+    };
 
-      final lower = userText.toLowerCase();
-      if ((lower.contains('do i have pcos') || lower.contains('mean i have pcos') || lower.contains('diagnose')) && lower.contains('pcos')) {
-        replyText =
-            'No. The screening only found features that can be associated with PCOS. It cannot diagnose PCOS. A qualified healthcare professional is needed to assess your symptoms and determine whether further evaluation is appropriate.';
-      } else if (lower.contains('endometriosis') && (lower.contains('diagnose') || lower.contains('do i have') || lower.contains('mean i have'))) {
-        replyText =
-            'No. The screening found some symptoms that can be associated with endometriosis, but it cannot diagnose the condition. Other conditions can cause similar symptoms. A healthcare professional can evaluate your symptoms and determine whether further assessment is appropriate.';
-      } else if (lower.contains('lab') || lower.contains('report')) {
-        replyText =
-            'I have scanned your recent hormonal panel! Your Vitamin D and Iron levels are within healthy ranges. Thyroid (TSH 2.1 mIU/L) is optimal for your follicular phase.';
-        labInsight =
-            '📊 Lab Report Insight:\n• LH/FSH Ratio: 1.1 (Normal)\n• Hemoglobin: 13.2 g/dL\n• Vitamin D: 42 ng/mL (Sufficient)\n\nTip: Maintain leafy greens & vitamin C intake to support iron absorption.';
-      } else if (lower.contains('pcos') || lower.contains('meal') || lower.contains('food')) {
-        replyText =
-            'Since you are in Day ${cycle.currentDayOfCycle} (Follicular Phase), your metabolic rate is rising. Focusing on complex carbs, anti-inflammatory greens, and healthy fats will keep your energy steady!';
-        foodSuggestion =
-            '🥗 Kyra\'s Follicular Meal Plan:\n• Breakfast: Avocado toast on sourdough with poached eggs\n• Lunch: Quinoa bowl with roasted sweet potato & chickpea\n• Evening Snack: Handful of pumpkin seeds & spearmint tea';
-      } else if (lower.contains('anxious') || lower.contains('stress') || lower.contains('mood')) {
-        replyText =
-            'Your stress score is currently at ${health.stressScorePercent}%. Mild anxiety during follicular transition is common due to surging estrogen. Try 5 minutes of box breathing!';
-      } else {
-        replyText =
-            'Based on your period cycle data and health score of ${health.calculatedScore}/100, your body is responding wonderfully to your hydration (2.1L today) and sleep routine!';
-      }
-
+    // Call the real Vercel backend using KyraApiService
+    final apiService = ref.read(kyraApiServiceProvider);
+    
+    try {
+      final responseText = await apiService.sendMessage(userText, contextData);
+      
       final kyraReply = KyraMessage(
         id: 'k_${DateTime.now().millisecondsSinceEpoch}',
         sender: KyraSender.kyra,
-        text: replyText,
+        text: responseText,
         timestamp: DateTime.now(),
-        labReportInsight: labInsight,
-        foodRecommendation: foodSuggestion,
         actionButtons: [
           'Hydration Advice',
           'Sleep Optimization',
           'Track Symptoms'
-        ],
+        ], // Provide some dynamic or static fallback buttons
       );
 
-      state = [...state, kyraReply];
-    });
+      if (mounted) {
+        state = [...state, kyraReply];
+      }
+    } catch (e) {
+      debugPrint('Error getting Kyra AI response: $e');
+      if (mounted) {
+        final errorReply = KyraMessage(
+          id: 'k_error_${DateTime.now().millisecondsSinceEpoch}',
+          sender: KyraSender.kyra,
+          text: 'I am having trouble connecting to my servers right now. Please try again later!',
+          timestamp: DateTime.now(),
+        );
+        state = [...state, errorReply];
+      }
+    }
   }
 }
 
+// Pink Corner Service Provider
+final pinkCornerServiceProvider = Provider<PinkCornerService>((ref) {
+  return PinkCornerService();
+});
+
 // Pink Corner Educational Articles Provider
-final articlesProvider = Provider<List<ArticleItem>>((ref) {
-  return [
+final articlesProvider = StreamProvider<List<ArticleItem>>((ref) {
+  final service = ref.read(pinkCornerServiceProvider);
+  return service.streamArticles();
+});
+
+// Seed mock articles helper
+Future<void> seedMockArticles(WidgetRef ref) async {
+  final service = ref.read(pinkCornerServiceProvider);
+  final staticArticles = [
     ArticleItem(
       id: 'art_1',
       title: 'PCOS vs PCOD: Understanding the Key Differences & Daily Habits',
@@ -664,4 +682,65 @@ final articlesProvider = Provider<List<ArticleItem>>((ref) {
       isTrending: false,
     ),
   ];
+  await service.seedMockArticles(staticArticles);
+}
+
+// Doctor Service Provider
+final doctorServiceProvider = Provider<DoctorService>((ref) {
+  return DoctorService();
 });
+
+// Doctors Stream Provider
+final doctorsProvider = StreamProvider<List<Doctor>>((ref) {
+  final service = ref.read(doctorServiceProvider);
+  return service.streamDoctors();
+});
+
+// Seed mock doctors helper
+Future<void> seedMockDoctors(WidgetRef ref) async {
+  final service = ref.read(doctorServiceProvider);
+  final staticDoctors = [
+    Doctor(
+      id: 'doc_1',
+      name: 'Dr. Sarah Jenkins',
+      specialization: 'Gynecologist',
+      experience: '10 Years',
+      rating: 4.8,
+      consultationFee: 50,
+      availability: 'Available Today',
+      mode: ConsultationMode.online,
+      about: 'Dr. Sarah Jenkins specializes in reproductive health and PCOS management. She has helped over 500 women regain hormonal balance.',
+      availableDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
+      timeSlots: ['10:00 AM', '11:00 AM', '02:00 PM', '04:00 PM'],
+    ),
+    Doctor(
+      id: 'doc_2',
+      name: 'Dr. Emily Chen',
+      specialization: 'Endocrinologist',
+      experience: '8 Years',
+      rating: 4.9,
+      consultationFee: 75,
+      availability: 'Available Tomorrow',
+      mode: ConsultationMode.offline,
+      distanceKm: 2.5,
+      clinicLocation: 'Wellness Clinic, 123 Health Ave.',
+      about: 'Dr. Emily Chen is a leading expert in hormonal disorders, focusing on thyroid issues and insulin resistance.',
+      availableDays: ['Mon', 'Wed', 'Fri'],
+      timeSlots: ['09:00 AM', '01:00 PM', '03:00 PM'],
+    ),
+    Doctor(
+      id: 'doc_3',
+      name: 'Dr. Aisha Patel',
+      specialization: 'Nutritionist',
+      experience: '5 Years',
+      rating: 4.7,
+      consultationFee: 40,
+      availability: 'Available Today',
+      mode: ConsultationMode.online,
+      about: 'Dr. Aisha Patel helps women create sustainable, hormone-balancing diets without restrictive eating.',
+      availableDays: ['Tue', 'Thu', 'Sat'],
+      timeSlots: ['11:00 AM', '12:30 PM', '05:00 PM'],
+    ),
+  ];
+  await service.seedMockDoctors(staticDoctors);
+}

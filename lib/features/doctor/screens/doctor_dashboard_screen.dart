@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../auth/screens/welcome_login_screen.dart';
+import 'consultation_chat_screen.dart';
 
 class DoctorDashboardScreen extends StatelessWidget {
   const DoctorDashboardScreen({super.key});
@@ -155,11 +156,24 @@ class DoctorDashboardScreen extends StatelessWidget {
               ),
               const SizedBox(height: 14),
 
-              _buildPatientRequestCard(
-                patientName: 'Ananya S.',
-                details: 'Day 14 Follicular • PCOS consultation & lab review request',
-                timeAgo: '10 mins ago',
-                status: 'Urgent Review',
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const ConsultationChatScreen(
+                        chatId: 'mock_chat_ananya',
+                        patientName: 'Ananya S.',
+                      ),
+                    ),
+                  );
+                },
+                child: _buildPatientRequestCard(
+                  patientName: 'Ananya S.',
+                  details: 'Day 14 Follicular • PCOS consultation & lab review request',
+                  timeAgo: '10 mins ago',
+                  status: 'Enter Chat',
+                ),
               ),
 
               _buildPatientRequestCard(

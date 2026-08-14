@@ -64,7 +64,8 @@ class _WhisperRoomScreenState extends ConsumerState<WhisperRoomScreen>
 
   @override
   Widget build(BuildContext context) {
-    final posts = ref.watch(whisperRoomProvider);
+    final whisperState = ref.watch(whisperRoomProvider);
+    final posts = whisperState;
     final userProfile = ref.watch(userProfileProvider);
 
     final filteredPosts = posts.where((p) {
