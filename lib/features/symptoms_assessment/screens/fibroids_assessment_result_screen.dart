@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../providers/app_providers.dart';
+import '../../doctor/models/doctor.dart';
+import '../../doctor/screens/all_doctors_screen.dart';
+import '../../doctor/screens/find_doctor_screen.dart';
 import '../models/fibroids_assessment_result.dart';
 import '../models/fibroids_result_level.dart';
 import '../providers/fibroids_assessment_provider.dart';
@@ -391,10 +395,7 @@ class FibroidsAssessmentResultScreen extends ConsumerWidget {
                             gradient: AppColors.primaryGradient,
                           ),
                           child: ElevatedButton(
-                            onPressed: () {
-                              ref.read(fibroidsAssessmentProvider.notifier).reset();
-                              Navigator.pop(context);
-                            },
+                            onPressed: () => _onPrimaryCta(context, ref),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.transparent,
                               shadowColor: Colors.transparent,
@@ -420,10 +421,7 @@ class FibroidsAssessmentResultScreen extends ConsumerWidget {
                           width: double.infinity,
                           height: 52,
                           child: OutlinedButton(
-                            onPressed: () {
-                              ref.read(fibroidsAssessmentProvider.notifier).reset();
-                              Navigator.pop(context);
-                            },
+                            onPressed: () => _onSecondaryCta(context, ref),
                             style: OutlinedButton.styleFrom(
                               side: const BorderSide(color: AppColors.softPurple),
                               shape: RoundedRectangleBorder(
@@ -444,15 +442,19 @@ class FibroidsAssessmentResultScreen extends ConsumerWidget {
 
                       const SizedBox(height: 14),
 
-                      // Share With a Doctor Feature
+                      // Consult a Doctor Feature
                       SizedBox(
                         width: double.infinity,
                         height: 50,
                         child: TextButton.icon(
-                          onPressed: () => _showDoctorSummaryDialog(context),
-                          icon: const Icon(Icons.share_outlined, size: 18, color: AppColors.softPurple),
+                          onPressed: () => _onConsultDoctor(context, ref),
+                          icon: const Icon(
+                            Icons.medical_services_outlined,
+                            size: 18,
+                            color: AppColors.softPurple,
+                          ),
                           label: Text(
-                            'Share Summary With Doctor',
+                            'Consult a Doctor',
                             style: GoogleFonts.inter(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
@@ -495,217 +497,43 @@ class FibroidsAssessmentResultScreen extends ConsumerWidget {
     );
   }
 
-  void _showDoctorSummaryDialog(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => Container(
-        padding: const EdgeInsets.all(24),
-        decoration: const BoxDecoration(
-          color: AppColors.pureWhite,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
-        ),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'Uterine Fibroids Symptom Screening Summary',
-                      style: GoogleFonts.outfit(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textDark,
-                      ),
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: () => Navigator.pop(ctx),
-                    icon: const Icon(Icons.close_rounded),
-                  ),
-                ],
-              ),
-              const Divider(height: 20),
+  /// Primary CTA: "Discuss With a Doctor" opens the existing All Doctors
+  /// list from the Consult section; other CTAs return to the assessment menu.
+  void _onPrimaryCta(BuildContext context, WidgetRef ref) {
+    ref.read(fibroidsAssessmentProvider.notifier).reset();
+    if (result.primaryCta == 'Discuss With a Doctor') {
+      _openDoctorList(context, ref);
+    } else {
+      Navigator.pop(context);
+    }
+  }
 
-              Text('Assessment Date: ${result.completedAt.toString().split(' ').first}',
-                  style: GoogleFonts.inter(fontSize: 12, color: AppColors.textMedium)),
-              const SizedBox(height: 6),
+  void _onSecondaryCta(BuildContext context, WidgetRef ref) {
+    ref.read(fibroidsAssessmentProvider.notifier).reset();
+    if (result.secondaryCta == 'Discuss With a Doctor') {
+      _openDoctorList(context, ref);
+    } else {
+      Navigator.pop(context);
+    }
+  }
 
-              Text('Screening Result: ${result.resultTitle}',
-                  style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.softPurple)),
-              const SizedBox(height: 14),
-
-              Text('Flagged Symptom Clusters:',
-                  style: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 6),
-              if (result.heavyBleedingCluster) Text('• Heavy Bleeding Reported', style: GoogleFonts.inter(fontSize: 13)),
-              if (result.pelvicPressureCluster) Text('• Pelvic Pressure Reported', style: GoogleFonts.inter(fontSize: 13)),
-              if (result.bladderBowelCluster) Text('• Bladder/Bowel Symptoms Reported', style: GoogleFonts.inter(fontSize: 13)),
-              if (result.anemiaAssociatedCluster) Text('• Anemia-Associated Symptoms Reported', style: GoogleFonts.inter(fontSize: 13)),
-              if (result.fertilityClinicalCluster) Text('• Fertility / Clinical History Reported', style: GoogleFonts.inter(fontSize: 13)),
-              const SizedBox(height: 16),
-
-              if (result.contributingSymptoms.isNotEmpty) ...[
-                Text('Reported Symptoms:', style: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 6),
-                for (final s in result.contributingSymptoms)
-                  Text('• $s', style: GoogleFonts.inter(fontSize: 13)),
-                const SizedBox(height: 16),
-              ],
-
-              for (final entry in _summaryGroupBullets()) ...[
-                Text(entry.$1, style: GoogleFonts.outfit(fontSize: 13, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 4),
-                for (final line in entry.$2) Text(line, style: GoogleFonts.inter(fontSize: 13)),
-                const SizedBox(height: 10),
-              ],
-
-              if (result.hasMedicalAttentionFlags) ...[
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFFF3E0),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFFFFB74D)),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Medical-Attention Flags:',
-                        style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFFE65100)),
-                      ),
-                      const SizedBox(height: 4),
-                      for (final flag in result.medicalAttentionFlags)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 4),
-                          child: Text(
-                            '• ${flag.message}',
-                            style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFFE65100), height: 1.35),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-              ],
-
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppColors.creamWhite,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.borderGrey),
-                ),
-                child: Text(
-                  'This summary is based on user-reported symptoms and is not a medical diagnosis.',
-                  style: GoogleFonts.inter(fontSize: 11, color: AppColors.textMedium, height: 1.35),
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    Navigator.pop(ctx);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Uterine fibroids summary ready for doctor consultation.')),
-                    );
-                  },
-                  icon: const Icon(Icons.check_rounded, color: Colors.white),
-                  label: const Text('Close & Ready for Consultation'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.softPurple,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+  /// Opens the existing Consult section.
+  void _onConsultDoctor(BuildContext context, WidgetRef ref) {
+    ref.read(fibroidsAssessmentProvider.notifier).reset();
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const FindDoctorScreen()),
     );
   }
 
-  List<(String, List<String>)> _summaryGroupBullets() {
-    final answers = result.answers;
-    final q1Opt = answers[0];
-    final q2Opt = answers[1];
-    final q3Opt = answers[2];
-    final q4Opt = answers[3];
-    final q5Opt = answers[4];
-    final q6Opt = answers[5];
-    final q7Opt = answers[6];
-    final q8Opt = answers[7];
-    final q9Opt = answers[8];
-    final q10Opt = answers[9];
-    final q11Opt = answers[10];
-    final q12Opt = answers[11];
-    final q13Opt = answers[12];
-    final q14Opt = answers[13];
-    final q15Opt = answers[14];
-    final q16Opt = answers[15];
-    final q17Opt = answers[16];
-    final q18Opt = answers[17];
-    final q19Opt = answers[18];
-    final q20Opt = answers[19];
-    final q21Opt = answers[20];
-    final q22Opt = answers[21];
-    final q23Opt = answers[22];
-    final q24Opt = answers[23];
-
-    final groups = <(String, List<String>)>[];
-    void addGroup(String label, List<String> lines) {
-      if (lines.isNotEmpty) groups.add((label, lines));
-    }
-
-    addGroup('Menstrual Bleeding', [
-      if (q1Opt != null && q1Opt >= 2) '• Heavy or very heavy menstrual bleeding',
-      if (q2Opt != null && q2Opt >= 2) '• Periods lasting longer than usual',
-      if (q3Opt != null && q3Opt >= 2) '• Frequent menstrual product changes due to bleeding',
-      if (q4Opt != null && q4Opt >= 2) '• Bleeding that soaks through products or clothes',
-      if (q5Opt == 2 || q5Opt == 3) '• Frequent or larger blood clots',
-      if (q6Opt != null && q6Opt >= 2) '• Periods becoming heavier or longer over time',
-      if (q7Opt != null && q7Opt >= 1) '• Spotting or bleeding between periods',
-      if (q8Opt != null && q8Opt >= 1 && q8Opt != 3) '• Bleeding after sexual intercourse',
-    ]);
-
-    addGroup('Pelvic Symptoms', [
-      if (q9Opt != null && q9Opt >= 1) '• Pelvic pressure, heaviness, or fullness',
-      if (q10Opt != null && q10Opt >= 1) '• Pelvic or lower abdominal pain',
-      if (q11Opt != null && q11Opt >= 1) '• Lower back pain related to pelvic symptoms',
-      if (q12Opt != null && q12Opt >= 1 && q12Opt != 3) '• Lower abdomen enlarged or unusually full',
-    ]);
-
-    addGroup('Bladder/Bowel Symptoms', [
-      if (q13Opt != null && q13Opt >= 1) '• More frequent urination',
-      if (q14Opt != null && q14Opt >= 1) '• Bladder pressure or incomplete emptying',
-      if (q15Opt != null && q15Opt >= 1) '• Constipation or difficulty passing stool',
-      if (q16Opt != null && q16Opt >= 1) '• Pressure or discomfort with bowel movements',
-    ]);
-
-    addGroup('Anemia-Associated Information', [
-      if (q17Opt != null && q17Opt >= 2) '• Frequent fatigue or low energy',
-      if (q18Opt != null && q18Opt >= 1) '• Dizziness, light-headedness, or weakness around periods',
-      if (q19Opt == 1) '• Previously told of anemia or low iron',
-    ]);
-
-    addGroup('Fertility Information', [
-      if (q20Opt == 1) '• Currently trying to become pregnant',
-      if (q21Opt == 1) '• Difficulty becoming pregnant',
-      if (q22Opt == 1) '• Recurrent pregnancy loss',
-    ]);
-
-    addGroup('Existing Fibroid-Related Medical History', [
-      if (q23Opt != null && q23Opt >= 1) '• Previously told by a healthcare professional of uterine fibroids',
-      if (q24Opt == 1) '• Previous imaging showing a uterine fibroid or growth',
-    ]);
-
-    return groups;
+  void _openDoctorList(BuildContext context, WidgetRef ref) {
+    final doctors =
+        ref.read(doctorsProvider).value ?? const <Doctor>[];
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AllDoctorsScreen(doctors: doctors),
+      ),
+    );
   }
 }

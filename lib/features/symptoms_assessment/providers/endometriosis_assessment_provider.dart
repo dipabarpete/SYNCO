@@ -1,8 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/endometriosis_questions_data.dart';
 import '../models/endometriosis_assessment_result.dart';
 import '../models/endometriosis_question.dart';
+import '../models/saved_screening_result.dart';
 import '../services/endometriosis_assessment_scoring_service.dart';
+import 'screening_results_provider.dart';
 
 class EndometriosisAssessmentState {
   final int currentQuestionIndex;
@@ -38,11 +42,14 @@ class EndometriosisAssessmentState {
 
 final endometriosisAssessmentProvider =
     StateNotifierProvider<EndometriosisAssessmentNotifier, EndometriosisAssessmentState>((ref) {
-  return EndometriosisAssessmentNotifier();
+  return EndometriosisAssessmentNotifier(ref);
 });
 
 class EndometriosisAssessmentNotifier extends StateNotifier<EndometriosisAssessmentState> {
-  EndometriosisAssessmentNotifier() : super(const EndometriosisAssessmentState());
+  EndometriosisAssessmentNotifier(this._ref)
+      : super(const EndometriosisAssessmentState());
+
+  final Ref _ref;
 
   void selectOption(int optionIndex) {
     final updatedAnswers = Map<int, int>.from(state.answers);
@@ -63,8 +70,19 @@ class EndometriosisAssessmentNotifier extends StateNotifier<EndometriosisAssessm
         result: calculatedResult,
         isCompleted: true,
       );
+      _persistResult(calculatedResult);
       return true;
     }
+  }
+
+  /// Saves the completed result so the user's latest attempt survives
+  /// restarts and re-logins.
+  void _persistResult(EndometriosisAssessmentResult result) {
+    unawaited(
+      _ref
+          .read(screeningResultsProvider.notifier)
+          .save(SavedScreeningResult.fromEndometriosis(result)),
+    );
   }
 
   bool previousQuestion() {

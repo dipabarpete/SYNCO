@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart' as fb;
 import 'package:flutter/foundation.dart';
 
 import '../../../core/backend.dart';
+import '../../../models/period_day_log.dart';
 import '../../../models/period_record.dart';
 
 void logFirebaseError(String operation, Object error) {
@@ -59,8 +60,12 @@ class PeriodRepository {
     DateTime? endDate,
     String? flowLevel,
     int? painLevel,
-    String? mood,
+    List<String>? moods,
     List<String>? symptoms,
+    String? discharge,
+    List<String>? digestion,
+    List<String>? otherFactors,
+    Map<String, PeriodDayLog>? dailyLogs,
     String? notes,
   }) async {
     final authUser = fb.FirebaseAuth.instance.currentUser;
@@ -78,8 +83,12 @@ class PeriodRepository {
       'end_date': endDate != null ? _formatDate(endDate) : null,
       'flow_level': flowLevel,
       'pain_level': painLevel,
-      'mood': mood,
+      'moods': moods ?? const [],
       'symptoms': symptoms ?? const [],
+      'discharge': discharge,
+      'digestion': digestion ?? const [],
+      'other_factors': otherFactors ?? const [],
+      'daily_logs': _encodeDailyLogs(dailyLogs),
       'notes': notes,
       'created_at': now.toIso8601String(),
       'updated_at': now.toIso8601String(),
@@ -103,8 +112,12 @@ class PeriodRepository {
     DateTime? endDate,
     String? flowLevel,
     int? painLevel,
-    String? mood,
+    List<String>? moods,
     List<String>? symptoms,
+    String? discharge,
+    List<String>? digestion,
+    List<String>? otherFactors,
+    Map<String, PeriodDayLog>? dailyLogs,
     String? notes,
   }) async {
     final authUser = fb.FirebaseAuth.instance.currentUser;
@@ -122,8 +135,12 @@ class PeriodRepository {
         'end_date': endDate != null ? _formatDate(endDate) : null,
         'flow_level': flowLevel,
         'pain_level': painLevel,
-        'mood': mood,
+        'moods': moods ?? const [],
         'symptoms': symptoms ?? const [],
+        'discharge': discharge,
+        'digestion': digestion ?? const [],
+        'other_factors': otherFactors ?? const [],
+        'daily_logs': _encodeDailyLogs(dailyLogs),
         'notes': notes,
         'updated_at': DateTime.now().toIso8601String(),
       });
@@ -152,5 +169,12 @@ class PeriodRepository {
       logFirebaseError('deletePeriod', e);
       rethrow;
     }
+  }
+
+  Map<String, dynamic> _encodeDailyLogs(
+    Map<String, PeriodDayLog>? dailyLogs,
+  ) {
+    if (dailyLogs == null || dailyLogs.isEmpty) return const {};
+    return dailyLogs.map((key, log) => MapEntry(key, log.toMap()));
   }
 }

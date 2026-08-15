@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../providers/app_providers.dart';
+import '../../doctor/models/doctor.dart';
+import '../../doctor/screens/all_doctors_screen.dart';
+import '../../doctor/screens/find_doctor_screen.dart';
 import '../models/endometriosis_assessment_result.dart';
 import '../models/endometriosis_result_level.dart';
 import '../providers/endometriosis_assessment_provider.dart';
@@ -390,10 +394,7 @@ class EndometriosisAssessmentResultScreen extends ConsumerWidget {
                             gradient: AppColors.primaryGradient,
                           ),
                           child: ElevatedButton(
-                            onPressed: () {
-                              ref.read(endometriosisAssessmentProvider.notifier).reset();
-                              Navigator.pop(context);
-                            },
+                            onPressed: () => _onPrimaryCta(context, ref),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.transparent,
                               shadowColor: Colors.transparent,
@@ -419,10 +420,7 @@ class EndometriosisAssessmentResultScreen extends ConsumerWidget {
                           width: double.infinity,
                           height: 52,
                           child: OutlinedButton(
-                            onPressed: () {
-                              ref.read(endometriosisAssessmentProvider.notifier).reset();
-                              Navigator.pop(context);
-                            },
+                            onPressed: () => _onSecondaryCta(context, ref),
                             style: OutlinedButton.styleFrom(
                               side: const BorderSide(color: AppColors.softPurple),
                               shape: RoundedRectangleBorder(
@@ -443,15 +441,19 @@ class EndometriosisAssessmentResultScreen extends ConsumerWidget {
 
                       const SizedBox(height: 14),
 
-                      // Share With a Doctor Feature
+                      // Consult a Doctor Feature
                       SizedBox(
                         width: double.infinity,
                         height: 50,
                         child: TextButton.icon(
-                          onPressed: () => _showDoctorSummaryDialog(context),
-                          icon: const Icon(Icons.share_outlined, size: 18, color: AppColors.softPurple),
+                          onPressed: () => _onConsultDoctor(context, ref),
+                          icon: const Icon(
+                            Icons.medical_services_outlined,
+                            size: 18,
+                            color: AppColors.softPurple,
+                          ),
                           label: Text(
-                            'Share Summary With Doctor',
+                            'Consult a Doctor',
                             style: GoogleFonts.inter(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
@@ -494,110 +496,42 @@ class EndometriosisAssessmentResultScreen extends ConsumerWidget {
     );
   }
 
-  void _showDoctorSummaryDialog(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => Container(
-        padding: const EdgeInsets.all(24),
-        decoration: const BoxDecoration(
-          color: AppColors.pureWhite,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
-        ),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'Endometriosis Symptom Screening Summary',
-                      style: GoogleFonts.outfit(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textDark,
-                      ),
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: () => Navigator.pop(ctx),
-                    icon: const Icon(Icons.close_rounded),
-                  ),
-                ],
-              ),
-              const Divider(height: 20),
+  /// Primary CTA: "Discuss With a Doctor" opens the existing All Doctors
+  /// list from the Consult section; other CTAs return to the assessment menu.
+  void _onPrimaryCta(BuildContext context, WidgetRef ref) {
+    ref.read(endometriosisAssessmentProvider.notifier).reset();
+    if (result.primaryCta == 'Discuss With a Doctor') {
+      _openDoctorList(context, ref);
+    } else {
+      Navigator.pop(context);
+    }
+  }
 
-              Text('Assessment Date: ${result.completedAt.toString().split(' ').first}',
-                  style: GoogleFonts.inter(fontSize: 12, color: AppColors.textMedium)),
-              const SizedBox(height: 6),
+  void _onSecondaryCta(BuildContext context, WidgetRef ref) {
+    ref.read(endometriosisAssessmentProvider.notifier).reset();
+    if (result.secondaryCta == 'Discuss With a Doctor') {
+      _openDoctorList(context, ref);
+    } else {
+      Navigator.pop(context);
+    }
+  }
 
-              Text('Screening Result: ${result.resultTitle}',
-                  style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.softPurple)),
-              const SizedBox(height: 14),
+  /// Opens the existing Consult section.
+  void _onConsultDoctor(BuildContext context, WidgetRef ref) {
+    ref.read(endometriosisAssessmentProvider.notifier).reset();
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const FindDoctorScreen()),
+    );
+  }
 
-              Text('Reported Symptom Domains:',
-                  style: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 6),
-              if (result.painCluster) Text('• Period & Pelvic Pain Reported', style: GoogleFonts.inter(fontSize: 13)),
-              if (result.deepPelvicPainCluster) Text('• Deep Pelvic Pain Reported', style: GoogleFonts.inter(fontSize: 13)),
-              if (result.bowelCluster) Text('• Bowel Symptoms Reported', style: GoogleFonts.inter(fontSize: 13)),
-              if (result.urinaryCluster) Text('• Urinary Symptoms Reported', style: GoogleFonts.inter(fontSize: 13)),
-              if (result.fertilityClinicalCluster) Text('• Fertility / Clinical Findings Reported', style: GoogleFonts.inter(fontSize: 13)),
-              const SizedBox(height: 16),
-
-              if (result.hasMedicalAttentionFlags) ...[
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFFF3E0),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFFFFB74D)),
-                  ),
-                  child: Text(
-                    'Medical Attention Notice: Symptoms such as blood in stool/urine, severe pain, or rapidly worsening pain were self-reported.',
-                    style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFFE65100)),
-                  ),
-                ),
-                const SizedBox(height: 16),
-              ],
-
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppColors.creamWhite,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.borderGrey),
-                ),
-                child: Text(
-                  'Disclaimer: This summary is based on user-reported symptoms and is not a medical diagnosis.',
-                  style: GoogleFonts.inter(fontSize: 11, color: AppColors.textMedium, height: 1.35),
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    Navigator.pop(ctx);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Endometriosis summary ready for doctor consultation.')),
-                    );
-                  },
-                  icon: const Icon(Icons.check_rounded, color: Colors.white),
-                  label: const Text('Close & Ready for Consultation'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.softPurple,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
+  void _openDoctorList(BuildContext context, WidgetRef ref) {
+    final doctors =
+        ref.read(doctorsProvider).value ?? const <Doctor>[];
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AllDoctorsScreen(doctors: doctors),
       ),
     );
   }

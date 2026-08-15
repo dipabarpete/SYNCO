@@ -12,7 +12,7 @@ enum ScreeningAssessmentType {
   uterineFibroids,
 }
 
-/// A locally stored record of the latest completed screening result.
+/// A stored record of the latest completed screening result.
 ///
 /// This is intentionally decoupled from the assessment result models so the
 /// storage layer can later be swapped for a backend without touching the
@@ -25,6 +25,11 @@ class SavedScreeningResult {
   final bool isCompleted;
   final DateTime completedAt;
 
+  /// The authenticated user the result belongs to.
+  ///
+  /// Populated by the backend storage layer; empty when not yet persisted.
+  final String userId;
+
   const SavedScreeningResult({
     required this.assessmentType,
     required this.categoryTitle,
@@ -32,6 +37,7 @@ class SavedScreeningResult {
     required this.rawScore,
     required this.isCompleted,
     required this.completedAt,
+    this.userId = '',
   });
 
   factory SavedScreeningResult.fromPcos(PcosAssessmentResult result) {
@@ -66,6 +72,37 @@ class SavedScreeningResult {
       rawScore: result.rawScore,
       isCompleted: true,
       completedAt: result.completedAt,
+    );
+  }
+
+  /// Serializes this record for backend storage.
+  Map<String, dynamic> toJson() {
+    return {
+      'user_id': userId,
+      'assessment_type': assessmentType.name,
+      'category_title': categoryTitle,
+      'level_label': levelLabel,
+      'raw_score': rawScore,
+      'is_completed': isCompleted,
+      'completed_at': completedAt.toIso8601String(),
+    };
+  }
+
+  /// Restores a record previously stored by [toJson].
+  factory SavedScreeningResult.fromJson(Map<String, dynamic> json) {
+    return SavedScreeningResult(
+      assessmentType: ScreeningAssessmentType.values.firstWhere(
+        (type) => type.name == json['assessment_type'],
+        orElse: () => ScreeningAssessmentType.pcos,
+      ),
+      categoryTitle: json['category_title'] as String? ?? '',
+      levelLabel: json['level_label'] as String? ?? '',
+      rawScore: (json['raw_score'] as num?)?.toInt() ?? 0,
+      isCompleted: json['is_completed'] as bool? ?? true,
+      completedAt:
+          DateTime.tryParse(json['completed_at'] as String? ?? '') ??
+              DateTime.now(),
+      userId: json['user_id'] as String? ?? '',
     );
   }
 }

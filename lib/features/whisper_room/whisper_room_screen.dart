@@ -82,121 +82,136 @@ class _WhisperRoomScreenState extends ConsumerState<WhisperRoomScreen>
           p.category.toLowerCase().contains(q);
     }).toList();
 
-    return Scaffold(
-      appBar: AppBar(
-        centerTitle: false,
-        titleSpacing: 16,
-        title: Text(
-          'Whisper Room',
-          style: GoogleFonts.outfit(
-            fontSize: 22,
-            fontWeight: FontWeight.bold,
-            color: AppColors.textDark,
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: Image.asset(
+            'assets/images/whisper_room_bg.jpg',
+            fit: BoxFit.cover,
+            alignment: Alignment.center,
           ),
         ),
-        actions: [
-          // Standalone Outlined Material Notification Icon
-          IconButton(
-            icon: const Icon(
-              Icons.notifications_outlined,
-              color: AppColors.softPurple,
-              size: 24,
-            ),
-            onPressed: _navigateToNotifications,
-            tooltip: 'Notifications',
-          ),
-
-          // Saved Posts Icon (unchanged)
-          Padding(
-            padding: const EdgeInsets.only(right: 8.0),
-            child: IconButton(
-              icon: const Icon(
-                Icons.bookmark_outline_rounded,
-                color: AppColors.softPurple,
-                size: 24,
+        Scaffold(
+          backgroundColor: Colors.transparent,
+          appBar: AppBar(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            surfaceTintColor: Colors.transparent,
+            centerTitle: false,
+            titleSpacing: 16,
+            title: Text(
+              'Whisper Room',
+              style: GoogleFonts.outfit(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textDark,
               ),
-              onPressed: _navigateToSavedPosts,
-              tooltip: 'Saved Posts',
             ),
-          ),
-        ],
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(100),
-          child: Column(
-            children: [
-              // Search Bar
+            actions: [
+              // Standalone Outlined Material Notification Icon
+              IconButton(
+                icon: const Icon(
+                  Icons.notifications_outlined,
+                  color: AppColors.softPurple,
+                  size: 24,
+                ),
+                onPressed: _navigateToNotifications,
+                tooltip: 'Notifications',
+              ),
+
+              // Saved Posts Icon (unchanged)
               Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
-                child: TextField(
-                  controller: _searchController,
-                  onChanged: (val) => setState(() => _searchQuery = val),
-                  decoration: InputDecoration(
-                    hintText: 'Search topics, PCOS, period tips...',
-                    hintStyle:
-                        GoogleFonts.inter(fontSize: 13, color: AppColors.textLight),
-                    prefixIcon: const Icon(Icons.search_rounded,
-                        color: AppColors.softPurple),
-                    filled: true,
-                    fillColor: Theme.of(context).cardColor,
-                    contentPadding: const EdgeInsets.symmetric(vertical: 0),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(20),
-                      borderSide: BorderSide(
-                          color: AppColors.borderGrey.withValues(alpha: 0.4)),
-                    ),
+                padding: const EdgeInsets.only(right: 8.0),
+                child: IconButton(
+                  icon: const Icon(
+                    Icons.bookmark_outline_rounded,
+                    color: AppColors.softPurple,
+                    size: 24,
                   ),
+                  onPressed: _navigateToSavedPosts,
+                  tooltip: 'Saved Posts',
                 ),
               ),
+            ],
+            bottom: PreferredSize(
+              preferredSize: const Size.fromHeight(100),
+              child: Column(
+                children: [
+                  // Search Bar
+                  Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+                    child: TextField(
+                      controller: _searchController,
+                      onChanged: (val) => setState(() => _searchQuery = val),
+                      decoration: InputDecoration(
+                        hintText: 'Search topics, PCOS, period tips...',
+                        hintStyle:
+                            GoogleFonts.inter(fontSize: 13, color: AppColors.textLight),
+                        prefixIcon: const Icon(Icons.search_rounded,
+                            color: AppColors.softPurple),
+                        filled: true,
+                        fillColor: Theme.of(context).cardColor,
+                        contentPadding: const EdgeInsets.symmetric(vertical: 0),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(20),
+                          borderSide: BorderSide(
+                              color: AppColors.borderGrey.withValues(alpha: 0.4)),
+                        ),
+                      ),
+                    ),
+                  ),
 
-              // Filter Chips / Tabs in exact requested order:
-              // For You → Popular → Following → My Posts → Categories
-              TabBar(
-                controller: _tabController,
-                isScrollable: true,
-                labelColor: AppColors.softPurple,
-                unselectedLabelColor: AppColors.textMedium,
-                indicatorColor: AppColors.softPurple,
-                indicatorSize: TabBarIndicatorSize.label,
-                labelStyle: GoogleFonts.inter(
-                    fontWeight: FontWeight.bold, fontSize: 13),
-                tabs: const [
-                  Tab(text: 'For You'),
-                  Tab(text: 'Popular'),
-                  Tab(text: 'Following'),
-                  Tab(text: 'My Posts'),
-                  Tab(text: 'Categories'),
+                  // Filter Chips / Tabs in exact requested order:
+                  // For You → Popular → Following → My Posts → Categories
+                  TabBar(
+                    controller: _tabController,
+                    isScrollable: true,
+                    labelColor: AppColors.textDark,
+                    unselectedLabelColor: Colors.white,
+                    indicatorColor: AppColors.textDark,
+                    indicatorSize: TabBarIndicatorSize.label,
+                    labelStyle: GoogleFonts.inter(
+                        fontWeight: FontWeight.bold, fontSize: 13),
+                    tabs: const [
+                      Tab(text: 'For You'),
+                      Tab(text: 'Popular'),
+                      Tab(text: 'Following'),
+                      Tab(text: 'My Posts'),
+                      Tab(text: 'Categories'),
+                    ],
+                  ),
                 ],
               ),
+            ),
+          ),
+          body: TabBarView(
+            controller: _tabController,
+            children: [
+              _buildPostFeed(filteredPosts),
+              _buildPostFeed(filteredPosts.reversed.toList()),
+              _buildPostFeed(filteredPosts.where((p) => !p.isAnonymous).toList()),
+              _buildPostFeed(
+                filteredPosts
+                    .where((p) => p.isMine || p.authorName == userProfile.username)
+                    .toList(),
+                emptyMessage: 'You haven\'t posted anything yet. Share your thoughts!',
+              ),
+              _buildCategoriesView(filteredPosts),
             ],
           ),
-        ),
-      ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          _buildPostFeed(filteredPosts),
-          _buildPostFeed(filteredPosts.reversed.toList()),
-          _buildPostFeed(filteredPosts.where((p) => !p.isAnonymous).toList()),
-          _buildPostFeed(
-            filteredPosts
-                .where((p) => p.isMine || p.authorName == userProfile.username)
-                .toList(),
-            emptyMessage: 'You haven\'t posted anything yet. Share your thoughts!',
+          // FAB Label: "New Post"
+          floatingActionButton: FloatingActionButton.extended(
+            onPressed: _navigateToCreatePost,
+            backgroundColor: AppColors.softPurple,
+            icon: const Icon(Icons.edit_rounded, color: Colors.white),
+            label: const Text(
+              'New Post',
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            ),
           ),
-          _buildCategoriesView(filteredPosts),
-        ],
-      ),
-      // FAB Label: "New Post"
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _navigateToCreatePost,
-        backgroundColor: AppColors.softPurple,
-        icon: const Icon(Icons.edit_rounded, color: Colors.white),
-        label: const Text(
-          'New Post',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
-      ),
+      ],
     );
   }
 
@@ -544,19 +559,14 @@ class _WhisperRoomScreenState extends ConsumerState<WhisperRoomScreen>
         'icon': Icons.psychology_rounded,
       },
       {
-        'name': 'Sex Education',
-        'count': '850 posts',
-        'icon': Icons.lock_outline_rounded,
-      },
-      {
         'name': 'Exercise & Nutrition',
         'count': '1.8k posts',
         'icon': Icons.fitness_center_rounded,
       },
       {
-        'name': 'Pregnancy & Motherhood',
-        'count': '1.5k posts',
-        'icon': Icons.child_care_rounded,
+        'name': 'Reproductive Health',
+        'count': '2.4k posts',
+        'icon': Icons.health_and_safety_rounded,
       },
       {
         'name': 'General',

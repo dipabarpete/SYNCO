@@ -22,6 +22,16 @@ class AiAnalysisService {
     });
   }
 
+  Future<String> analyzeLabReportImage(String imageBase64, String fileName, String prompt) async {
+    return _sendPostRequest('/kyra', {
+      'imageBase64': imageBase64,
+      'fileBase64': imageBase64,
+      'fileName': fileName,
+      'prompt': prompt,
+      'isPdf': false,
+    });
+  }
+
   Future<String> _sendPostRequest(String endpoint, Map<String, dynamic> body) async {
     final user = FirebaseAuth.instance.currentUser;
     String? idToken;

@@ -81,16 +81,12 @@ class AppBarHeader extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(11),
                 decoration: BoxDecoration(
-                  color: AppColors.softLavender.withValues(alpha: 0.4),
+                  color: AppColors.softPurple,
                   shape: BoxShape.circle,
-                  border: Border.all(
-                    color: AppColors.softPurpleLight.withValues(alpha: 0.25),
-                    width: 1.2,
-                  ),
                 ),
                 child: const Icon(
                   Icons.notifications_none_rounded,
-                  color: AppColors.softPurple,
+                  color: Colors.white,
                   size: 24,
                 ),
               ),

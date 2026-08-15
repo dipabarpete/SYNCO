@@ -68,11 +68,7 @@ void main() {
 
     // Scroll to Share Summary With Doctor button
     final shareBtn = find.text('Share Summary With Doctor');
-    await tester.dragUntilVisible(
-      shareBtn,
-      find.byType(SingleChildScrollView).last,
-      const Offset(0, -200),
-    );
+    await tester.ensureVisible(shareBtn);
     await tester.pumpAndSettle();
 
     expect(shareBtn, findsOneWidget);

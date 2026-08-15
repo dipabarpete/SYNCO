@@ -27,9 +27,8 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
     'PCOS/PCOD Support',
     'Periods & Flow Talk',
     'Mental Wellness & Mood',
-    'Sex Education',
     'Exercise & Nutrition',
-    'Pregnancy & Motherhood',
+    'Reproductive Health',
     'General',
   ];
 
