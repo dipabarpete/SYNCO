@@ -6,6 +6,14 @@ import '../../../core/theme/app_colors.dart';
 import '../../home/providers/dashboard_provider.dart';
 import '../providers/health_data_provider.dart';
 import '../widgets/health_dashboard_widgets.dart';
+import '../services/pdf_report_service.dart';
+import '../../auth/providers/auth_provider.dart';
+import '../../doctor/services/chat_service.dart';
+import '../../../providers/app_providers.dart';
+import '../models/ai_insight.dart';
+import '../widgets/share_report_bottom_sheet.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:printing/printing.dart';
 
 class HealthReportScreen extends ConsumerWidget {
   const HealthReportScreen({super.key});
@@ -14,6 +22,7 @@ class HealthReportScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final healthScore = ref.watch(healthScoreProvider);
     final aiInsights = ref.watch(aiInsightsProvider);
+    final user = ref.watch(authNotifierProvider).user;
 
     return Scaffold(
       backgroundColor: AppColors.creamWhite,
@@ -29,20 +38,20 @@ class HealthReportScreen extends ConsumerWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.download_rounded, color: AppColors.softPurple),
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    'Downloading PDF Report...',
-                    style: GoogleFonts.inter(),
-                  ),
-                  backgroundColor: AppColors.softPurple,
-                  behavior: SnackBarBehavior.floating,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-              );
+            onPressed: () async {
+              try {
+                final pdfBytes = await PdfReportService.generateHealthReport(
+                  healthScore: healthScore,
+                  aiInsights: aiInsights,
+                  userName: user?.displayName ?? user?.email ?? 'SYNCO Patient',
+                );
+                await Printing.sharePdf(bytes: pdfBytes, filename: 'SYNCO_Health_Report.pdf');
+              } catch (e) {
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Failed to generate PDF: $e')),
+                );
+              }
             },
           ),
         ],
@@ -100,17 +109,13 @@ class HealthReportScreen extends ConsumerWidget {
               height: 54,
               child: ElevatedButton.icon(
                 onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        'Report shared securely with your doctor.',
-                        style: GoogleFonts.inter(),
-                      ),
-                      backgroundColor: AppColors.softPurple,
-                      behavior: SnackBarBehavior.floating,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
+                  showModalBottomSheet(
+                    context: context,
+                    backgroundColor: Colors.transparent,
+                    isScrollControlled: true,
+                    builder: (_) => ShareReportBottomSheet(
+                      healthScore: healthScore,
+                      aiInsights: aiInsights,
                     ),
                   );
                 },
@@ -155,7 +160,7 @@ class HealthReportScreen extends ConsumerWidget {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: AppColors.softPurple.withOpacity(0.08),
+            color: AppColors.softPurple.withValues(alpha: 0.08),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -172,7 +177,7 @@ class HealthReportScreen extends ConsumerWidget {
                 child: CircularProgressIndicator(
                   value: state.score / 100,
                   strokeWidth: 12,
-                  backgroundColor: Colors.white.withOpacity(0.5),
+                  backgroundColor: Colors.white.withValues(alpha: 0.5),
                   color: AppColors.softPurple,
                   strokeCap: StrokeCap.round,
                 ),
@@ -194,7 +199,7 @@ class HealthReportScreen extends ConsumerWidget {
                     style: GoogleFonts.inter(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.softPurple.withOpacity(0.7),
+                      color: AppColors.softPurple.withValues(alpha: 0.7),
                     ),
                   ),
                 ],
@@ -233,7 +238,7 @@ class HealthReportScreen extends ConsumerWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: Colors.black.withValues(alpha: 0.03),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -288,7 +293,7 @@ class HealthReportScreen extends ConsumerWidget {
         Container(
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
-            color: AppColors.softPurple.withOpacity(0.1),
+            color: AppColors.softPurple.withValues(alpha: 0.1),
             shape: BoxShape.circle,
           ),
           child: Icon(icon, color: AppColors.softPurple, size: 20),

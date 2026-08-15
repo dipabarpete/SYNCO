@@ -228,6 +228,27 @@ class HomeDashboardScreen extends ConsumerWidget {
                 ),
               ],
             ),
+            const SizedBox(height: 16),
+            GestureDetector(
+              onTap: () {
+                Navigator.pop(ctx);
+                _confirmDeleteAccount(context, ref);
+              },
+              child: Row(
+                children: [
+                  const Icon(Icons.delete_forever_rounded, size: 18, color: AppColors.deepRose),
+                  const SizedBox(width: 10),
+                  Text(
+                    'Delete Account & Data',
+                    style: GoogleFonts.inter(
+                      fontSize: 13, 
+                      color: AppColors.deepRose,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
         actions: [
@@ -256,6 +277,72 @@ class HomeDashboardScreen extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  Future<void> _confirmDeleteAccount(BuildContext context, WidgetRef ref) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.creamWhite,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          'Delete Account?',
+          style: GoogleFonts.outfit(
+            fontWeight: FontWeight.bold,
+            color: AppColors.deepRose,
+          ),
+        ),
+        content: Text(
+          'This action is irreversible. All your profile data, chat history, and appointments will be permanently deleted. Do you wish to proceed?',
+          style: GoogleFonts.inter(
+            fontSize: 14,
+            color: AppColors.textDark,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(
+              'Cancel',
+              style: GoogleFonts.inter(
+                fontWeight: FontWeight.w600,
+                color: AppColors.textMedium,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.deepRose,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: Text(
+              'Delete',
+              style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && context.mounted) {
+      try {
+        final authService = ref.read(authServiceProvider);
+        await authService.deleteAccount();
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(e.toString()),
+              backgroundColor: AppColors.deepRose,
+            ),
+          );
+        }
+      }
+    }
   }
 
   void _showDialogInfo(BuildContext context, String featureName) {

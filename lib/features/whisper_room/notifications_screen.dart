@@ -1,46 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../core/theme/app_colors.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:timeago/timeago.dart' as timeago;
 
-class NotificationsScreen extends StatelessWidget {
+import '../../core/theme/app_colors.dart';
+import '../../core/providers/notification_providers.dart';
+import '../auth/providers/auth_provider.dart';
+
+class NotificationsScreen extends ConsumerWidget {
   const NotificationsScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final notifications = [
-      {
-        'title': 'Sarah M. liked your post',
-        'subtitle': '"My top 5 seed cycling tips for hormonal balance ✨"',
-        'time': '10m ago',
-        'icon': Icons.favorite_rounded,
-        'iconColor': AppColors.rosePink,
-        'isUnread': true,
-      },
-      {
-        'title': 'New comment in PCOS/PCOD Support',
-        'subtitle': 'Anonymous Butterfly replied to a thread you follow.',
-        'time': '1h ago',
-        'icon': Icons.chat_bubble_outline_rounded,
-        'iconColor': AppColors.softPurple,
-        'isUnread': true,
-      },
-      {
-        'title': 'Daily Hydration Goal Met! 💧',
-        'subtitle': 'Great job staying hydrated today during your Follicular phase.',
-        'time': '3h ago',
-        'icon': Icons.water_drop_rounded,
-        'iconColor': AppColors.waterColor,
-        'isUnread': false,
-      },
-      {
-        'title': 'Kyra AI Health Insight',
-        'subtitle': 'Your sleep score reached 88% last night! Keep it up.',
-        'time': '1d ago',
-        'icon': Icons.auto_awesome_rounded,
-        'iconColor': AppColors.lavenderAccent,
-        'isUnread': false,
-      },
-    ];
+  Widget build(BuildContext context, WidgetRef ref) {
+    final notificationsAsync = ref.watch(userNotificationsProvider);
 
     return Scaffold(
       backgroundColor: AppColors.creamWhite,
@@ -55,10 +28,28 @@ class NotificationsScreen extends StatelessWidget {
         ),
         actions: [
           TextButton(
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('All notifications marked as read.')),
-              );
+            onPressed: () async {
+              final user = ref.read(authNotifierProvider).user;
+              if (user != null) {
+                final batch = FirebaseFirestore.instance.batch();
+                final unreadDocs = await FirebaseFirestore.instance
+                    .collection('users')
+                    .doc(user.id)
+                    .collection('notifications')
+                    .where('isUnread', isEqualTo: true)
+                    .get();
+                
+                for (var doc in unreadDocs.docs) {
+                  batch.update(doc.reference, {'isUnread': false});
+                }
+                await batch.commit();
+
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('All notifications marked as read.')),
+                  );
+                }
+              }
             },
             child: Text(
               'Mark all read',
@@ -71,90 +62,105 @@ class NotificationsScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: ListView.separated(
-        padding: const EdgeInsets.all(16),
-        itemCount: notifications.length,
-        separatorBuilder: (ctx, i) => const SizedBox(height: 10),
-        itemBuilder: (ctx, i) {
-          final item = notifications[i];
-          final isUnread = item['isUnread'] as bool;
-
-          return Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: isUnread
-                  ? AppColors.babyPink.withValues(alpha: 0.5)
-                  : Theme.of(context).cardColor,
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(
-                color: isUnread
-                    ? AppColors.blushPink.withValues(alpha: 0.4)
-                    : AppColors.borderGrey.withValues(alpha: 0.4),
+      body: notificationsAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator(color: AppColors.softPurple)),
+        error: (e, st) => Center(child: Text('Error loading notifications: $e')),
+        data: (notifications) {
+          if (notifications.isEmpty) {
+            return Center(
+              child: Text(
+                'No new notifications',
+                style: GoogleFonts.inter(color: AppColors.textMedium),
               ),
-              boxShadow: const [
-                BoxShadow(
-                  color: AppColors.shadowColor,
-                  blurRadius: 8,
-                  offset: Offset(0, 3),
-                ),
-              ],
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: (item['iconColor'] as Color).withValues(alpha: 0.12),
-                    shape: BoxShape.circle,
+            );
+          }
+
+          return ListView.separated(
+            padding: const EdgeInsets.all(16),
+            itemCount: notifications.length,
+            separatorBuilder: (ctx, i) => const SizedBox(height: 10),
+            itemBuilder: (ctx, i) {
+              final item = notifications[i];
+              final isUnread = item.isUnread;
+
+              return Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: isUnread
+                      ? AppColors.babyPink.withValues(alpha: 0.5)
+                      : Theme.of(context).cardColor,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(
+                    color: isUnread
+                        ? AppColors.blushPink.withValues(alpha: 0.4)
+                        : AppColors.borderGrey.withValues(alpha: 0.4),
                   ),
-                  child: Icon(
-                    item['icon'] as IconData,
-                    color: item['iconColor'] as Color,
-                    size: 20,
-                  ),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: AppColors.shadowColor,
+                      blurRadius: 8,
+                      offset: Offset(0, 3),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Color(int.parse(item.iconColorHex, radix: 16)).withValues(alpha: 0.12),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        IconData(item.iconCode, fontFamily: 'MaterialIcons'),
+                        color: Color(int.parse(item.iconColorHex, radix: 16)),
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Expanded(
-                            child: Text(
-                              item['title'] as String,
-                              style: GoogleFonts.outfit(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                                color: AppColors.textDark,
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  item.title,
+                                  style: GoogleFonts.outfit(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                    color: AppColors.textDark,
+                                  ),
+                                ),
                               ),
-                            ),
+                              Text(
+                                timeago.format(item.createdAt, locale: 'en_short'),
+                                style: GoogleFonts.inter(
+                                  fontSize: 11,
+                                  color: AppColors.textLight,
+                                ),
+                              ),
+                            ],
                           ),
+                          const SizedBox(height: 4),
                           Text(
-                            item['time'] as String,
+                            item.subtitle,
                             style: GoogleFonts.inter(
-                              fontSize: 11,
-                              color: AppColors.textLight,
+                              fontSize: 12,
+                              color: AppColors.textMedium,
+                              height: 1.3,
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        item['subtitle'] as String,
-                        style: GoogleFonts.inter(
-                          fontSize: 12,
-                          color: AppColors.textMedium,
-                          height: 1.3,
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              );
+            },
           );
         },
       ),

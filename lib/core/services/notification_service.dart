@@ -3,6 +3,8 @@ import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../models/app_notification.dart';
 
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
@@ -118,5 +120,36 @@ class NotificationService {
       scheduledDate = scheduledDate.add(const Duration(days: 1));
     }
     return scheduledDate;
+  }
+
+  Future<void> saveAppNotification({
+    required String userId,
+    required String title,
+    required String subtitle,
+    int iconCode = 0xe000,
+    String iconColorHex = 'FF9C27B0',
+  }) async {
+    try {
+      final docRef = FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId)
+          .collection('notifications')
+          .doc();
+          
+      final notification = AppNotification(
+        id: docRef.id,
+        title: title,
+        subtitle: subtitle,
+        createdAt: DateTime.now(),
+        iconCode: iconCode,
+        iconColorHex: iconColorHex,
+        isUnread: true,
+      );
+
+      await docRef.set(notification.toMap());
+      debugPrint('[NotificationService] Saved notification for $userId');
+    } catch (e) {
+      debugPrint('[NotificationService] Failed to save notification: $e');
+    }
   }
 }

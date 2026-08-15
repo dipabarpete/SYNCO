@@ -236,39 +236,44 @@ class DoctorCard extends StatelessWidget {
 
   Widget _buildAvailabilityPill() {
     final isAvailableToday = doctor.availability.contains('Today');
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-      decoration: BoxDecoration(
-        color: isAvailableToday
-            ? AppColors.mintGreen.withValues(alpha: 0.35)
-            : AppColors.lightGrey,
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 7,
-            height: 7,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: isAvailableToday
-                  ? const Color(0xFF45B69C)
-                  : AppColors.textLight,
+    return Flexible(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+        decoration: BoxDecoration(
+          color: isAvailableToday
+              ? AppColors.mintGreen.withValues(alpha: 0.35)
+              : AppColors.lightGrey,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 7,
+              height: 7,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: isAvailableToday
+                    ? const Color(0xFF45B69C)
+                    : AppColors.textLight,
+              ),
             ),
-          ),
-          const SizedBox(width: 5),
-          Text(
-            doctor.availability,
-            style: GoogleFonts.inter(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: isAvailableToday
-                  ? const Color(0xFF2E8B76)
-                  : AppColors.textMedium,
+            const SizedBox(width: 5),
+            Flexible(
+              child: Text(
+                doctor.availability,
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.inter(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: isAvailableToday
+                      ? const Color(0xFF2E8B76)
+                      : AppColors.textMedium,
+                ),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

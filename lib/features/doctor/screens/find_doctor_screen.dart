@@ -224,6 +224,30 @@ class _FindDoctorScreenState extends ConsumerState<FindDoctorScreen> {
                             ),
                           ),
                         ),
+                      const SizedBox(height: 12),
+
+                      // -------------------------------------------------------------
+                      // ALL AVAILABLE DOCTORS (Includes newly registered)
+                      // -------------------------------------------------------------
+                      SectionHeader(
+                        title: 'All Available Doctors',
+                        actionLabel: 'View All',
+                        onActionTap: () => _openAllDoctors(filteredDoctors),
+                      ),
+                      const SizedBox(height: 14),
+                      if (filteredDoctors.isEmpty)
+                        _buildEmptyState()
+                      else
+                        ...filteredDoctors.map(
+                          (doctor) => Padding(
+                            padding: const EdgeInsets.only(bottom: 14),
+                            child: DoctorCard(
+                              doctor: doctor,
+                              onTap: () => _openProfile(doctor),
+                              onBookNow: () => _openBooking(doctor),
+                            ),
+                          ),
+                        ),
                       const SizedBox(height: 8),
                     ],
                   );

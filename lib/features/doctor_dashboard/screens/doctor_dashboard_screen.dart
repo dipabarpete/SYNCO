@@ -5,21 +5,25 @@ import '../../../core/theme/app_colors.dart';
 import '../../../app.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../doctor/models/appointment.dart';
-import '../../doctor/models/doctor.dart';
 import '../../doctor/screens/consultation_chat_screen.dart';
 import '../providers/doctor_provider.dart';
 import 'patient_detail_screen.dart';
+import 'doctor_settings_screen.dart';
+import '../../../core/services/notification_controller.dart';
 
 class DoctorDashboardScreen extends ConsumerWidget {
   const DoctorDashboardScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Initialize notifications listener for the doctor
+    ref.read(notificationControllerProvider);
+
     final user = ref.watch(authNotifierProvider).user;
     final doctorName = user?.displayName ?? 'Doctor';
 
     return DefaultTabController(
-      length: 4,
+      length: 5,
       child: Scaffold(
         backgroundColor: AppColors.creamWhite,
         appBar: AppBar(
@@ -81,6 +85,7 @@ class DoctorDashboardScreen extends ConsumerWidget {
               Tab(text: 'Today'),
               Tab(text: 'Upcoming'),
               Tab(text: 'Completed'),
+              Tab(text: 'Profile'),
             ],
           ),
         ),
@@ -90,6 +95,7 @@ class DoctorDashboardScreen extends ConsumerWidget {
             _buildTabContent(ref, todayAppointmentsProvider, showEnterChat: true),
             _buildTabContent(ref, upcomingAppointmentsProvider, showActions: false, showEnterChat: true),
             _buildTabContent(ref, completedAppointmentsProvider, showActions: false),
+            const DoctorSettingsScreen(),
           ],
         ),
       ),

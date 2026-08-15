@@ -26,8 +26,11 @@ class KyraApiService {
           if (idToken != null) 'Authorization': 'Bearer $idToken',
         },
         body: jsonEncode({
-          'userId': user?.uid ?? 'anonymous_user',
+          // Send an anonymized hash of the user ID instead of the raw UID to protect PII
+          'userId': user != null ? 'anon_${user.uid.hashCode}' : 'anonymous_user',
           'prompt': message,
+          // Context data (like health score) is already aggregated and contains no names/PII
+          'context': contextData,
         }),
       );
 

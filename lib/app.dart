@@ -18,6 +18,7 @@ import 'features/doctor/screens/find_doctor_screen.dart';
 import 'features/whisper_room/whisper_room_screen.dart';
 import 'features/pink_corner/pink_corner_screen.dart';
 import 'features/health/health_tracking_screen.dart';
+import 'core/services/notification_controller.dart';
 
 
 // =============================================================================
@@ -278,6 +279,9 @@ class _HerSyncMainLayoutState
 
   @override
   Widget build(BuildContext context) {
+    // Initialize notifications listener for the patient
+    ref.read(notificationControllerProvider);
+
     return Scaffold(
 
       // -----------------------------------------------------------------------

@@ -169,13 +169,6 @@ class AuthService {
       return AuthResult.failure('Firebase client is not initialized.');
     }
 
-    // --- MOCK OTP BYPASS FOR TESTING ---
-    if (fullE164Number.contains('5555555555') || fullE164Number.contains('0000000000')) {
-      _pendingVerificationId = 'mock_verification_id';
-      return AuthResult.success();
-    }
-    // -----------------------------------
-
     final completer = Completer<AuthResult>();
 
     auth.verifyPhoneNumber(
@@ -229,30 +222,6 @@ class AuthService {
     if (verificationId == null) {
       return AuthResult.failure('No OTP was requested. Please request a new code.');
     }
-
-    // --- MOCK OTP BYPASS FOR TESTING ---
-    if (verificationId == 'mock_verification_id') {
-      if (otpCode == '123456') {
-        try {
-          final mockEmail = '${phoneNumber.replaceAll(RegExp(r'\D'), '')}@mock.synco.app';
-          fb.UserCredential cred;
-          try {
-            cred = await auth.signInWithEmailAndPassword(email: mockEmail, password: 'mockpassword');
-          } catch (_) {
-            cred = await auth.createUserWithEmailAndPassword(email: mockEmail, password: 'mockpassword');
-          }
-          _pendingVerificationId = null;
-          final mockAppUser = AppUser.fromFirebase(cred.user!);
-          final profile = await createOrGetProfile(mockAppUser);
-          return AuthResult.success(user: mockAppUser, profile: profile);
-        } catch (e) {
-          return AuthResult.failure('Mock sign in failed: $e');
-        }
-      } else {
-        return AuthResult.failure('Invalid mock OTP. Use 123456.');
-      }
-    }
-    // -----------------------------------
 
     try {
       final credential = fb.PhoneAuthProvider.credential(
@@ -478,6 +447,35 @@ class AuthService {
         await auth.signOut();
       } catch (e) {
         debugPrint('Firebase sign out exception: $e');
+      }
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // DELETE ACCOUNT
+  // -------------------------------------------------------------------------
+
+  Future<void> deleteAccount() async {
+    final auth = _firebaseAuth;
+    final firestore = Backend.firestore;
+    final user = auth?.currentUser;
+    
+    if (user != null) {
+      try {
+        if (firestore != null) {
+          // Delete from users collection
+          await firestore.collection('users').doc(user.uid).delete();
+          // Also delete from doctors collection just in case
+          await firestore.collection('doctors').doc(user.uid).delete();
+        }
+        await user.delete();
+      } on fb.FirebaseAuthException catch (e) {
+        if (e.code == 'requires-recent-login') {
+          throw Exception('Please log out and log back in to delete your account.');
+        }
+        throw Exception(_formatFirebaseAuthError(e));
+      } catch (e) {
+        throw Exception('Failed to delete account: $e');
       }
     }
   }

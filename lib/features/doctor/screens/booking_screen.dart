@@ -208,7 +208,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
                       ),
                     ),
                     Text(
-                      'Pay at clinic',
+                      'Pay after doctor accepts',
                       style: GoogleFonts.inter(
                         fontSize: 11.5,
                         color: AppColors.textLight,
@@ -290,6 +290,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
       await doctorService.bookAppointment(
         userId: userId,
         doctorId: widget.doctor.id,
+        doctorName: widget.doctor.name,
         date: _selectedDate.toIso8601String(),
         time: _selectedSlot!,
         mode: _selectedMode == ConsultationMode.online ? 'online' : 'offline',
