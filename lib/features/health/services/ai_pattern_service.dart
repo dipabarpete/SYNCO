@@ -23,7 +23,7 @@ class AiPatternService {
   }) {
     final today = now ?? DateTime.now();
 
-    if (HealthAnalytics.dataDaysLastDays(all, today, days: 30) < _minDataDays) {
+    if (HealthAnalytics.dataDaysLastDays(all, today, days: 30) < 1) {
       return const [];
     }
 
@@ -175,7 +175,7 @@ class AiPatternService {
 
   List<AiInsight> _sugarCravingInsight(List<HealthEntry> all, DateTime today) {
     final thisW = HealthAnalytics.thisWeek(all, today);
-    if (thisW.cravingDays < 2) return const [];
+    if (thisW.cravingDays < 1) return const [];
 
     final high = thisW.cravingLevelCounts['High'] ?? 0;
     final summary = high > 0
@@ -295,7 +295,7 @@ class AiPatternService {
         topTag = tag;
       }
     }
-    if (topTag == null || topCount < 2) return const [];
+    if (topTag == null || topCount < 1) return const [];
 
     final suggestsFollowUp = topTag == 'Processed Food' || topTag == 'Alcohol';
     return [
@@ -389,7 +389,7 @@ class AiPatternService {
       }
     });
 
-    if (topMood == null || topCount < 2) return const [];
+    if (topMood == null || topCount < 1) return const [];
 
     final total = thisW.moodDistribution.values
         .fold(0, (sum, count) => sum + count);

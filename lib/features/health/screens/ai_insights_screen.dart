@@ -42,7 +42,7 @@ class AiInsightsScreen extends ConsumerWidget {
           ],
         ),
       ),
-      body: insights.isEmpty || dataDays < 3
+      body: insights.isEmpty
           ? ListView(
               padding: const EdgeInsets.all(16),
               children: [

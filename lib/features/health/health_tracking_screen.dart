@@ -165,7 +165,7 @@ class _HealthTrackingScreenState extends ConsumerState<HealthTrackingScreen> {
                     const SizedBox(height: 12),
                   ],
 
-                  if (insights.isEmpty || dataDays < 3)
+                  if (insights.isEmpty)
                     AiEmptyState(hasAnyData: dataDays > 0)
                   else ...[
                     for (final insight in insights.take(2))

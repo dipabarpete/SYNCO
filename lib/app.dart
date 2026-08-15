@@ -11,7 +11,7 @@ import 'features/auth/screens/welcome_login_screen.dart';
 
 import 'features/onboarding/screens/role_selection_screen.dart';
 
-import 'features/doctor/screens/doctor_dashboard_screen.dart';
+import 'features/doctor_dashboard/screens/doctor_dashboard_screen.dart';
 import 'features/home/home_dashboard_screen.dart';
 
 import 'features/doctor/screens/find_doctor_screen.dart';

@@ -113,7 +113,8 @@ class _ConsultationChatScreenState extends ConsumerState<ConsultationChatScreen>
                 ),
                 error: (err, stack) => Center(
                   child: Text(
-                    'Error loading chat.',
+                    'Error loading chat.\n$err',
+                    textAlign: TextAlign.center,
                     style: GoogleFonts.inter(color: AppColors.deepRose),
                   ),
                 ),
