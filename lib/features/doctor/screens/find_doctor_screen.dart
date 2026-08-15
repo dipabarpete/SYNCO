@@ -151,7 +151,19 @@ class _FindDoctorScreenState extends ConsumerState<FindDoctorScreen> {
                 children: [
                   Text('Doctors List', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16)),
                   TextButton(
-                    onPressed: () => seedMockDoctors(ref),
+                    onPressed: () async {
+                      try {
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Seeding mock data...')));
+                        await seedMockDoctors(ref);
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Seeding completed!')));
+                        }
+                      } catch (e) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error seeding: $e')));
+                        }
+                      }
+                    },
                     child: const Text('Seed Mock Data', style: TextStyle(color: AppColors.softPurple)),
                   ),
                 ],

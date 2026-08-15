@@ -4,7 +4,7 @@ import 'doctor.dart';
 ///
 /// Immediately after booking an appointment becomes [AppointmentStatus.requested].
 /// Only after the doctor accepts does it move to [AppointmentStatus.confirmed].
-enum AppointmentStatus { requested, confirmed, declined, cancelled }
+enum AppointmentStatus { requested, confirmed, declined, cancelled, completed }
 
 class Appointment {
   final String id;
@@ -14,6 +14,7 @@ class Appointment {
   final String slot;
   final int fee;
   final String patientName;
+  final String userId;
   final DateTime createdAt;
   final AppointmentStatus status;
 
@@ -25,9 +26,51 @@ class Appointment {
     required this.slot,
     required this.fee,
     required this.patientName,
+    required this.userId,
     required this.createdAt,
     this.status = AppointmentStatus.requested,
   });
+
+  factory Appointment.fromMap(String id, Map<String, dynamic> data, Doctor doctor) {
+    AppointmentStatus parsedStatus = AppointmentStatus.requested;
+    switch (data['status']) {
+      case 'confirmed':
+        parsedStatus = AppointmentStatus.confirmed;
+        break;
+      case 'declined':
+        parsedStatus = AppointmentStatus.declined;
+        break;
+      case 'cancelled':
+        parsedStatus = AppointmentStatus.cancelled;
+        break;
+      case 'completed':
+        parsedStatus = AppointmentStatus.completed;
+        break;
+      case 'requested':
+      default:
+        parsedStatus = AppointmentStatus.requested;
+        break;
+    }
+
+    ConsultationMode parsedMode = data['mode'] == 'offline' 
+        ? ConsultationMode.offline 
+        : ConsultationMode.online;
+
+    return Appointment(
+      id: id,
+      doctor: doctor,
+      mode: parsedMode,
+      date: data['date'] != null ? DateTime.tryParse(data['date']) ?? DateTime.now() : DateTime.now(),
+      slot: data['time'] ?? data['slot'] ?? '',
+      fee: data['fee'] ?? doctor.consultationFee,
+      patientName: data['patientName'] ?? 'Unknown Patient',
+      userId: data['userId'] ?? '',
+      createdAt: data['createdAt'] != null 
+          ? (data['createdAt'] as dynamic).toDate() 
+          : DateTime.now(),
+      status: parsedStatus,
+    );
+  }
 
   Appointment copyWith({AppointmentStatus? status}) {
     return Appointment(
@@ -38,6 +81,7 @@ class Appointment {
       slot: slot,
       fee: fee,
       patientName: patientName,
+      userId: userId,
       createdAt: createdAt,
       status: status ?? this.status,
     );
@@ -77,6 +121,8 @@ class Appointment {
         return 'Request Declined';
       case AppointmentStatus.cancelled:
         return 'Cancelled';
+      case AppointmentStatus.completed:
+        return 'Completed';
     }
   }
 }

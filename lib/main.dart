@@ -4,11 +4,16 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'app.dart';
 import 'core/backend.dart';
+import 'core/services/notification_service.dart';
 import 'firebase_options.dart';
 
 Future<void> main() async {
 
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Local Notifications
+  await NotificationService().init();
+  await NotificationService().requestPermissions();
 
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,

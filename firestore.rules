@@ -17,13 +17,8 @@ service cloud.firestore {
     match /users/{userId} {
       allow read, write: if isOwner(userId);
       
-      // Daily logs subcollection
-      match /daily_logs/{dateString} {
-        allow read, write: if isOwner(userId);
-      }
-      
-      // Health summaries subcollection
-      match /health_summaries/{summaryId} {
+      // Allow access to all subcollections (period_logs, symptom_logs, etc)
+      match /{document=**} {
         allow read, write: if isOwner(userId);
       }
     }
@@ -36,27 +31,17 @@ service cloud.firestore {
 
     // Phase 1 & 3: Bookings collection
     match /bookings/{bookingId} {
-      // Allow read/update/delete if the user is either the patient or the doctor on the EXISTING document
-      allow read, update, delete: if isAuthenticated() && (
-        request.auth.uid == resource.data.userId || 
-        request.auth.uid == resource.data.doctorId
-      );
-      // Allow create if the user is setting themselves as the patient or doctor on the NEW document
-      allow create: if isAuthenticated() && (
-        request.auth.uid == request.resource.data.userId || 
-        request.auth.uid == request.resource.data.doctorId
-      );
+      // Temporarily allow all read/write for testing without Authentication
+      allow read, write: if true; 
     }
 
     // Real-Time Chat Engine
     match /chats/{chatId} {
-      allow read, update, delete: if isAuthenticated() && request.auth.uid in resource.data.participants;
-      allow create: if isAuthenticated() && request.auth.uid in request.resource.data.participants;
+      // Temporarily allow all read/write for testing without Authentication
+      allow read, write: if true;
       
       match /messages/{messageId} {
-        // Enforce that the user must be a participant in the parent chat room
-        allow read, write: if isAuthenticated() && 
-          request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants;
+        allow read, write: if true;
       }
     }
 

@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../core/services/notification_service.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../features/pink_corner/services/pink_corner_service.dart';
 import '../features/doctor/models/doctor.dart';
+import '../features/doctor/models/appointment.dart';
 import '../features/doctor/services/doctor_service.dart';
 import '../features/kyra/services/kyra_api_service.dart';
 import '../models/user_profile.dart';
@@ -14,6 +17,7 @@ import '../models/article_item.dart';
 import '../models/reminder_item.dart';
 import '../models/period_record.dart';
 import '../features/cycle/services/period_repository.dart';
+import '../features/auth/providers/auth_provider.dart';
 
 // User Profile Provider
 final userProfileProvider = StateNotifierProvider<UserProfileNotifier, UserProfile>((ref) {
@@ -322,30 +326,82 @@ class RemindersNotifier extends StateNotifier<List<ReminderItem>> {
             colorKey: 'Purple',
             isEnabled: false,
           ),
-        ]);
+        ]) {
+    // Schedule initial enabled reminders on startup
+    _scheduleAllEnabled();
+  }
+
+  void _scheduleAllEnabled() {
+    for (final r in state) {
+      if (r.isEnabled) _scheduleReminder(r);
+    }
+  }
+
+  void _scheduleReminder(ReminderItem reminder) {
+    if (reminder.reminderTimes == null || reminder.reminderTimes!.isEmpty) return;
+    final int notifId = reminder.id.hashCode;
+    NotificationService().scheduleDailyReminder(
+      id: notifId,
+      title: reminder.title,
+      body: reminder.subtitle ?? 'Time for your reminder',
+      time: reminder.reminderTimes!.first,
+    );
+  }
+
+  void _cancelReminder(String id) {
+    final int notifId = id.hashCode;
+    NotificationService().cancelReminder(notifId);
+  }
 
   void toggleReminder(String id) {
-    state = [
-      for (final r in state)
-        if (r.id == id) r.copyWith(isEnabled: !r.isEnabled) else r
-    ];
+    final newState = <ReminderItem>[];
+    for (final r in state) {
+      if (r.id == id) {
+        final toggled = r.copyWith(isEnabled: !r.isEnabled);
+        if (toggled.isEnabled) {
+          _scheduleReminder(toggled);
+        } else {
+          _cancelReminder(id);
+        }
+        newState.add(toggled);
+      } else {
+        newState.add(r);
+      }
+    }
+    state = newState;
   }
 
   void addReminder(ReminderItem reminder) {
     state = [...state, reminder];
+    if (reminder.isEnabled) {
+      _scheduleReminder(reminder);
+    }
   }
 
   void updateReminder(ReminderItem updated) {
-    state = [
-      for (final r in state)
-        if (r.id == updated.id) updated else r
-    ];
+    final newState = <ReminderItem>[];
+    for (final r in state) {
+      if (r.id == updated.id) {
+        // Cancel the old one just in case the time changed
+        _cancelReminder(r.id);
+        
+        if (updated.isEnabled) {
+          _scheduleReminder(updated);
+        }
+        newState.add(updated);
+      } else {
+        newState.add(r);
+      }
+    }
+    state = newState;
   }
 
   void deleteReminder(String id) {
+    _cancelReminder(id);
     state = state.where((r) => r.id != id).toList();
   }
 }
+
 
 // Whisper Room Posts Provider
 final whisperRoomProvider = StateNotifierProvider<WhisperRoomNotifier, List<CommunityPost>>((ref) {
@@ -744,3 +800,24 @@ Future<void> seedMockDoctors(WidgetRef ref) async {
   ];
   await service.seedMockDoctors(staticDoctors);
 }
+
+
+// User Appointment Requests Provider
+final appointmentsProvider = StreamProvider<List<Appointment>>((ref) {
+  final service = ref.read(doctorServiceProvider);
+  final user = ref.watch(authNotifierProvider).userProfile;
+  if (user == null) return Stream.value([]);
+  return service.streamUserAppointments(user.id);
+});
+
+// Doctor Dashboard Appointments Provider
+final doctorDashboardProvider = StreamProvider<List<Appointment>>((ref) {
+  final service = ref.read(doctorServiceProvider);
+  final user = ref.watch(authNotifierProvider).userProfile;
+  if (user == null) return Stream.value([]);
+  
+  // FOR TESTING: We return the user's own appointments here so that you can 
+  // go to the Doctor Dashboard and Accept/Decline your own bookings without 
+  // needing to create a separate Doctor account and log in/out.
+  return service.streamUserAppointments(user.id);
+});

@@ -5,6 +5,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../providers/app_providers.dart';
 import '../models/appointment.dart';
 import 'find_doctor_screen.dart';
+import 'consultation_chat_screen.dart';
 
 /// User-facing list of appointment requests.
 ///
@@ -15,17 +16,7 @@ class MyAppointmentsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final appointments = ref.watch(appointmentsProvider);
-    final requested =
-        appointments.where((a) => a.status == AppointmentStatus.requested).toList();
-    final confirmed =
-        appointments.where((a) => a.status == AppointmentStatus.confirmed).toList();
-    final declined =
-        appointments.where((a) => a.status == AppointmentStatus.declined).toList();
-    final cancelled =
-        appointments.where((a) => a.status == AppointmentStatus.cancelled).toList();
-
-    final latestConfirmed = confirmed.isEmpty ? null : confirmed.first;
+    final appointmentsAsync = ref.watch(appointmentsProvider);
 
     return Scaffold(
       backgroundColor: AppColors.creamWhite,
@@ -40,52 +31,61 @@ class MyAppointmentsScreen extends ConsumerWidget {
         ),
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-          child: appointments.isEmpty
-              ? _buildEmptyState(context)
-              : Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (latestConfirmed != null) ...[
-                      _buildConfirmedBanner(context, latestConfirmed),
-                      const SizedBox(height: 22),
-                    ],
-                    if (requested.isNotEmpty) ...[
-                      _buildSectionTitle('UPCOMING'),
-                      const SizedBox(height: 12),
-                      ...requested.map(
-                        (a) => _buildAppointmentCard(context, ref, a),
-                      ),
-                      const SizedBox(height: 20),
-                    ],
-                    if (confirmed.isNotEmpty) ...[
-                      _buildSectionTitle('CONFIRMED'),
-                      const SizedBox(height: 12),
-                      ...confirmed.map(
-                        (a) => _buildAppointmentCard(context, ref, a),
-                      ),
-                      const SizedBox(height: 20),
-                    ],
-                    if (declined.isNotEmpty) ...[
-                      _buildSectionTitle('DECLINED'),
-                      const SizedBox(height: 12),
-                      ...declined.map(
-                        (a) => _buildAppointmentCard(context, ref, a),
-                      ),
-                      const SizedBox(height: 20),
-                    ],
-                    if (cancelled.isNotEmpty) ...[
-                      _buildSectionTitle('CANCELLED'),
-                      const SizedBox(height: 12),
-                      ...cancelled.map(
-                        (a) => _buildAppointmentCard(context, ref, a),
-                      ),
-                    ],
-                    const SizedBox(height: 12),
-                  ],
-                ),
+        child: appointmentsAsync.when(
+          loading: () => const Center(
+            child: CircularProgressIndicator(color: AppColors.softPurple),
+          ),
+          error: (err, stack) => Center(
+            child: Text('Error loading appointments.', style: GoogleFonts.inter(color: AppColors.deepRose)),
+          ),
+          data: (appointments) {
+            final requested = appointments.where((a) => a.status == AppointmentStatus.requested).toList();
+            final confirmed = appointments.where((a) => a.status == AppointmentStatus.confirmed).toList();
+            final declined = appointments.where((a) => a.status == AppointmentStatus.declined).toList();
+            final cancelled = appointments.where((a) => a.status == AppointmentStatus.cancelled).toList();
+
+            final latestConfirmed = confirmed.isEmpty ? null : confirmed.first;
+
+            return SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+              child: appointments.isEmpty
+                  ? _buildEmptyState(context)
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (latestConfirmed != null) ...[
+                          _buildConfirmedBanner(context, latestConfirmed),
+                          const SizedBox(height: 22),
+                        ],
+                        if (requested.isNotEmpty) ...[
+                          _buildSectionTitle('UPCOMING'),
+                          const SizedBox(height: 12),
+                          ...requested.map((a) => _buildAppointmentCard(context, ref, a)),
+                          const SizedBox(height: 20),
+                        ],
+                        if (confirmed.isNotEmpty) ...[
+                          _buildSectionTitle('CONFIRMED'),
+                          const SizedBox(height: 12),
+                          ...confirmed.map((a) => _buildAppointmentCard(context, ref, a)),
+                          const SizedBox(height: 20),
+                        ],
+                        if (declined.isNotEmpty) ...[
+                          _buildSectionTitle('DECLINED'),
+                          const SizedBox(height: 12),
+                          ...declined.map((a) => _buildAppointmentCard(context, ref, a)),
+                          const SizedBox(height: 20),
+                        ],
+                        if (cancelled.isNotEmpty) ...[
+                          _buildSectionTitle('CANCELLED'),
+                          const SizedBox(height: 12),
+                          ...cancelled.map((a) => _buildAppointmentCard(context, ref, a)),
+                        ],
+                        const SizedBox(height: 12),
+                      ],
+                    ),
+            );
+          },
         ),
       ),
     );
@@ -167,24 +167,53 @@ class MyAppointmentsScreen extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 12),
-          GestureDetector(
-            onTap: () => _showAppointmentDetails(context, a),
-            child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 10),
-              decoration: BoxDecoration(
-                color: const Color(0xFF2E8B76),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                'View Appointment',
-                textAlign: TextAlign.center,
-                style: GoogleFonts.inter(
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
+          Row(
+            children: [
+              Expanded(
+                child: GestureDetector(
+                  onTap: () => _showAppointmentDetails(context, a),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    decoration: BoxDecoration(
+                      color: Colors.transparent,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFF2E8B76)),
+                    ),
+                    child: Text(
+                      'Details',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.inter(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF2E8B76),
+                      ),
+                    ),
+                  ),
                 ),
               ),
-            ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: GestureDetector(
+                  onTap: () => _enterChat(context, a),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF2E8B76),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      'Chat with Doctor',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.inter(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -334,29 +363,56 @@ class MyAppointmentsScreen extends ConsumerWidget {
           ],
           if (a.status == AppointmentStatus.confirmed) ...[
             const SizedBox(height: 10),
-            GestureDetector(
-              onTap: () => _showAppointmentDetails(context, a),
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                decoration: BoxDecoration(
-                  color: AppColors.softLavender.withValues(alpha: 0.5),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: AppColors.softPurpleLight.withValues(alpha: 0.4),
-                    width: 1,
+            Row(
+              children: [
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => _showAppointmentDetails(context, a),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      decoration: BoxDecoration(
+                        color: AppColors.softLavender.withValues(alpha: 0.5),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: AppColors.softPurpleLight.withValues(alpha: 0.4),
+                          width: 1,
+                        ),
+                      ),
+                      child: Text(
+                        'Details',
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.inter(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.softPurple,
+                        ),
+                      ),
+                    ),
                   ),
                 ),
-                child: Text(
-                  'View Details',
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.inter(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.softPurple,
+                const SizedBox(width: 10),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => _enterChat(context, a),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      decoration: BoxDecoration(
+                        color: AppColors.softPurple,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        'Chat',
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.inter(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
                   ),
                 ),
-              ),
+              ],
             ),
           ],
         ],
@@ -424,7 +480,7 @@ class MyAppointmentsScreen extends ConsumerWidget {
     WidgetRef ref,
     Appointment appointment,
   ) {
-    ref.read(appointmentsProvider.notifier).cancelRequest(appointment.id);
+    ref.read(doctorServiceProvider).updateAppointmentStatus(appointment.id, 'cancelled');
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         backgroundColor: AppColors.softPurple,
@@ -439,6 +495,18 @@ class MyAppointmentsScreen extends ConsumerWidget {
             fontWeight: FontWeight.w600,
             color: Colors.white,
           ),
+        ),
+      ),
+    );
+  }
+
+  void _enterChat(BuildContext context, Appointment a) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ConsultationChatScreen(
+          chatId: a.id,
+          patientName: a.doctor.name, // The user is chatting with the doctor
         ),
       ),
     );

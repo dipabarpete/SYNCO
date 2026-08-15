@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../providers/app_providers.dart';
+import '../../auth/providers/auth_provider.dart';
 import '../models/doctor.dart';
 import 'booking_confirmation_screen.dart';
 
@@ -282,12 +283,18 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
     // Call Firebase
     try {
       final doctorService = ref.read(doctorServiceProvider);
-      // Hardcoded userId for now since we don't have full auth state
+      final user = ref.read(authNotifierProvider).userProfile;
+      final userId = user?.id ?? 'user_123';
+      final patientName = user?.username ?? 'Guest User';
+
       await doctorService.bookAppointment(
-        'user_123',
-        widget.doctor.id,
-        _selectedDate.toIso8601String(),
-        _selectedSlot!,
+        userId: userId,
+        doctorId: widget.doctor.id,
+        date: _selectedDate.toIso8601String(),
+        time: _selectedSlot!,
+        mode: _selectedMode == ConsultationMode.online ? 'online' : 'offline',
+        fee: widget.doctor.consultationFee,
+        patientName: patientName,
       );
 
       if (mounted) {

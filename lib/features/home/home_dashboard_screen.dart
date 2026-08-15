@@ -12,7 +12,8 @@ import 'widgets/period_cycle_overview_card.dart';
 import 'widgets/dashboard_feature_row.dart';
 import 'widgets/symptoms_assessment_card.dart';
 import 'widgets/upcoming_reminders_card.dart';
-
+import '../whisper_room/notifications_screen.dart';
+import '../health/screens/health_report_screen.dart';
 class HomeDashboardScreen extends ConsumerWidget {
   const HomeDashboardScreen({super.key});
 
@@ -40,7 +41,14 @@ class HomeDashboardScreen extends ConsumerWidget {
                 userName: displayName,
                 avatarUrl: avatarUrl,
                 onAvatarTap: () => _showProfileDialog(context, ref, displayName, authState),
-                onNotificationTap: () => _showDialogInfo(context, 'Notifications'),
+                onNotificationTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (ctx) => const NotificationsScreen(),
+                    ),
+                  );
+                },
               ),
               const SizedBox(height: 20),
 
@@ -80,7 +88,14 @@ class HomeDashboardScreen extends ConsumerWidget {
                 percentile: healthScoreState.percentile,
                 title: 'Health Score',
                 onTap: () => _showDialogInfo(context, 'Health Score Details'),
-                onViewReportTap: () => _showDialogInfo(context, 'View Full Report'),
+                onViewReportTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const HealthReportScreen(),
+                    ),
+                  );
+                },
               ),
               const SizedBox(height: 20),
 
