@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../providers/app_providers.dart';
 import '../models/appointment.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'find_doctor_screen.dart';
 import 'consultation_chat_screen.dart';
 
@@ -101,6 +102,22 @@ class MyAppointmentsScreen extends ConsumerWidget {
         letterSpacing: 0.8,
       ),
     );
+  }
+
+  Future<void> _launchUPIPayment(BuildContext context, Appointment a) async {
+    final doctorName = Uri.encodeComponent(a.doctor.name);
+    final uri = Uri.parse('upi://pay?pa=doctor@upi&pn=$doctorName&am=${a.fee}&cu=INR');
+    
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    } else {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No UPI app found. Please install a digital payment app like GPay or PhonePe.'),
+        ),
+      );
+    }
   }
 
   Widget _buildConfirmedBanner(BuildContext context, Appointment a) {
@@ -376,7 +393,7 @@ class MyAppointmentsScreen extends ConsumerWidget {
           if (a.status == AppointmentStatus.confirmed) ...[
             const SizedBox(height: 12),
             GestureDetector(
-              onTap: () => _showPaymentBottomSheet(context, a),
+              onTap: () => _launchUPIPayment(context, a),
               child: Container(
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(vertical: 12),
@@ -454,6 +471,57 @@ class MyAppointmentsScreen extends ConsumerWidget {
                           fontWeight: FontWeight.w600,
                           color: Colors.white,
                         ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+          if (a.status == AppointmentStatus.completed) ...[
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => _showAppointmentDetails(context, a),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      decoration: BoxDecoration(
+                        color: Colors.transparent,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: AppColors.softPurpleLight.withValues(alpha: 0.8),
+                          width: 1,
+                        ),
+                      ),
+                      child: Text(
+                        'Details',
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.inter(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.softPurple,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    decoration: BoxDecoration(
+                      color: AppColors.borderGrey.withValues(alpha: 0.5),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      'Consultation Closed',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.inter(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textMedium,
                       ),
                     ),
                   ),

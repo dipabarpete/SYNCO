@@ -128,6 +128,7 @@ class NotificationService {
     required String subtitle,
     int iconCode = 0xe000,
     String iconColorHex = 'FF9C27B0',
+    String? payload,
   }) async {
     try {
       final docRef = FirebaseFirestore.instance
@@ -144,6 +145,7 @@ class NotificationService {
         iconCode: iconCode,
         iconColorHex: iconColorHex,
         isUnread: true,
+        payload: payload,
       );
 
       await docRef.set(notification.toMap());

@@ -1,62 +1,57 @@
 import 'dart:convert';
-import 'package:http/http.dart' as http;
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
+import '../../../core/services/api_service.dart';
 
 class AiAnalysisService {
-  static const String _baseUrl = 'https://synco-backend.vercel.app/api';
-
   Future<String> analyzeFood(String imageBase64, String prompt) async {
-    return _sendPostRequest('/kyra', {
-      'imageBase64': imageBase64,
-      'prompt': prompt,
-    });
+    try {
+      final bytes = base64Decode(imageBase64);
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return 'User not authenticated.';
+      
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final path = 'uploads/${user.uid}/food/$timestamp.jpg';
+      final ref = FirebaseStorage.instance.ref().child(path);
+      
+      await ref.putData(bytes, SettableMetadata(contentType: 'image/jpeg'));
+      final url = await ref.getDownloadURL();
+      
+      final response = await ApiService.post('food-scanner', {
+        'imageUrl': url,
+        'prompt': prompt,
+      });
+      
+      return response['reply'] ?? response['response'] ?? response['analysis'] ?? 'Successfully analyzed food.';
+    } catch (e) {
+      debugPrint('Exception in analyzeFood: $e');
+      return 'I am having trouble connecting. Please try again! ($e)';
+    }
   }
 
   Future<String> analyzeLabReport(String fileBase64, String fileName, String prompt) async {
-    return _sendPostRequest('/kyra', {
-      'fileBase64': fileBase64,
-      'fileName': fileName,
-      'prompt': prompt,
-      'isPdf': true,
-    });
-  }
-
-  Future<String> _sendPostRequest(String endpoint, Map<String, dynamic> body) async {
-    final user = FirebaseAuth.instance.currentUser;
-    String? idToken;
-    
-    if (user != null) {
-      try {
-        idToken = await user.getIdToken();
-      } catch (e) {
-        debugPrint('Error getting ID token: $e');
-      }
-    }
-
     try {
-      final response = await http.post(
-        Uri.parse('$_baseUrl$endpoint'),
-        headers: {
-          'Content-Type': 'application/json',
-          if (idToken != null) 'Authorization': 'Bearer $idToken',
-        },
-        body: jsonEncode({
-          'userId': user?.uid ?? 'anonymous_user',
-          ...body,
-        }),
-      );
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        return data['reply'] ?? data['response'] ?? data['text'] ?? data['answer'] ?? data['message'] ?? 'Successfully analyzed, but response was empty.';
-      } else {
-        debugPrint('Error from AI API: ${response.statusCode} - ${response.body}');
-        return 'I am having trouble connecting to my servers right now. Please try again later! (Error: ${response.statusCode})';
-      }
+      final bytes = base64Decode(fileBase64);
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return 'User not authenticated.';
+      
+      final path = 'uploads/${user.uid}/reports/$fileName';
+      final ref = FirebaseStorage.instance.ref().child(path);
+      
+      final isPdf = fileName.toLowerCase().endsWith('.pdf');
+      await ref.putData(bytes, SettableMetadata(contentType: isPdf ? 'application/pdf' : 'image/jpeg'));
+      
+      // As per the contract, we pass the STORAGE PATH, not the download URL for process-report.
+      final response = await ApiService.post('process-report', {
+        'filePath': path,
+        'prompt': prompt,
+      });
+      
+      return response['explanation'] ?? response['response'] ?? 'Successfully processed report.';
     } catch (e) {
-      debugPrint('Exception calling AI API: $e');
-      return 'I am having trouble connecting to the network. Please check your connection and try again!';
+      debugPrint('Exception in analyzeLabReport: $e');
+      return 'I am having trouble processing the report. Please try again! ($e)';
     }
   }
 }

@@ -8,6 +8,7 @@ class AppNotification {
   final int iconCode;
   final String iconColorHex;
   final bool isUnread;
+  final String? payload;
 
   const AppNotification({
     required this.id,
@@ -17,6 +18,7 @@ class AppNotification {
     required this.iconCode,
     required this.iconColorHex,
     this.isUnread = true,
+    this.payload,
   });
 
   factory AppNotification.fromMap(String id, Map<String, dynamic> data) {
@@ -30,6 +32,7 @@ class AppNotification {
       iconCode: data['iconCode'] ?? 0xe000,
       iconColorHex: data['iconColorHex'] ?? 'FF9C27B0',
       isUnread: data['isUnread'] ?? true,
+      payload: data['payload'],
     );
   }
 
@@ -41,6 +44,7 @@ class AppNotification {
       'iconCode': iconCode,
       'iconColorHex': iconColorHex,
       'isUnread': isUnread,
+      if (payload != null) 'payload': payload,
     };
   }
 
@@ -55,6 +59,7 @@ class AppNotification {
       iconCode: iconCode,
       iconColorHex: iconColorHex,
       isUnread: isUnread ?? this.isUnread,
+      payload: payload,
     );
   }
 }

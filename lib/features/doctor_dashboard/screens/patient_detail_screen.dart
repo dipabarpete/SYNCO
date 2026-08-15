@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/backend.dart';
@@ -139,7 +140,7 @@ class PatientDetailScreen extends ConsumerWidget {
                   border: Border.all(color: AppColors.borderGrey),
                 ),
                 child: Text(
-                  entry.value.toString(),
+                  _formatValue(entry.key, entry.value),
                   style: GoogleFonts.inter(
                     fontSize: 14,
                     color: AppColors.textMedium,
@@ -158,5 +159,24 @@ class PatientDetailScreen extends ConsumerWidget {
     // simple camelCase to Title Case
     final text = key.replaceAll(RegExp(r'(?<!^)(?=[A-Z])'), ' ');
     return text.isNotEmpty ? '${text[0].toUpperCase()}${text.substring(1)}' : text;
+  }
+
+  String _formatValue(String key, dynamic value) {
+    final lowerKey = key.toLowerCase();
+    if (lowerKey.contains('at') || lowerKey.contains('time') || lowerKey.contains('date')) {
+      if (value is String) {
+        final parsed = DateTime.tryParse(value);
+        if (parsed != null) {
+          return DateFormat('MMM d, yyyy, h:mm a').format(parsed);
+        }
+      } else if (value != null && value.runtimeType.toString() == 'Timestamp') {
+        // Handle Firestore Timestamp if applicable without direct dependency if possible, or assume string
+        try {
+          final date = (value as dynamic).toDate();
+          return DateFormat('MMM d, yyyy, h:mm a').format(date);
+        } catch (_) {}
+      }
+    }
+    return value.toString();
   }
 }

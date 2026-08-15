@@ -125,7 +125,7 @@ class ShareReportBottomSheet extends ConsumerWidget {
                           }, SetOptions(merge: true));
 
                           // 3. Send Message to the Chat Room
-                          await ChatService().sendMessage(apt.id, user.id, textReport);
+                          await ChatService().sendMessage(apt.id, user.id, 'user', textReport);
                           
                           if (!context.mounted) return;
                           ScaffoldMessenger.of(context).showSnackBar(

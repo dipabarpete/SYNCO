@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import '../../../core/backend.dart';
+import '../../../core/services/notification_service.dart';
 import '../models/chat_message.dart';
 
 class ChatService {
@@ -16,7 +17,7 @@ class ChatService {
         .collection('chats')
         .doc(chatId)
         .collection('messages')
-        .orderBy('timestamp', descending: true)
+        .orderBy('timestamp', descending: false) // ASCENDING
         .snapshots()
         .map((snapshot) {
       return snapshot.docs.map((doc) {
@@ -25,22 +26,50 @@ class ChatService {
     });
   }
 
-  Future<void> sendMessage(String chatId, String senderId, String text) async {
+  Future<void> sendMessage(String chatId, String senderId, String senderRole, String text) async {
     if (_firestore == null) {
       debugPrint('[ChatService] Firestore is null, cannot send message.');
       return;
     }
 
     try {
-      await _firestore!
-          .collection('chats')
-          .doc(chatId)
-          .collection('messages')
-          .add({
+      final batch = _firestore!.batch();
+      
+      final chatRef = _firestore!.collection('chats').doc(chatId);
+      final messagesRef = chatRef.collection('messages').doc();
+
+      // Write the new message
+      batch.set(messagesRef, {
         'senderId': senderId,
+        'senderRole': senderRole,
         'text': text,
         'timestamp': FieldValue.serverTimestamp(),
       });
+
+      // Update the parent chat document
+      batch.update(chatRef, {
+        'lastMessage': text,
+        'lastUpdated': FieldValue.serverTimestamp(),
+      });
+
+      await batch.commit();
+
+      if (senderRole == 'doctor') {
+        final doc = await chatRef.get();
+        if (doc.exists) {
+          final patientId = doc.data()?['patientId'];
+          if (patientId != null) {
+            await NotificationService().saveAppNotification(
+              userId: patientId,
+              title: 'New Message from Doctor',
+              subtitle: text,
+              iconCode: 0xe153, // chat bubble
+              iconColorHex: 'FF9C27B0',
+              payload: 'chat:$chatId',
+            );
+          }
+        }
+      }
     } catch (e) {
       debugPrint('[ChatService] Error sending message: $e');
       rethrow;

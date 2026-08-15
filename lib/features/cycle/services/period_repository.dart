@@ -18,29 +18,47 @@ void logFirebaseError(String operation, Object error) {
 }
 
 class PeriodRepository {
-  CollectionReference<Map<String, dynamic>>? get _periodLogsCollection {
+  CollectionReference<Map<String, dynamic>>? get _dailyLogsCollection {
     final firestore = Backend.firestore;
     if (firestore == null) return null;
     final uid = fb.FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return null;
-    return firestore.collection('users').doc(uid).collection('period_logs');
+    return firestore.collection('users').doc(uid).collection('daily_logs');
+  }
+
+  Never _notSignedIn() {
+    if (Backend.firestore == null) {
+      throw StateError('Firebase client is not initialized.');
+    }
+    throw StateError('You are not signed in. Please sign in and try again.');
   }
 
   Future<List<PeriodRecord>> getPeriods() async {
-    final collection = _periodLogsCollection;
-    if (collection == null) {
-      if (Backend.firestore == null) {
-        throw StateError('Firebase client is not initialized.');
-      }
-      throw StateError('You are not signed in. Please sign in and try again.');
-    }
+    final collection = _dailyLogsCollection;
+    if (collection == null) _notSignedIn();
 
     try {
-      final snapshot = await collection.orderBy('start_date', descending: true).get();
-      return snapshot.docs.map((doc) => PeriodRecord.fromMap({
-        'id': doc.id,
-        ...doc.data(),
-      })).toList();
+      final snapshot = await collection.orderBy('date', descending: true).get();
+      final List<PeriodRecord> records = [];
+
+      for (final doc in snapshot.docs) {
+        final data = doc.data();
+        if (data.containsKey('period_logs')) {
+          final periodMap = data['period_logs'] as Map<String, dynamic>;
+          for (final entry in periodMap.entries) {
+            final id = entry.key;
+            final payload = entry.value as Map<String, dynamic>;
+            final compositeId = '${doc.id}|$id';
+            records.add(PeriodRecord.fromMap({
+              'id': compositeId,
+              ...payload,
+            }));
+          }
+        }
+      }
+
+      records.sort((a, b) => b.startDate.compareTo(a.startDate));
+      return records;
     } catch (e) {
       logFirebaseError('getPeriods', e);
       rethrow;
@@ -63,18 +81,16 @@ class PeriodRepository {
     List<String>? symptoms,
     String? notes,
   }) async {
-    final authUser = fb.FirebaseAuth.instance.currentUser;
-    if (authUser == null) {
-      if (Backend.firestore == null) {
-        throw StateError('Firebase client is not initialized.');
-      }
-      throw StateError('You are not signed in. Please sign in and try again.');
-    }
+    final collection = _dailyLogsCollection;
+    if (collection == null) _notSignedIn();
 
     final now = DateTime.now();
+    final authUser = fb.FirebaseAuth.instance.currentUser!;
+    final dateId = _formatDate(startDate);
+    
     final payload = <String, dynamic>{
       'user_id': authUser.uid,
-      'start_date': _formatDate(startDate),
+      'start_date': dateId,
       'end_date': endDate != null ? _formatDate(endDate) : null,
       'flow_level': flowLevel,
       'pain_level': painLevel,
@@ -86,9 +102,17 @@ class PeriodRepository {
     };
 
     try {
-      final docRef = await _periodLogsCollection!.add(payload);
+      final uniqueId = FirebaseFirestore.instance.collection('tmp').doc().id;
+      
+      await collection.doc(dateId).set({
+        'date': dateId,
+        'period_logs': {
+          uniqueId: payload,
+        }
+      }, SetOptions(merge: true));
+
       return PeriodRecord.fromMap({
-        'id': docRef.id,
+        'id': '$dateId|$uniqueId',
         ...payload,
       });
     } catch (e) {
@@ -107,17 +131,16 @@ class PeriodRepository {
     List<String>? symptoms,
     String? notes,
   }) async {
-    final authUser = fb.FirebaseAuth.instance.currentUser;
-    if (authUser == null) {
-      if (Backend.firestore == null) {
-        throw StateError('Firebase client is not initialized.');
-      }
-      throw StateError('You are not signed in. Please sign in and try again.');
-    }
+    final collection = _dailyLogsCollection;
+    if (collection == null) _notSignedIn();
 
     try {
-      final docRef = _periodLogsCollection!.doc(id);
-      await docRef.update({
+      final parts = id.split('|');
+      if (parts.length != 2) throw FormatException('Invalid composite ID: $id');
+      final dateId = parts[0];
+      final uniqueId = parts[1];
+
+      final payload = {
         'start_date': _formatDate(startDate),
         'end_date': endDate != null ? _formatDate(endDate) : null,
         'flow_level': flowLevel,
@@ -126,11 +149,23 @@ class PeriodRepository {
         'symptoms': symptoms ?? const [],
         'notes': notes,
         'updated_at': DateTime.now().toIso8601String(),
+      };
+
+      await collection.doc(dateId).update({
+        'period_logs.$uniqueId.start_date': payload['start_date'],
+        'period_logs.$uniqueId.end_date': payload['end_date'],
+        'period_logs.$uniqueId.flow_level': payload['flow_level'],
+        'period_logs.$uniqueId.pain_level': payload['pain_level'],
+        'period_logs.$uniqueId.mood': payload['mood'],
+        'period_logs.$uniqueId.symptoms': payload['symptoms'],
+        'period_logs.$uniqueId.notes': payload['notes'],
+        'period_logs.$uniqueId.updated_at': payload['updated_at'],
       });
-      final updatedDoc = await docRef.get();
+      
+      // Return a partially reconstructed record for simplicity, UI usually refetches
       return PeriodRecord.fromMap({
         'id': id,
-        ...updatedDoc.data() ?? const <String, dynamic>{},
+        ...payload,
       });
     } catch (e) {
       logFirebaseError('updatePeriod', e);
@@ -139,15 +174,18 @@ class PeriodRepository {
   }
 
   Future<void> deletePeriod(String id) async {
-    final collection = _periodLogsCollection;
-    if (collection == null) {
-      if (Backend.firestore == null) {
-        throw StateError('Firebase client is not initialized.');
-      }
-      throw StateError('You are not signed in. Please sign in and try again.');
-    }
+    final collection = _dailyLogsCollection;
+    if (collection == null) _notSignedIn();
+
     try {
-      await collection.doc(id).delete();
+      final parts = id.split('|');
+      if (parts.length != 2) return;
+      final dateId = parts[0];
+      final uniqueId = parts[1];
+
+      await collection.doc(dateId).update({
+        'period_logs.$uniqueId': FieldValue.delete(),
+      });
     } catch (e) {
       logFirebaseError('deletePeriod', e);
       rethrow;

@@ -210,6 +210,19 @@ class WhisperService {
         if (data == null || data['pollOptions'] == null) return;
 
         final List<dynamic> rawPollOptions = data['pollOptions'];
+        
+        // Prevent multiple votes by the same user in the backend
+        bool alreadyVoted = false;
+        for (final opt in rawPollOptions) {
+          final String optId = opt['id'];
+          final List<dynamic>? voters = data['votedBy_$optId'];
+          if (voters != null && voters.contains(user.uid)) {
+            alreadyVoted = true;
+            break;
+          }
+        }
+        if (alreadyVoted) return;
+
         final updatedPollOptions = rawPollOptions.map((opt) {
           final optMap = Map<String, dynamic>.from(opt);
           if (optMap['id'] == optionId) {

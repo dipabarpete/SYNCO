@@ -53,6 +53,19 @@ class Doctor {
       }
       return [];
     }
+    String _parseAvailability(dynamic val) {
+      if (val == null) return 'Available';
+      if (val is String) return val;
+      if (val is Map) {
+        final isOnline = val['online'] == true;
+        final isInPerson = val['inPerson'] == true;
+        if (isOnline && isInPerson) return 'Online & In-Person';
+        if (isOnline) return 'Online Only';
+        if (isInPerson) return 'In-Person Only';
+        return 'Available';
+      }
+      return val.toString();
+    }
 
     return Doctor(
       id: doc.id,
@@ -61,7 +74,7 @@ class Doctor {
       experience: safeStr('experience'),
       rating: (data['rating'] is num) ? (data['rating'] as num).toDouble() : 0.0,
       consultationFee: (data['consultationFee'] is num) ? (data['consultationFee'] as num).toInt() : 0,
-      availability: safeStr('availability'),
+      availability: _parseAvailability(data['availability']),
       mode: safeStr('mode') == 'offline' ? ConsultationMode.offline : ConsultationMode.online,
       distanceKm: (data['distanceKm'] is num) ? (data['distanceKm'] as num).toDouble() : null,
       clinicLocation: data['clinicLocation']?.toString(),
