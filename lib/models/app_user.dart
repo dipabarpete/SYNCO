@@ -1,8 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart' as fb;
-/// Backend-agnostic representation of the currently authenticated user.
-///
-/// Bridges the Firebase and Supabase user objects into one small shape so
-/// the rest of the app never needs to know which backend is active.
+/// Representation of the currently authenticated user.
 class AppUser {
   final String id;
   final String? email;

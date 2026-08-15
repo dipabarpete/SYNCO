@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../features/pink_corner/services/pink_corner_service.dart';
 import '../features/doctor/models/doctor.dart';
+import '../features/doctor/models/appointment.dart';
 import '../features/doctor/services/doctor_service.dart';
 import '../features/kyra/services/kyra_api_service.dart';
 import '../models/user_profile.dart';
@@ -158,7 +159,7 @@ class PeriodLogsNotifier extends StateNotifier<PeriodLogsState> {
     return 'Error: ${e.toString()}';
   }
 
-  /// Loads the signed-in user's periods from Supabase.
+  /// Loads the signed-in user's periods from Firebase.
   /// On failure the error is exposed through [PeriodLogsState.errorMessage].
   Future<void> loadPeriods() async {
     state = const PeriodLogsState(isLoading: true);
@@ -177,7 +178,7 @@ class PeriodLogsNotifier extends StateNotifier<PeriodLogsState> {
     }
   }
 
-  /// Saves a new period to Supabase.
+  /// Saves a new period to Firebase.
   /// Returns null on success, or a user-facing error message on failure.
   Future<String?> addPeriod({
     required DateTime startDate,
@@ -208,7 +209,7 @@ class PeriodLogsNotifier extends StateNotifier<PeriodLogsState> {
     }
   }
 
-  /// Updates an existing period in Supabase.
+  /// Updates an existing period in Firebase.
   /// Returns null on success, or a user-facing error message on failure.
   Future<String?> updatePeriod(
     String id, {
@@ -246,7 +247,7 @@ class PeriodLogsNotifier extends StateNotifier<PeriodLogsState> {
     }
   }
 
-  /// Deletes a period from Supabase.
+  /// Deletes a period from Firebase.
   /// Returns null on success, or a user-facing error message on failure.
   Future<String?> deletePeriod(String id) async {
     try {
@@ -743,4 +744,43 @@ Future<void> seedMockDoctors(WidgetRef ref) async {
     ),
   ];
   await service.seedMockDoctors(staticDoctors);
+}
+
+// Doctor Appointment Requests Provider
+//
+// Appointments start as [AppointmentStatus.requested]. The doctor can then
+// accept (-> confirmed) or decline (-> declined); the user can cancel (-> cancelled).
+final appointmentsProvider =
+    StateNotifierProvider<AppointmentsNotifier, List<Appointment>>((ref) {
+  return AppointmentsNotifier();
+});
+
+class AppointmentsNotifier extends StateNotifier<List<Appointment>> {
+  AppointmentsNotifier() : super(const []);
+
+  void addRequest(Appointment appointment) {
+    state = [appointment, ...state];
+  }
+
+  void acceptRequest(String id) {
+    _setStatus(id, AppointmentStatus.confirmed);
+  }
+
+  void declineRequest(String id) {
+    _setStatus(id, AppointmentStatus.declined);
+  }
+
+  void cancelRequest(String id) {
+    _setStatus(id, AppointmentStatus.cancelled);
+  }
+
+  void _setStatus(String id, AppointmentStatus status) {
+    state = [
+      for (final appointment in state)
+        if (appointment.id == id)
+          appointment.copyWith(status: status)
+        else
+          appointment
+    ];
+  }
 }
