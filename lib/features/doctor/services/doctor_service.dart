@@ -47,13 +47,7 @@ class DoctorService {
   // Fallback seeder method to mock data if Firestore is empty
   Future<void> seedMockDoctors(List<Doctor> fallbackDoctors) async {
     try {
-      final query = await _db.collection('doctors').limit(1).get();
-      if (query.docs.isNotEmpty) {
-        debugPrint('[DoctorService] Mock data already seeded (found ${query.docs.length} docs).');
-        return;
-      }
-
-      debugPrint('[DoctorService] Seeding ${fallbackDoctors.length} mock doctors...');
+      debugPrint('[DoctorService] Forcibly seeding ${fallbackDoctors.length} mock doctors...');
       for (var doctor in fallbackDoctors) {
         await _db.collection('doctors').doc(doctor.id).set(doctor.toMap());
       }
