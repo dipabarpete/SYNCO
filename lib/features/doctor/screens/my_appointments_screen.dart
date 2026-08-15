@@ -442,6 +442,11 @@ class MyAppointmentsScreen extends ConsumerWidget {
           AppColors.textLight,
           'Cancelled',
         ),
+      AppointmentStatus.completed => (
+          AppColors.mintGreen.withValues(alpha: 0.4),
+          AppColors.confirmedGreen,
+          'Completed',
+        ),
     };
 
     return Container(
