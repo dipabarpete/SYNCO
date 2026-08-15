@@ -142,6 +142,8 @@ class CommunityPost {
   }
 
   CommunityPost copyWith({
+    String? id,
+    String? authorId,
     String? title,
     String? content,
     int? likesCount,
@@ -157,8 +159,8 @@ class CommunityPost {
     List<String>? savedBy,
   }) {
     return CommunityPost(
-      id: id,
-      authorId: authorId,
+      id: id ?? this.id,
+      authorId: authorId ?? this.authorId,
       authorName: authorName,
       authorAvatar: authorAvatar,
       isAnonymous: isAnonymous,

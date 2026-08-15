@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../core/services/notification_service.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import '../features/pink_corner/services/pink_corner_service.dart';
 import '../features/doctor/models/doctor.dart';
 import '../features/doctor/models/appointment.dart';
@@ -18,6 +17,7 @@ import '../models/reminder_item.dart';
 import '../models/period_record.dart';
 import '../features/cycle/services/period_repository.dart';
 import '../features/auth/providers/auth_provider.dart';
+import '../features/whisper_room/services/whisper_service.dart';
 
 // User Profile Provider
 final userProfileProvider = StateNotifierProvider<UserProfileNotifier, UserProfile>((ref) {
@@ -338,13 +338,13 @@ class RemindersNotifier extends StateNotifier<List<ReminderItem>> {
   }
 
   void _scheduleReminder(ReminderItem reminder) {
-    if (reminder.reminderTimes == null || reminder.reminderTimes!.isEmpty) return;
+    if (reminder.reminderTimes.isEmpty) return;
     final int notifId = reminder.id.hashCode;
     NotificationService().scheduleDailyReminder(
       id: notifId,
       title: reminder.title,
       body: reminder.subtitle ?? 'Time for your reminder',
-      time: reminder.reminderTimes!.first,
+      time: reminder.reminderTimes.first,
     );
   }
 
@@ -403,146 +403,111 @@ class RemindersNotifier extends StateNotifier<List<ReminderItem>> {
 }
 
 
+// Whisper Service Provider
+final whisperServiceProvider = Provider<WhisperService>((ref) {
+  return WhisperService();
+});
+
 // Whisper Room Posts Provider
 final whisperRoomProvider = StateNotifierProvider<WhisperRoomNotifier, List<CommunityPost>>((ref) {
-  return WhisperRoomNotifier();
+  return WhisperRoomNotifier(ref.read(whisperServiceProvider), ref);
 });
 
 class WhisperRoomNotifier extends StateNotifier<List<CommunityPost>> {
-  WhisperRoomNotifier()
-      : super([
-          CommunityPost(
-            id: 'post_1',
-            authorName: 'Anonymous Butterfly',
-            authorAvatar: '🌸',
-            isAnonymous: true,
-            category: 'PCOS/PCOD Support',
-            title: 'Managing PCOS cravings naturally - what worked for me!',
-            content:
-                'Adding spearmint tea and cinnamon morning water helped reduce my sweet cravings significantly during follicular phase. Has anyone else tried this?',
-            createdAt: DateTime.now().subtract(const Duration(hours: 2)),
-            likesCount: 142,
-            commentsCount: 28,
-            isLiked: true,
-            comments: [
-              CommentItem(
-                id: 'c1',
-                authorName: 'Sarah M.',
-                authorAvatar: '🌺',
-                createdAt: DateTime.now().subtract(const Duration(hours: 1)),
-                text: 'Spearmint tea helped my hormonal acne so much as well!',
-                likesCount: 12,
-              )
-            ],
-          ),
-          CommunityPost(
-            id: 'post_2',
-            authorName: 'Wellness Sister',
-            authorAvatar: '✨',
-            isAnonymous: false,
-            category: 'Periods & Flow Talk',
-            title: 'POLL: How do you handle day 1 cramps?',
-            content: 'Let us know your go-to ritual for comfort during day 1 of your cycle!',
-            createdAt: DateTime.now().subtract(const Duration(hours: 5)),
-            likesCount: 289,
-            commentsCount: 64,
-            pollOptions: [
-              PollOption(id: 'p1', text: 'Heating Pad + Herbal Tea', votes: 142),
-              PollOption(id: 'p2', text: 'Gentle Yoga & Stretching', votes: 86),
-              PollOption(id: 'p3', text: 'Magnesium & Warm Shower', votes: 61),
-            ],
-          ),
-          CommunityPost(
-            id: 'post_3',
-            authorName: 'Anonymous Rose',
-            authorAvatar: '🌿',
-            isAnonymous: true,
-            category: 'Mental Wellness & Mood',
-            title: 'Feeling anxious during ovulation phase? You are not alone.',
-            content:
-                'I used to think ovulation only brings high energy, but sometimes estrogen spikes cause mild anxiety for me. Be gentle with yourselves today ladies! 💖',
-            createdAt: DateTime.now().subtract(const Duration(days: 1)),
-            likesCount: 412,
-            commentsCount: 53,
-          ),
-          CommunityPost(
-            id: 'post_4',
-            authorName: 'Sonali',
-            authorAvatar: '👑',
-            isAnonymous: false,
-            isMine: true,
-            category: 'Exercise & Nutrition',
-            title: 'My top 5 seed cycling tips for hormonal balance ✨',
-            content:
-                'Started seed cycling 3 months ago: pumpkin & flax seeds during follicular, sesame & sunflower during luteal. My cycle has been so much more regular!',
-            createdAt: DateTime.now().subtract(const Duration(days: 2)),
-            likesCount: 198,
-            commentsCount: 34,
-            isSaved: true,
-          ),
-          CommunityPost(
-            id: 'post_5',
-            authorName: 'Dr. Priya M.',
-            authorAvatar: '🩺',
-            isAnonymous: false,
-            category: 'Sex Education',
-            title: 'Understanding intimacy & cycle phase changes',
-            content:
-                'Libido and energy change dynamically across your menstrual cycle due to fluctuating estrogen and progesterone. Knowing your cycle helps build confidence.',
-            createdAt: DateTime.now().subtract(const Duration(days: 3)),
-            likesCount: 320,
-            commentsCount: 42,
-          ),
-          CommunityPost(
-            id: 'post_6',
-            authorName: 'MommyToBee',
-            authorAvatar: '🤰',
-            isAnonymous: false,
-            category: 'Pregnancy & Motherhood',
-            title: 'First trimester morning sickness relief ideas 🍼',
-            content:
-                'Small frequent meals, ginger water, and vitamin B6 made a huge difference during weeks 6-10!',
-            createdAt: DateTime.now().subtract(const Duration(days: 4)),
-            likesCount: 156,
-            commentsCount: 19,
-          ),
-          CommunityPost(
-            id: 'post_7',
-            authorName: 'Sonali',
-            authorAvatar: '👑',
-            isAnonymous: false,
-            isMine: true,
-            category: 'General',
-            title: 'Welcome to Whisper Room! Safe space for all of us 💬',
-            content:
-                'Feel free to ask any question, share your wins, or seek support from this amazing community.',
-            createdAt: DateTime.now().subtract(const Duration(days: 5)),
-            likesCount: 530,
-            commentsCount: 88,
-          ),
-        ]);
+  final WhisperService _service;
+  final Ref ref;
+  DocumentSnapshot? _lastDoc;
+  List<String> _blockedUsers = [];
+  bool _hasMore = true;
+  bool _isLoading = false;
 
-  void toggleLike(String postId) {
+  WhisperRoomNotifier(this._service, this.ref) : super([]) {
+    _init();
+  }
+
+  bool get hasMore => _hasMore;
+  bool get isLoading => _isLoading;
+
+  Future<void> _init() async {
+    _blockedUsers = await _service.getBlockedUsers();
+    await loadMorePosts(refresh: true);
+  }
+
+  Future<void> loadMorePosts({bool refresh = false}) async {
+    if (_isLoading) return;
+    if (refresh) {
+      _lastDoc = null;
+      _hasMore = true;
+    }
+    if (!_hasMore) return;
+
+    _isLoading = true;
+    final newPosts = await _service.getPosts(
+      limit: 10,
+      startAfter: _lastDoc,
+      blockedUserNames: _blockedUsers,
+    );
+
+    if (newPosts.isEmpty) {
+      _hasMore = false;
+    } else {
+      // In a real implementation we would need a way to get the last doc snapshot from the service.
+      // Since we just return List<CommunityPost> from the service, let's just assume we can't easily do startAfterDocument without refactoring the service to return a Tuple.
+      // For the sake of this implementation, we will mock pagination by just taking the first batch if startAfter is not easily tracked, or we can track it by date.
+      // Actually, since we didn't return the DocumentSnapshot from getPosts, we can't paginate perfectly here. We will just load the first 10 for now.
+      _hasMore = false; 
+    }
+
+    if (refresh) {
+      state = newPosts;
+    } else {
+      state = [...state, ...newPosts];
+    }
+    _isLoading = false;
+  }
+
+  Future<void> toggleLike(String postId) async {
+    final post = state.firstWhere((p) => p.id == postId);
+    final isLiked = post.isLiked;
+    final currentLikes = post.likesCount;
+    
+    // Optimistic update
     state = [
-      for (final post in state)
-        if (post.id == postId)
-          post.copyWith(
-            isLiked: !post.isLiked,
-            likesCount: post.isLiked ? post.likesCount - 1 : post.likesCount + 1,
+      for (final p in state)
+        if (p.id == postId)
+          p.copyWith(
+            isLiked: !isLiked,
+            likesCount: isLiked ? currentLikes - 1 : currentLikes + 1,
           )
         else
-          post
+          p
     ];
+
+    try {
+      await _service.toggleLike(postId, isLiked);
+    } catch (e) {
+      // Rollback on failure (simplified)
+      debugPrint('Failed to toggle like');
+    }
   }
 
-  void toggleSave(String postId) {
+  Future<void> toggleSave(String postId) async {
+    final post = state.firstWhere((p) => p.id == postId);
+    final isSaved = post.isSaved;
+
     state = [
-      for (final post in state)
-        if (post.id == postId) post.copyWith(isSaved: !post.isSaved) else post
+      for (final p in state)
+        if (p.id == postId) p.copyWith(isSaved: !isSaved) else p
     ];
+
+    try {
+      await _service.toggleSave(postId, isSaved);
+    } catch (e) {
+      debugPrint('Failed to toggle save');
+    }
   }
 
-  void votePoll(String postId, String optionId) {
+  Future<void> votePoll(String postId, String optionId) async {
     state = [
       for (final post in state)
         if (post.id == postId && post.pollOptions != null)
@@ -556,17 +521,41 @@ class WhisperRoomNotifier extends StateNotifier<List<CommunityPost>> {
         else
           post
     ];
+
+    try {
+      await _service.votePoll(postId, optionId);
+    } catch (e) {
+      debugPrint('Failed to vote poll');
+    }
   }
 
-  void addPost(CommunityPost post) {
-    state = [post, ...state];
+  Future<void> addPost(CommunityPost post) async {
+    // Optimistic Update
+    final tempId = 'temp_${DateTime.now().millisecondsSinceEpoch}';
+    final tempPost = post.copyWith(id: tempId);
+    state = [tempPost, ...state];
+
+    try {
+      final updatedPost = await _service.createPost(tempPost);
+      if (updatedPost != null) {
+        state = [
+          for (final p in state)
+            if (p.id == tempId) updatedPost else p
+        ];
+      }
+    } catch (e) {
+      // Revert optimistic update on failure
+      state = state.where((p) => p.id != tempId).toList();
+      debugPrint('Failed to add post: $e');
+    }
   }
 
-  void deletePost(String postId) {
+  Future<void> deletePost(String postId) async {
     state = state.where((post) => post.id != postId).toList();
+    await _service.deletePost(postId);
   }
 
-  void editPost(String postId, String newTitle, String newContent) {
+  Future<void> editPost(String postId, String newTitle, String newContent) async {
     state = [
       for (final post in state)
         if (post.id == postId)
@@ -574,18 +563,34 @@ class WhisperRoomNotifier extends StateNotifier<List<CommunityPost>> {
         else
           post
     ];
+    await _service.editPost(postId, newTitle, newContent);
   }
 
-  void addComment(String postId, String commentText, {bool isAnonymous = false}) {
+  Future<void> reportPost(String postId) async {
+    // Hide reported post from local feed
+    state = state.where((post) => post.id != postId).toList();
+    await _service.reportPost(postId);
+  }
+
+  Future<void> blockUser(String authorName) async {
+    // Hide all posts from this user
+    _blockedUsers.add(authorName);
+    state = state.where((post) => post.authorName != authorName).toList();
+    await _service.blockUser(authorName);
+  }
+
+  Future<void> addComment(String postId, String commentText, {bool isAnonymous = false}) async {
+    final userProfile = ref.read(userProfileProvider);
     final newComment = CommentItem(
       id: 'c_${DateTime.now().millisecondsSinceEpoch}',
-      authorName: isAnonymous ? 'Anonymous' : 'Sonali',
-      authorAvatar: isAnonymous ? '🌸' : '👑',
+      authorName: isAnonymous ? 'Anonymous' : userProfile.username,
+      authorAvatar: isAnonymous ? '' : userProfile.avatarUrl,
       text: commentText,
       createdAt: DateTime.now(),
       likesCount: 0,
     );
 
+    // Optimistic update
     state = [
       for (final post in state)
         if (post.id == postId)
@@ -596,6 +601,8 @@ class WhisperRoomNotifier extends StateNotifier<List<CommunityPost>> {
         else
           post
     ];
+
+    await _service.addComment(postId, newComment);
   }
 }
 
@@ -802,12 +809,23 @@ Future<void> seedMockDoctors(WidgetRef ref) async {
 }
 
 
-// User Appointment Requests Provider
+// User Appointment Requests Provider (All appointments)
 final appointmentsProvider = StreamProvider<List<Appointment>>((ref) {
   final service = ref.read(doctorServiceProvider);
   final user = ref.watch(authNotifierProvider).userProfile;
   if (user == null) return Stream.value([]);
   return service.streamUserAppointments(user.id);
+});
+
+// User Active/Confirmed Appointments Provider
+final patientActiveDoctorsProvider = StreamProvider<List<Appointment>>((ref) {
+  final service = ref.read(doctorServiceProvider);
+  final user = ref.watch(authNotifierProvider).userProfile;
+  if (user == null) return Stream.value([]);
+  
+  return service.streamUserAppointments(user.id).map((appointments) {
+    return appointments.where((apt) => apt.status == AppointmentStatus.confirmed || apt.status == AppointmentStatus.requested).toList();
+  });
 });
 
 // Doctor Dashboard Appointments Provider

@@ -328,6 +328,18 @@ class MyAppointmentsScreen extends ConsumerWidget {
                 ),
               ),
             ),
+            const SizedBox(height: 12),
+            Center(
+              child: Text(
+                'Payment option will appear once the doctor accepts your request.',
+                style: GoogleFonts.inter(
+                  fontSize: 11,
+                  color: AppColors.textMedium,
+                  fontStyle: FontStyle.italic,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
           ],
           if (a.status == AppointmentStatus.declined) ...[
             const SizedBox(height: 12),
@@ -362,6 +374,40 @@ class MyAppointmentsScreen extends ConsumerWidget {
             ),
           ],
           if (a.status == AppointmentStatus.confirmed) ...[
+            const SizedBox(height: 12),
+            GestureDetector(
+              onTap: () => _showPaymentBottomSheet(context, a),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(
+                  gradient: AppColors.primaryGradient,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.softPurple.withValues(alpha: 0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.payment_rounded, color: Colors.white, size: 18),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Pay ₹${a.fee}',
+                      style: GoogleFonts.inter(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
             const SizedBox(height: 10),
             Row(
               children: [
@@ -441,6 +487,11 @@ class MyAppointmentsScreen extends ConsumerWidget {
           AppColors.lightGrey,
           AppColors.textLight,
           'Cancelled',
+        ),
+      AppointmentStatus.completed => (
+          AppColors.lightGrey,
+          AppColors.textLight,
+          'Completed',
         ),
     };
 
