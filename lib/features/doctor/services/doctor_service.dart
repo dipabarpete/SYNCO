@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/doctor.dart';
 
@@ -45,11 +46,21 @@ class DoctorService {
 
   // Fallback seeder method to mock data if Firestore is empty
   Future<void> seedMockDoctors(List<Doctor> fallbackDoctors) async {
-    final query = await _db.collection('doctors').limit(1).get();
-    if (query.docs.isNotEmpty) return; // already seeded
+    try {
+      final query = await _db.collection('doctors').limit(1).get();
+      if (query.docs.isNotEmpty) {
+        debugPrint('[DoctorService] Mock data already seeded (found ${query.docs.length} docs).');
+        return;
+      }
 
-    for (var doctor in fallbackDoctors) {
-      await _db.collection('doctors').doc(doctor.id).set(doctor.toMap());
+      debugPrint('[DoctorService] Seeding ${fallbackDoctors.length} mock doctors...');
+      for (var doctor in fallbackDoctors) {
+        await _db.collection('doctors').doc(doctor.id).set(doctor.toMap());
+      }
+      debugPrint('[DoctorService] Seeding complete.');
+    } catch (e) {
+      debugPrint('[DoctorService] Error seeding mock doctors: $e');
+      rethrow;
     }
   }
 }
