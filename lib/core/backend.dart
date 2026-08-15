@@ -6,10 +6,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 ///
 /// Firebase is the primary backend.
 class Backend {
-  static bool get useFirebase {
-    return true;
-  }
-
   static FirebaseAuth? get auth {
     try {
       return FirebaseAuth.instance;
