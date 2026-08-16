@@ -47,10 +47,10 @@ class ChatService {
       });
 
       // Update the parent chat document
-      batch.update(chatRef, {
+      batch.set(chatRef, {
         'lastMessage': text,
         'lastUpdated': FieldValue.serverTimestamp(),
-      });
+      }, SetOptions(merge: true));
 
       await batch.commit();
 
