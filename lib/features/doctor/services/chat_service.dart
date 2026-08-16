@@ -33,20 +33,29 @@ class ChatService {
     }
 
     try {
-      // Fetch booking document to get participants for security rules
+      // Fetch booking document to get participants for security rules, or parse from inquiry ID
       String? patientId;
       String? doctorId;
-      try {
-        final aptDoc = await _firestore!.collection('bookings').doc(chatId).get();
-        if (aptDoc.exists) {
-          final aptData = aptDoc.data();
-          if (aptData != null) {
-            patientId = aptData['userId'] ?? aptData['patientId'];
-            doctorId = aptData['doctorId'];
-          }
+      
+      if (chatId.startsWith('inquiry_')) {
+        final parts = chatId.split('_');
+        if (parts.length >= 3) {
+          patientId = parts[1];
+          doctorId = parts[2];
         }
-      } catch (e) {
-        debugPrint('[ChatService] Error fetching booking for chat: $e');
+      } else {
+        try {
+          final aptDoc = await _firestore!.collection('bookings').doc(chatId).get();
+          if (aptDoc.exists) {
+            final aptData = aptDoc.data();
+            if (aptData != null) {
+              patientId = aptData['userId'] ?? aptData['patientId'];
+              doctorId = aptData['doctorId'];
+            }
+          }
+        } catch (e) {
+          debugPrint('[ChatService] Error fetching booking for chat: $e');
+        }
       }
 
       final batch = _firestore!.batch();
