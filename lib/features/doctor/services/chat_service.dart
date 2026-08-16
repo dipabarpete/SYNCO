@@ -33,6 +33,22 @@ class ChatService {
     }
 
     try {
+      // Fetch booking document to get participants for security rules
+      String? patientId;
+      String? doctorId;
+      try {
+        final aptDoc = await _firestore!.collection('bookings').doc(chatId).get();
+        if (aptDoc.exists) {
+          final aptData = aptDoc.data();
+          if (aptData != null) {
+            patientId = aptData['userId'] ?? aptData['patientId'];
+            doctorId = aptData['doctorId'];
+          }
+        }
+      } catch (e) {
+        debugPrint('[ChatService] Error fetching booking for chat: $e');
+      }
+
       final batch = _firestore!.batch();
       
       final chatRef = _firestore!.collection('chats').doc(chatId);
@@ -48,6 +64,9 @@ class ChatService {
 
       // Update the parent chat document
       batch.set(chatRef, {
+        if (patientId != null && doctorId != null) 'participants': [patientId, doctorId],
+        'patientId': patientId, // keep for backward compatibility
+        'doctorId': doctorId,
         'lastMessage': text,
         'lastUpdated': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
