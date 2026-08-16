@@ -72,7 +72,7 @@ class _WhisperRoomScreenState extends ConsumerState<WhisperRoomScreen>
   Widget build(BuildContext context) {
     final whisperState = ref.watch(whisperRoomProvider);
     final posts = whisperState;
-    final userProfile = ref.watch(userProfileProvider);
+    final userProfile = ref.watch(effectiveUserProfileProvider);
 
     final filteredPosts = posts.where((p) {
       if (_searchQuery.isEmpty) return true;
@@ -238,18 +238,28 @@ class _WhisperRoomScreenState extends ConsumerState<WhisperRoomScreen>
       );
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.only(left: 16, right: 16, top: 12, bottom: 80),
-      itemCount: postsList.length,
-      itemBuilder: (ctx, i) {
-        final post = postsList[i];
-        return _buildPostCard(post);
+    return NotificationListener<ScrollNotification>(
+      onNotification: (notification) {
+        // Load more posts from the database when the user reaches the end of
+        // the feed so older posts (My Posts / Saved) stay visible.
+        if (notification.metrics.extentAfter < 300) {
+          ref.read(whisperRoomProvider.notifier).loadMorePosts();
+        }
+        return false;
       },
+      child: ListView.builder(
+        padding: const EdgeInsets.only(left: 16, right: 16, top: 12, bottom: 80),
+        itemCount: postsList.length,
+        itemBuilder: (ctx, i) {
+          final post = postsList[i];
+          return _buildPostCard(post);
+        },
+      ),
     );
   }
 
   Widget _buildPostCard(CommunityPost post) {
-    final userProfile = ref.watch(userProfileProvider);
+    final userProfile = ref.watch(effectiveUserProfileProvider);
     final isMyPost = post.isMine || post.authorName == userProfile.username;
 
     return Container(
@@ -451,10 +461,20 @@ class _WhisperRoomScreenState extends ConsumerState<WhisperRoomScreen>
                           : AppColors.textLight,
                       size: 20,
                     ),
-                    onPressed: () {
-                      ref
+                    onPressed: () async {
+                      final saved = await ref
                           .read(whisperRoomProvider.notifier)
                           .toggleSave(post.id);
+                      if (!mounted) return;
+                      if (!saved) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                                'Could not update saved posts. Please try again.'),
+                          ),
+                        );
+                        return;
+                      }
                       final isSavedNow = !post.isSaved;
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
@@ -772,12 +792,26 @@ class _WhisperRoomScreenState extends ConsumerState<WhisperRoomScreen>
                     IconButton(
                       icon: const Icon(Icons.send_rounded,
                           color: AppColors.softPurple),
-                      onPressed: () {
+                      onPressed: () async {
                         if (commentCtrl.text.isNotEmpty) {
-                          ref
-                              .read(whisperRoomProvider.notifier)
-                              .addComment(post.id, commentCtrl.text.trim());
-                          Navigator.pop(ctx);
+                          final text = commentCtrl.text.trim();
+                          try {
+                            await ref
+                                .read(whisperRoomProvider.notifier)
+                                .addComment(post.id, text);
+                            if (ctx.mounted) {
+                              Navigator.pop(ctx);
+                            }
+                          } catch (e) {
+                            if (ctx.mounted) {
+                              ScaffoldMessenger.of(ctx).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                      'Could not post your comment. Please try again.'),
+                                ),
+                              );
+                            }
+                          }
                         }
                       },
                     ),
@@ -792,7 +826,7 @@ class _WhisperRoomScreenState extends ConsumerState<WhisperRoomScreen>
   }
 
   void _showPostOptionsDialog(BuildContext context, CommunityPost post) {
-    final userProfile = ref.watch(userProfileProvider);
+    final userProfile = ref.watch(effectiveUserProfileProvider);
     final isMyPost = post.isMine || post.authorName == userProfile.username;
 
     showDialog(
@@ -814,12 +848,20 @@ class _WhisperRoomScreenState extends ConsumerState<WhisperRoomScreen>
               ListTile(
                 leading: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent),
                 title: const Text('Delete Post', style: TextStyle(color: Colors.redAccent)),
-                onTap: () {
+                onTap: () async {
                   Navigator.pop(ctx);
-                  ref.read(whisperRoomProvider.notifier).deletePost(post.id);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Post deleted successfully.')),
-                  );
+                  final deleted = await ref
+                      .read(whisperRoomProvider.notifier)
+                      .deletePost(post.id);
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(deleted
+                            ? 'Post deleted successfully.'
+                            : 'Could not delete the post. Please try again.'),
+                      ),
+                    );
+                  }
                 },
               ),
               const Divider(),

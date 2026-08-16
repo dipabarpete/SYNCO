@@ -57,8 +57,24 @@ class HealthSectionHeader extends StatelessWidget {
 }
 
 /// Hero banner for the Kyra AI pattern detection card.
+///
+/// When [patternCount] is provided the subtitle becomes a live heading that
+/// reflects the actual number of detected patterns.
 class AiHeroBanner extends StatelessWidget {
-  const AiHeroBanner({super.key});
+  final int? patternCount;
+
+  const AiHeroBanner({super.key, this.patternCount});
+
+  String get _subtitle {
+    final count = patternCount;
+    if (count == null) {
+      return 'AI pattern detection from your health data';
+    }
+    if (count == 0) {
+      return 'AI found no important patterns yet';
+    }
+    return 'AI found $count important pattern${count == 1 ? '' : 's'}';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -109,7 +125,7 @@ class AiHeroBanner extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'AI pattern detection from your health data',
+                  _subtitle,
                   style: GoogleFonts.inter(
                     fontSize: 11.5,
                     color: Colors.white.withValues(alpha: 0.85),
@@ -206,7 +222,7 @@ class AiInsightCard extends StatelessWidget {
                               ),
                             ),
                           ),
-                          _TrendChip(trend: insight.trend),
+                          _TrendStatusPill(trend: insight.trend),
                         ],
                       ),
                       const SizedBox(height: 5),
@@ -226,6 +242,51 @@ class AiInsightCard extends StatelessWidget {
                           color: AppColors.textLight,
                         ),
                       ),
+                      if (insight.suggestion != null) ...[
+                        const SizedBox(height: 10),
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: AppColors.softLavender.withValues(alpha: 0.4),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Icon(
+                                Icons.spa_rounded,
+                                size: 15,
+                                color: AppColors.softPurple,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'How you can improve',
+                                      style: GoogleFonts.outfit(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                        color: AppColors.textDark,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      insight.suggestion!,
+                                      style: GoogleFonts.inter(
+                                        fontSize: 11.5,
+                                        height: 1.4,
+                                        color: AppColors.textMedium,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -252,34 +313,54 @@ class AiInsightCard extends StatelessWidget {
   }
 }
 
-class _TrendChip extends StatelessWidget {
+class _TrendStatusPill extends StatelessWidget {
   final InsightTrend trend;
 
-  const _TrendChip({required this.trend});
+  const _TrendStatusPill({required this.trend});
 
   @override
   Widget build(BuildContext context) {
-    final (icon, color) = switch (trend) {
+    final (emoji, label, color, background) = switch (trend) {
       InsightTrend.up => (
-          Icons.arrow_upward_rounded,
+          '\u{1F331}',
+          'Improving',
           AppColors.confirmedGreen,
+          AppColors.mintGreen,
         ),
       InsightTrend.down => (
-          Icons.arrow_downward_rounded,
-          AppColors.peachCoral,
+          '\u{26A0}\u{FE0F}',
+          'Needs attention',
+          AppColors.pendingAmber,
+          AppColors.pendingAmberSoft,
         ),
       InsightTrend.neutral => (
-          Icons.trending_flat_rounded,
-          AppColors.textLight,
+          '\u{27A1}\u{FE0F}',
+          'Stable',
+          AppColors.textMedium,
+          AppColors.softLavender,
         ),
     };
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(8),
+        color: background.withValues(alpha: 0.55),
+        borderRadius: BorderRadius.circular(10),
       ),
-      child: Icon(icon, size: 13, color: color),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(emoji, style: const TextStyle(fontSize: 11)),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: GoogleFonts.inter(
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+              color: color,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -382,6 +463,36 @@ void showAiInsightDetails(BuildContext context, AiInsight insight) {
                   height: 1.5,
                   color: AppColors.textMedium,
                 ),
+              ),
+            ),
+          ],
+          if (insight.suggestion != null) ...[
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                const Icon(
+                  Icons.spa_rounded,
+                  size: 16,
+                  color: AppColors.softPurple,
+                ),
+                const SizedBox(width: 7),
+                Text(
+                  'How you can improve',
+                  style: GoogleFonts.outfit(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textDark,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              insight.suggestion!,
+              style: GoogleFonts.inter(
+                fontSize: 12.5,
+                height: 1.45,
+                color: AppColors.textMedium,
               ),
             ),
           ],

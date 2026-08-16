@@ -24,8 +24,8 @@ class DummyDoctors {
       avatarBackground: AppColors.softLavender,
     ),
     Doctor(
-      id: 'dr-meera-kapoor',
-      name: 'Dr. Meera Kapoor',
+      id: 'dr-priya-mehta',
+      name: 'Dr. Priya Mehta',
       specialization: "Women's Health Specialist",
       experience: '6+ years',
       rating: 4.7,
@@ -33,7 +33,7 @@ class DummyDoctors {
       availability: 'Available Tomorrow',
       mode: ConsultationMode.online,
       about:
-          'Dr. Meera Kapoor specializes in women\u2019s health with a focus on '
+          'Dr. Priya Mehta specializes in women\u2019s health with a focus on '
           'preventive care, fertility awareness and reproductive wellness. Her '
           'online consultations are known for being thorough, reassuring and '
           'easy to follow.',
@@ -47,8 +47,8 @@ class DummyDoctors {
   /// user selects Offline Consultation. All data is fictional.
   static const List<Doctor> suggestedNearbyDoctors = [
     Doctor(
-      id: 'dr-kavita-nair',
-      name: 'Dr. Kavita Nair',
+      id: 'dr-kavya-nair',
+      name: 'Dr. Kavya Nair',
       specialization: 'Gynecologist',
       experience: '9+ years',
       rating: 4.9,
@@ -56,9 +56,9 @@ class DummyDoctors {
       availability: 'Available Today',
       mode: ConsultationMode.offline,
       distanceKm: 0.9,
-      clinicLocation: "Sunshine Women's Clinic, Sector 9",
+      clinicLocation: "Sunshine Women's Clinic, Koramangala, Bengaluru",
       about:
-          'Dr. Kavita Nair is a trusted gynecologist who focuses on PCOS '
+          'Dr. Kavya Nair is a trusted gynecologist who focuses on PCOS '
           'management, menstrual health and preventive care. Her patients '
           'appreciate her calm, reassuring approach and clear guidance.',
       availableDays: ['Mon', 'Wed', 'Thu', 'Sat'],
@@ -66,8 +66,8 @@ class DummyDoctors {
       avatarBackground: AppColors.babyPink,
     ),
     Doctor(
-      id: 'dr-sana-qureshi',
-      name: 'Dr. Sana Qureshi',
+      id: 'dr-neha-iyer',
+      name: 'Dr. Neha Iyer',
       specialization: 'Reproductive Health Specialist',
       experience: '6+ years',
       rating: 4.8,
@@ -75,9 +75,9 @@ class DummyDoctors {
       availability: 'Available Tomorrow',
       mode: ConsultationMode.offline,
       distanceKm: 1.5,
-      clinicLocation: 'Rose Garden Hospital, Sector 15',
+      clinicLocation: 'Rose Garden Hospital, Indiranagar, Bengaluru',
       about:
-          'Dr. Sana Qureshi specializes in reproductive health, fertility '
+          'Dr. Neha Iyer specializes in reproductive health, fertility '
           'awareness and hormonal wellness. She is known for listening '
           'patiently and building long-term care plans with her patients.',
       availableDays: ['Tue', 'Thu', 'Fri', 'Sun'],
@@ -94,7 +94,7 @@ class DummyDoctors {
       availability: 'Available Today',
       mode: ConsultationMode.offline,
       distanceKm: 2.2,
-      clinicLocation: 'CarePoint Maternity, Sector 12',
+      clinicLocation: 'CarePoint Maternity, Salt Lake, Kolkata',
       about:
           'With over 11 years of experience, Dr. Anjali Reddy cares for women '
           'across every life stage - from adolescent gynecology to pregnancy '
@@ -107,8 +107,8 @@ class DummyDoctors {
 
   static const List<Doctor> nearbyDoctors = [
     Doctor(
-      id: 'dr-riya-malhotra',
-      name: 'Dr. Riya Malhotra',
+      id: 'dr-riya-kapoor',
+      name: 'Dr. Riya Kapoor',
       specialization: 'Gynecologist',
       experience: '10+ years',
       rating: 4.9,
@@ -116,9 +116,9 @@ class DummyDoctors {
       availability: 'Available Today',
       mode: ConsultationMode.offline,
       distanceKm: 1.8,
-      clinicLocation: "Apollo Women's Clinic, Sector 18",
+      clinicLocation: "Apollo Women's Clinic, Viman Nagar, Pune",
       about:
-          'With over a decade of experience, Dr. Riya Malhotra is a trusted '
+          'With over a decade of experience, Dr. Riya Kapoor is a trusted '
           'gynecologist known for her warm bedside manner and expertise in '
           'PCOS management, adolescent gynecology and high-risk pregnancy care.',
       availableDays: ['Mon', 'Tue', 'Wed', 'Fri'],
@@ -126,8 +126,8 @@ class DummyDoctors {
       avatarBackground: AppColors.blushPinkLight,
     ),
     Doctor(
-      id: 'dr-neha-verma',
-      name: 'Dr. Neha Verma',
+      id: 'dr-aditi-verma',
+      name: 'Dr. Aditi Verma',
       specialization: 'Reproductive Health Specialist',
       experience: '7+ years',
       rating: 4.8,
@@ -135,9 +135,9 @@ class DummyDoctors {
       availability: 'Available Tomorrow',
       mode: ConsultationMode.offline,
       distanceKm: 3.2,
-      clinicLocation: "Bloom Women's Care, Sector 21",
+      clinicLocation: "Bloom Women's Care, Sector 44, Gurugram",
       about:
-          'Dr. Neha Verma is a reproductive health specialist dedicated to '
+          'Dr. Aditi Verma is a reproductive health specialist dedicated to '
           'fertility awareness, hormonal balance and women\u2019s wellness at '
           'every life stage. She takes time to listen and empowers every '
           'patient with clear, actionable guidance.',

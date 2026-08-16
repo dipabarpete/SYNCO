@@ -26,7 +26,41 @@ service cloud.firestore {
     // Phase 1 & 3: Doctors collection
     match /doctors/{doctorId} {
       allow read: if true; // Publicly readable profiles
-      allow write: if isOwner(doctorId); // Only the doctor can edit their own profile
+      allow create, delete: if isOwner(doctorId); // Only the doctor can create/remove their own profile
+      // Doctors can edit their own profile. Patients may only bump the rating
+      // fields, which happens transactionally when a review is submitted.
+      allow update: if isOwner(doctorId) || (
+        isAuthenticated() &&
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['rating', 'ratingSum', 'reviewCount']) &&
+        request.resource.data.rating is number &&
+        request.resource.data.rating >= 1 &&
+        request.resource.data.rating <= 5 &&
+        request.resource.data.ratingSum is number &&
+        request.resource.data.ratingSum >= 1 &&
+        request.resource.data.reviewCount is int &&
+        request.resource.data.reviewCount >= 1
+      );
+
+      // Doctor reviews, one per consultation (the document ID is the
+      // consultation ID), creatable only after the consultation is completed
+      // by the same patient with this doctor.
+      match /reviews/{consultationId} {
+        allow read: if true; // Publicly visible with the doctor's profile
+        allow create: if isAuthenticated() &&
+          request.resource.data.userId == request.auth.uid &&
+          request.resource.data.doctorId == doctorId &&
+          request.resource.data.consultationId == consultationId &&
+          request.resource.data.rating is int &&
+          request.resource.data.rating >= 1 &&
+          request.resource.data.rating <= 5 &&
+          !exists(/databases/$(database)/documents/doctors/$(doctorId)/reviews/$(consultationId)) &&
+          exists(/databases/$(database)/documents/bookings/$(consultationId)) &&
+          get(/databases/$(database)/documents/bookings/$(consultationId)).data.status == 'completed' &&
+          get(/databases/$(database)/documents/bookings/$(consultationId)).data.userId == request.auth.uid &&
+          get(/databases/$(database)/documents/bookings/$(consultationId)).data.doctorId == doctorId;
+        allow update, delete: if false;
+      }
     }
 
     // Phase 1 & 3: Bookings collection
@@ -60,11 +94,31 @@ service cloud.firestore {
 
     // Phase 1 & 3: Whisper Room posts
     match /whisper_posts/{postId} {
+      // Any authenticated user can read the feed.
       allow read: if isAuthenticated();
-      allow write: if isAuthenticated() && (
-        request.auth.uid == request.resource.data.authorId ||
-        (request.resource.data.isAnonymous == true && request.resource.data.authorId == '')
+
+      // Any authenticated user can create a post as themselves.
+      // The server forces authorId = request.auth.uid (see WhisperService.createPost).
+      allow create: if isAuthenticated() &&
+        request.resource.data.authorId == request.auth.uid;
+
+      // The author may update their own post (edit title/content, etc).
+      // Any other authenticated user may only interact with a post
+      // (like / save / comment / vote) WITHOUT changing owner-controlled fields.
+      allow update: if isAuthenticated() && (
+        resource.data.authorId == request.auth.uid ||
+        (
+          request.resource.data.authorId == resource.data.authorId &&
+          request.resource.data.title == resource.data.title &&
+          request.resource.data.content == resource.data.content &&
+          request.resource.data.category == resource.data.category &&
+          request.resource.data.isAnonymous == resource.data.isAnonymous
+        )
       );
+
+      // Only the author can delete their own post.
+      allow delete: if isAuthenticated() &&
+        resource.data.authorId == request.auth.uid;
     }
 
     // Phase 2: UGC Moderation - Reported Posts

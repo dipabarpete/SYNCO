@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../providers/app_providers.dart';
 import '../models/doctor.dart';
+import '../models/doctor_review.dart';
 import 'booking_screen.dart';
 import 'consultation_chat_screen.dart';
 import '../../auth/providers/auth_provider.dart';
@@ -14,6 +16,17 @@ class DoctorProfileScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final reviewsAsync = ref.watch(doctorReviewsProvider(doctor.id));
+    ({double? average, int count})? stats;
+    List<DoctorReview>? reviews;
+    reviewsAsync.maybeWhen(
+      data: (value) {
+        reviews = value;
+        stats = DoctorReview.computeStats(value);
+      },
+      orElse: () {},
+    );
+
     return Scaffold(
       backgroundColor: AppColors.creamWhite,
       appBar: AppBar(
@@ -33,7 +46,7 @@ class DoctorProfileScreen extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildHeroCard(),
+              _buildHeroCard(stats: stats),
               const SizedBox(height: 16),
               _buildAboutCard(),
               const SizedBox(height: 16),
@@ -43,6 +56,8 @@ class DoctorProfileScreen extends ConsumerWidget {
                 const SizedBox(height: 16),
                 _buildClinicCard(),
               ],
+              const SizedBox(height: 16),
+              _buildReviewsCard(reviews: reviews, stats: stats),
               const SizedBox(height: 16),
             ],
           ),
@@ -130,7 +145,10 @@ class DoctorProfileScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildHeroCard() {
+  Widget _buildHeroCard({
+    required ({double? average, int count})? stats,
+  }) {
+    final hasReviews = (stats?.count ?? 0) > 0 && stats!.average != null;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
@@ -194,9 +212,14 @@ class DoctorProfileScreen extends ConsumerWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               _buildHeroPill(
-                icon: Icons.star_rounded,
-                iconColor: const Color(0xFFFFD700),
-                label: doctor.rating.toStringAsFixed(1),
+                icon: hasReviews
+                    ? Icons.star_rounded
+                    : Icons.star_border_rounded,
+                iconColor: hasReviews ? const Color(0xFFFFD700) : Colors.white,
+                label: hasReviews
+                    ? '${stats.average!.toStringAsFixed(1)} '
+                        '(${stats.count} review${stats.count == 1 ? '' : 's'})'
+                    : 'No reviews yet',
               ),
               const SizedBox(width: 8),
               _buildHeroPill(
@@ -536,6 +559,219 @@ class DoctorProfileScreen extends ConsumerWidget {
               ],
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  /// Rating & Reviews section: overall rating computed from the actual
+  /// submitted reviews, followed by the individual patient reviews.
+  Widget _buildReviewsCard({
+    List<DoctorReview>? reviews,
+    required ({double? average, int count})? stats,
+  }) {
+    final hasReviews = (stats?.count ?? 0) > 0;
+
+    return _buildCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSectionTitle('Rating & Reviews'),
+          const SizedBox(height: 12),
+          if (reviews == null)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 16),
+              child: Center(
+                child: CircularProgressIndicator(
+                  color: AppColors.softPurple,
+                  strokeWidth: 2.4,
+                ),
+              ),
+            )
+          else if (!hasReviews) ...[
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: AppColors.softLavender.withValues(alpha: 0.45),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Column(
+                children: [
+                  const Icon(
+                    Icons.rate_review_outlined,
+                    size: 28,
+                    color: AppColors.softPurple,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'No reviews yet',
+                    style: GoogleFonts.outfit(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textDark,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    'Reviews appear here after patients complete a consultation.',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
+                      color: AppColors.textMedium,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ] else ...[
+            _buildRatingSummary(
+              stats?.average ?? 0.0,
+              stats?.count ?? 0,
+            ),
+            const SizedBox(height: 14),
+            const Divider(color: AppColors.borderGrey, height: 1),
+            const SizedBox(height: 14),
+            Text(
+              'Patient Reviews',
+              style: GoogleFonts.outfit(
+                fontSize: 13.5,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textDark,
+              ),
+            ),
+            const SizedBox(height: 4),
+            ...reviews.map((review) => _buildReviewTile(review)),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRatingSummary(double average, int count) {
+    return Row(
+      children: [
+        Container(
+          width: 54,
+          height: 54,
+          decoration: BoxDecoration(
+            gradient: AppColors.primaryGradient,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Center(
+            child: Text(
+              average.toStringAsFixed(1),
+              style: GoogleFonts.outfit(
+                fontSize: 19,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(
+                    Icons.star_rounded,
+                    size: 20,
+                    color: Color(0xFFFFD700),
+                  ),
+                  const SizedBox(width: 2),
+                  Text(
+                    average.toStringAsFixed(1),
+                    style: GoogleFonts.outfit(
+                      fontSize: 17,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textDark,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    '($count review${count == 1 ? '' : 's'})',
+                    style: GoogleFonts.inter(
+                      fontSize: 12.5,
+                      color: AppColors.textMedium,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Row(
+                children: List.generate(5, (index) {
+                  final filled = (average - index).clamp(0.0, 1.0);
+                  return Icon(
+                    filled >= 0.75
+                        ? Icons.star_rounded
+                        : filled >= 0.25
+                            ? Icons.star_half_rounded
+                            : Icons.star_outline_rounded,
+                    size: 16,
+                    color: const Color(0xFFFFD700),
+                  );
+                }),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildReviewTile(DoctorReview review) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              ...List.generate(5, (index) {
+                final filled = index < review.rating;
+                return Icon(
+                  filled ? Icons.star_rounded : Icons.star_outline_rounded,
+                  size: 15,
+                  color: filled
+                      ? const Color(0xFFFFD700)
+                      : AppColors.borderGrey,
+                );
+              }),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  '— ${review.reviewerLabel}',
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.inter(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textMedium,
+                  ),
+                ),
+              ),
+              Text(
+                review.relativeTime,
+                style: GoogleFonts.inter(
+                  fontSize: 11,
+                  color: AppColors.textLight,
+                ),
+              ),
+            ],
+          ),
+          if (review.text.trim().isNotEmpty) ...[
+            const SizedBox(height: 7),
+            Text(
+              review.text.trim(),
+              style: GoogleFonts.inter(
+                fontSize: 13,
+                height: 1.45,
+                color: AppColors.textDark,
+              ),
+            ),
+          ],
         ],
       ),
     );

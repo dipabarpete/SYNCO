@@ -7,6 +7,7 @@ import '../models/doctor.dart';
 import 'all_doctors_screen.dart';
 import 'booking_screen.dart';
 import 'doctor_profile_screen.dart';
+import 'my_appointments_screen.dart';
 import '../widgets/consultation_mode_card.dart';
 import '../widgets/doctor_card.dart';
 import '../widgets/doctor_search_bar.dart';
@@ -58,6 +59,30 @@ class _FindDoctorScreenState extends ConsumerState<FindDoctorScreen> {
           ),
         ),
         actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: GestureDetector(
+              onTap: _openAppointments,
+              child: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppColors.softLavender.withValues(alpha: 0.4),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: AppColors.softPurpleLight.withValues(
+                      alpha: 0.25,
+                    ),
+                    width: 1.2,
+                  ),
+                ),
+                child: const Icon(
+                  Icons.calendar_month_rounded,
+                  color: AppColors.softPurple,
+                  size: 23,
+                ),
+              ),
+            ),
+          ),
           Padding(
             padding: const EdgeInsets.only(right: 16),
             child: GestureDetector(
@@ -142,33 +167,6 @@ class _FindDoctorScreenState extends ConsumerState<FindDoctorScreen> {
                 ],
               ),
               const SizedBox(height: 26),
-
-              const SizedBox(height: 26),
-
-              // SEED DATA BUTTON (TEMPORARY)
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text('Doctors List', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16)),
-                  TextButton(
-                    onPressed: () async {
-                      try {
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Seeding mock data...')));
-                        await seedMockDoctors(ref);
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Seeding completed!')));
-                        }
-                      } catch (e) {
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error seeding: $e')));
-                        }
-                      }
-                    },
-                    child: const Text('Seed Mock Data', style: TextStyle(color: AppColors.softPurple)),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
 
               doctorsAsync.when(
                 data: (allDoctors) {
@@ -342,6 +340,15 @@ class _FindDoctorScreenState extends ConsumerState<FindDoctorScreen> {
       context,
       MaterialPageRoute(
         builder: (_) => DoctorProfileScreen(doctor: doctor),
+      ),
+    );
+  }
+
+  void _openAppointments() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const MyAppointmentsScreen(),
       ),
     );
   }

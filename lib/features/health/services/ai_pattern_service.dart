@@ -2,6 +2,9 @@ import '../models/ai_insight.dart';
 import '../models/health_entries.dart';
 import 'health_analytics.dart';
 
+/// Time window used for pattern detection.
+enum PatternRange { week, month }
+
 /// Data-driven AI pattern detection.
 ///
 /// Insights are generated from the user's own stored health data. Each rule
@@ -15,29 +18,111 @@ class AiPatternService {
   static const int _minDataDays = 3;
   static const int _maxInsights = 6;
 
-  /// Detects insights from [all] entries. Returns an empty list when there is
-  /// insufficient data so the UI can show its "keep tracking" empty state.
+  /// Detects insights across both the weekly and monthly windows. Returns an
+  /// empty list when there is insufficient data so the UI can show its
+  /// "keep tracking" empty state.
   List<AiInsight> detect({
     required List<HealthEntry> all,
     DateTime? now,
   }) {
     final today = now ?? DateTime.now();
 
-    if (HealthAnalytics.dataDaysLastDays(all, today, days: 30) < 1) {
+    if (HealthAnalytics.dataDaysLastDays(all, today, days: 30) < _minDataDays) {
       return const [];
     }
 
+    final weekThis = HealthAnalytics.thisWeek(all, today);
+    final weekLast = HealthAnalytics.lastWeek(all, today);
+    final monthThis = HealthAnalytics.thisMonth(all, today);
+    final monthLast = HealthAnalytics.lastMonth(all, today);
+
     final insights = <AiInsight>[
-      ..._sleepWellnessInsights(all, today),
-      ..._sleepTrendInsight(all, today),
-      ..._sugarCravingInsight(all, today),
-      ..._stepsTrendInsight(all, today),
-      ..._hydrationTrendInsight(all, today),
-      ..._nutritionTagInsight(all, today),
-      ..._monthlySleepQualityInsight(all, today),
-      ..._moodInsight(all, today),
-      ..._weightInsight(all, today),
-      ..._supplementConsistencyInsight(all, today),
+      ..._sleepWellnessInsights(all, today, days: 7, label: 'This week'),
+      ..._sleepTrendInsight(
+        weekThis,
+        weekLast,
+        label: 'This week',
+        lastLabel: 'last week',
+      ),
+      ..._sugarCravingInsight(weekThis, label: 'This week', windowDays: 7),
+      ..._stepsTrendInsight(
+        weekThis,
+        weekLast,
+        label: 'This week',
+        lastLabel: 'last week',
+      ),
+      ..._hydrationTrendInsight(
+        weekThis,
+        weekLast,
+        label: 'This week',
+        lastLabel: 'last week',
+      ),
+      ..._nutritionTagInsight(weekThis, label: 'This week'),
+      ..._sleepQualityInsight(
+        monthThis,
+        monthLast,
+        label: 'This month',
+        lastLabel: 'last month',
+      ),
+      ..._moodInsight(weekThis, label: 'This week'),
+      ..._weightInsight(monthThis, label: 'This month'),
+      ..._supplementConsistencyInsight(
+        weekThis,
+        label: 'This week',
+        windowDays: 7,
+      ),
+    ];
+
+    insights.sort((a, b) => b.strength.compareTo(a.strength));
+    return insights.take(_maxInsights).toList();
+  }
+
+  /// Detects insights using only the data inside a single time [range]
+  /// (weekly or monthly). Returns an empty list when there is insufficient
+  /// data.
+  List<AiInsight> detectPeriod({
+    required List<HealthEntry> all,
+    required PatternRange range,
+    DateTime? now,
+  }) {
+    final today = now ?? DateTime.now();
+
+    if (HealthAnalytics.dataDaysLastDays(all, today, days: 30) < _minDataDays) {
+      return const [];
+    }
+
+    final isWeek = range == PatternRange.week;
+    final label = isWeek ? 'This week' : 'This month';
+    final lastLabel = isWeek ? 'last week' : 'last month';
+    final windowDays = isWeek ? 7 : 30;
+
+    final thisP = isWeek
+        ? HealthAnalytics.thisWeek(all, today)
+        : HealthAnalytics.thisMonth(all, today);
+    final lastP = isWeek
+        ? HealthAnalytics.lastWeek(all, today)
+        : HealthAnalytics.lastMonth(all, today);
+
+    final insights = <AiInsight>[
+      ..._sleepWellnessInsights(all, today, days: windowDays, label: label),
+      ..._sleepTrendInsight(thisP, lastP, label: label, lastLabel: lastLabel),
+      ..._sugarCravingInsight(thisP, label: label, windowDays: windowDays),
+      ..._stepsTrendInsight(thisP, lastP, label: label, lastLabel: lastLabel),
+      ..._hydrationTrendInsight(
+        thisP,
+        lastP,
+        label: label,
+        lastLabel: lastLabel,
+      ),
+      ..._nutritionTagInsight(thisP, label: label),
+      ..._sleepQualityInsight(thisP, lastP, label: label, lastLabel: lastLabel),
+      ..._moodInsight(thisP, label: label),
+      ..._weightInsight(thisP, label: label),
+      ..._supplementConsistencyInsight(
+        thisP,
+        label: label,
+        windowDays: windowDays,
+      ),
     ];
 
     insights.sort((a, b) => b.strength.compareTo(a.strength));
@@ -54,9 +139,11 @@ class AiPatternService {
 
   List<AiInsight> _sleepWellnessInsights(
     List<HealthEntry> all,
-    DateTime today,
-  ) {
-    final start = HealthAnalytics.addDays(today, -6);
+    DateTime today, {
+    required int days,
+    required String label,
+  }) {
+    final start = HealthAnalytics.addDays(today, -(days - 1));
     final sleeps = all
         .whereType<SleepEntry>()
         .where((e) => !e.date.isBefore(start) && !e.date.isAfter(today))
@@ -102,10 +189,13 @@ class AiPatternService {
             'average energy was ${_fmt1(shortEnergyAvg)}/5, compared with '
             '${_fmt1(longEnergyAvg)}/5 on days with more sleep. This is an '
             'observation of your own data, not a diagnosis.',
-        periodLabel: 'This week',
+        periodLabel: label,
         basisLabel: 'Based on $totalDays days of data',
         kind: InsightKind.sleep,
         category: InsightCategory.pattern,
+        suggestion:
+            'Try keeping a consistent sleep and wake time, then notice if '
+            'your energy settles.',
       ));
     }
 
@@ -122,10 +212,13 @@ class AiPatternService {
             'stress was ${_fmt1(shortStressAvg)}/5 versus '
             '${_fmt1(longStressAvg)}/5 on longer-sleep days. Correlation does '
             'not imply causation - it may help to observe this over time.',
-        periodLabel: 'This week',
+        periodLabel: label,
         basisLabel: 'Based on $totalDays days of data',
         kind: InsightKind.sleep,
         category: InsightCategory.pattern,
+        suggestion:
+            'A calm wind-down routine before bed may help your evenings feel '
+            'lighter.',
       ));
     }
 
@@ -133,14 +226,17 @@ class AiPatternService {
   }
 
   // -------------------------------------------------------------------------
-  // SLEEP DURATION trend (week over week)
+  // SLEEP DURATION trend (period over period)
   // -------------------------------------------------------------------------
 
-  List<AiInsight> _sleepTrendInsight(List<HealthEntry> all, DateTime today) {
-    final thisW = HealthAnalytics.thisWeek(all, today);
-    final lastW = HealthAnalytics.lastWeek(all, today);
-    final avgThis = thisW.avgSleepMinutes;
-    final avgLast = lastW.avgSleepMinutes;
+  List<AiInsight> _sleepTrendInsight(
+    PeriodStats thisP,
+    PeriodStats lastP, {
+    required String label,
+    required String lastLabel,
+  }) {
+    final avgThis = thisP.avgSleepMinutes;
+    final avgLast = lastP.avgSleepMinutes;
     if (avgThis == null || avgLast == null) return const [];
 
     final diffMinutes = avgThis - avgLast;
@@ -153,18 +249,23 @@ class AiPatternService {
         title: 'Sleep Duration Trend',
         summary:
             'Your average sleep ${increased ? 'increased' : 'decreased'} from '
-            '${formatDurationMinutes(avgLast.round())} last week to '
-            '${formatDurationMinutes(avgThis.round())} this week.',
+            '${formatDurationMinutes(avgLast.round())} $lastLabel to '
+            '${formatDurationMinutes(avgThis.round())} '
+            '${label.toLowerCase()}.',
         detail:
-            'Your data shows your weekly average sleep changed by '
-            '${diffMinutes.abs().round()} minutes compared with the week '
-            'before. Continue tracking to see how this aligns with your energy '
-            'and stress.',
-        periodLabel: 'This week',
-        basisLabel: 'Based on ${thisW.daysWithData} days of data',
+            'Your data shows your ${label.toLowerCase()} average sleep changed '
+            'by ${diffMinutes.abs().round()} minutes compared with '
+            '$lastLabel. Continue tracking to see how this aligns with your '
+            'energy and stress.',
+        periodLabel: label,
+        basisLabel: 'Based on ${thisP.daysWithData} days of data',
         kind: InsightKind.sleep,
         trend: increased ? InsightTrend.up : InsightTrend.down,
         category: InsightCategory.observation,
+        suggestion: increased
+            ? 'Nice momentum - keep your new bedtime rhythm going.'
+            : 'Try keeping a consistent sleep and wake time to steady your '
+                'rhythm.',
       ),
     ];
   }
@@ -173,16 +274,20 @@ class AiPatternService {
   // SUGAR CRAVINGS frequency
   // -------------------------------------------------------------------------
 
-  List<AiInsight> _sugarCravingInsight(List<HealthEntry> all, DateTime today) {
-    final thisW = HealthAnalytics.thisWeek(all, today);
-    if (thisW.cravingDays < 1) return const [];
+  List<AiInsight> _sugarCravingInsight(
+    PeriodStats stats, {
+    required String label,
+    required int windowDays,
+  }) {
+    if (stats.cravingDays < 1) return const [];
 
-    final high = thisW.cravingLevelCounts['High'] ?? 0;
+    final isWeek = windowDays == 7;
+    final rangeText = isWeek ? 'the last 7 days' : 'this month';
+    final high = stats.cravingLevelCounts['High'] ?? 0;
     final summary = high > 0
-        ? 'You logged higher sugar cravings on ${thisW.cravingDays} of the '
-            'last 7 days.'
-        : 'You logged sugar cravings on ${thisW.cravingDays} of the last 7 '
-            'days.';
+        ? 'You logged higher sugar cravings on ${stats.cravingDays} of '
+            '$rangeText.'
+        : 'You logged sugar cravings on ${stats.cravingDays} of $rangeText.';
 
     return [
       AiInsight(
@@ -190,15 +295,18 @@ class AiPatternService {
         title: 'Sugar Cravings',
         summary: summary,
         detail:
-            'Across the last 7 days you logged ${thisW.cravingCount} craving'
-            '${thisW.cravingCount == 1 ? '' : 's'}'
+            'Across $rangeText you logged ${stats.cravingCount} craving'
+            '${stats.cravingCount == 1 ? '' : 's'}'
             '${high > 0 ? ', $high of them marked as high intensity' : ''}. '
             'You may want to observe what situations or foods tend to '
             'surround them.',
-        periodLabel: 'This week',
-        basisLabel: 'Based on ${thisW.cravingDays} days of data',
+        periodLabel: label,
+        basisLabel: 'Based on ${stats.cravingDays} days of data',
         kind: InsightKind.sugarCravings,
         category: InsightCategory.observation,
+        suggestion:
+            'Notice what situations surround your cravings, and try a glass '
+            'of water or a short walk before deciding.',
       ),
     ];
   }
@@ -207,11 +315,14 @@ class AiPatternService {
   // ACTIVITY trend
   // -------------------------------------------------------------------------
 
-  List<AiInsight> _stepsTrendInsight(List<HealthEntry> all, DateTime today) {
-    final thisW = HealthAnalytics.thisWeek(all, today);
-    final lastW = HealthAnalytics.lastWeek(all, today);
-    final avgThis = thisW.avgSteps;
-    final avgLast = lastW.avgSteps;
+  List<AiInsight> _stepsTrendInsight(
+    PeriodStats thisP,
+    PeriodStats lastP, {
+    required String label,
+    required String lastLabel,
+  }) {
+    final avgThis = thisP.avgSteps;
+    final avgLast = lastP.avgSteps;
     if (avgThis == null || avgLast == null || avgLast == 0) return const [];
 
     final pct = ((avgThis - avgLast) / avgLast) * 100;
@@ -224,15 +335,20 @@ class AiPatternService {
         title: 'Activity Trend',
         summary:
             'Your average step count ${increased ? 'increased' : 'decreased'} '
-            'by ${pct.abs().round()}% this week compared with last week.',
+            'by ${pct.abs().round()}% ${label.toLowerCase()} compared with '
+            '$lastLabel.',
         detail:
             'Your data shows an average of ${avgThis.round().toString()} steps '
-            'a day this week versus ${avgLast.round().toString()} last week.',
-        periodLabel: 'This week',
-        basisLabel: 'Based on ${thisW.daysWithData} days of data',
+            'a day ${label.toLowerCase()} versus '
+            '${avgLast.round().toString()} $lastLabel.',
+        periodLabel: label,
+        basisLabel: 'Based on ${thisP.daysWithData} days of data',
         kind: InsightKind.activity,
         trend: increased ? InsightTrend.up : InsightTrend.down,
         category: InsightCategory.observation,
+        suggestion: increased
+            ? 'Keep it going - small daily walks add up.'
+            : 'Adding regular daily movement may help you stay more active.',
       ),
     ];
   }
@@ -241,11 +357,14 @@ class AiPatternService {
   // HYDRATION trend
   // -------------------------------------------------------------------------
 
-  List<AiInsight> _hydrationTrendInsight(List<HealthEntry> all, DateTime today) {
-    final thisW = HealthAnalytics.thisWeek(all, today);
-    final lastW = HealthAnalytics.lastWeek(all, today);
-    final avgThis = thisW.avgWaterFlOz;
-    final avgLast = lastW.avgWaterFlOz;
+  List<AiInsight> _hydrationTrendInsight(
+    PeriodStats thisP,
+    PeriodStats lastP, {
+    required String label,
+    required String lastLabel,
+  }) {
+    final avgThis = thisP.avgWaterFlOz;
+    final avgLast = lastP.avgWaterFlOz;
     if (avgThis == null || avgLast == null || avgLast == 0) return const [];
 
     final pct = ((avgThis - avgLast) / avgLast) * 100;
@@ -259,15 +378,21 @@ class AiPatternService {
         title: 'Hydration Trend',
         summary:
             'Your average water intake ${increased ? 'increased' : 'decreased'} '
-            'by ${pct.abs().round()}% compared with last week.',
+            'by ${pct.abs().round()}% ${label.toLowerCase()} compared with '
+            '$lastLabel.',
         detail:
             'Your data shows an average of ${_fmt1(cupsThis)} cups of water a '
-            'day this week. Staying hydrated may support energy and focus.',
-        periodLabel: 'This week',
-        basisLabel: 'Based on ${thisW.daysWithData} days of data',
+            'day ${label.toLowerCase()}. Staying hydrated may support energy '
+            'and focus.',
+        periodLabel: label,
+        basisLabel: 'Based on ${thisP.daysWithData} days of data',
         kind: InsightKind.hydration,
         trend: increased ? InsightTrend.up : InsightTrend.down,
         category: InsightCategory.observation,
+        suggestion: increased
+            ? 'Keep your water nearby to hold this habit.'
+            : 'Try keeping a bottle within reach and refilling it at set '
+                'times.',
       ),
     ];
   }
@@ -276,9 +401,10 @@ class AiPatternService {
   // FOOD TAGS pattern
   // -------------------------------------------------------------------------
 
-  List<AiInsight> _nutritionTagInsight(List<HealthEntry> all, DateTime today) {
-    final thisW = HealthAnalytics.thisWeek(all, today);
-
+  List<AiInsight> _nutritionTagInsight(
+    PeriodStats stats, {
+    required String label,
+  }) {
     const riskyTags = [
       'Processed Food',
       'Sugar',
@@ -289,7 +415,7 @@ class AiPatternService {
     String? topTag;
     var topCount = 0;
     for (final tag in riskyTags) {
-      final count = thisW.foodTagFrequency[tag] ?? 0;
+      final count = stats.foodTagFrequency[tag] ?? 0;
       if (count > topCount) {
         topCount = count;
         topTag = tag;
@@ -303,41 +429,46 @@ class AiPatternService {
         id: 'food-tag-$topTag',
         title: 'Nutrition & Tags',
         summary: suggestsFollowUp
-            ? 'You logged several meals tagged \'$topTag\' this week. You '
-                'may want to explore whether this pattern coincides with any '
-                'symptoms or changes you track.'
+            ? 'You logged several meals tagged \'$topTag\' '
+                '${label.toLowerCase()}. You may want to explore whether this '
+                'pattern coincides with any symptoms or changes you track.'
             : 'You logged meals tagged \'$topTag\' $topCount '
-                '${topCount == 1 ? 'time' : 'times'} this week.',
+                '${topCount == 1 ? 'time' : 'times'} '
+                '${label.toLowerCase()}.',
         detail: suggestsFollowUp
             ? 'Consider discussing this with your healthcare professional if '
                 'the pattern continues or concerns you. This is an '
                 'observation of your logged data, not a diagnosis.'
             : 'You may want to observe how these meals make you feel over '
                 'time. This is based on your own food logs only.',
-        periodLabel: 'This week',
+        periodLabel: label,
         basisLabel: 'Based on $topCount logged meals',
         kind: InsightKind.nutrition,
         category: suggestsFollowUp
             ? InsightCategory.suggestion
             : InsightCategory.observation,
+        suggestion: suggestsFollowUp
+            ? 'Consider discussing recurring nutrition patterns with a '
+                'qualified professional.'
+            : 'Try noticing how meals like these make you feel over the '
+                'coming days.',
       ),
     ];
   }
 
   // -------------------------------------------------------------------------
-  // MONTHLY SLEEP QUALITY distribution
+  // SLEEP QUALITY distribution
   // -------------------------------------------------------------------------
 
-  List<AiInsight> _monthlySleepQualityInsight(
-    List<HealthEntry> all,
-    DateTime today,
-  ) {
-    final thisM = HealthAnalytics.thisMonth(all, today);
-    final lastM = HealthAnalytics.lastMonth(all, today);
-
-    final goodThis = thisM.sleepQualityDistribution['Good'] ?? 0;
-    final goodLast = lastM.sleepQualityDistribution['Good'] ?? 0;
-    final sleepDaysThis = thisM.sleepQualityDistribution.values.fold(
+  List<AiInsight> _sleepQualityInsight(
+    PeriodStats thisP,
+    PeriodStats lastP, {
+    required String label,
+    required String lastLabel,
+  }) {
+    final goodThis = thisP.sleepQualityDistribution['Good'] ?? 0;
+    final goodLast = lastP.sleepQualityDistribution['Good'] ?? 0;
+    final sleepDaysThis = thisP.sleepQualityDistribution.values.fold(
           0,
           (a, b) => a + b,
         );
@@ -347,10 +478,11 @@ class AiPatternService {
     final String summary;
     if (goodLast > 0 && goodThis > goodLast) {
       summary = 'Your sleep quality was marked as \'Good\' more frequently '
-          'this month ($goodThis days) than last month ($goodLast days).';
+          '${label.toLowerCase()} ($goodThis days) than $lastLabel '
+          '($goodLast days).';
     } else if (goodThis >= 2) {
       summary = 'Your sleep quality was marked as \'Good\' on $goodThis days '
-          'this month.';
+          '${label.toLowerCase()}.';
     } else {
       return const [];
     }
@@ -361,13 +493,18 @@ class AiPatternService {
         title: 'Sleep Quality',
         summary: summary,
         detail:
-            'Out of $sleepDaysThis logged sleep entries this month, '
-            '$goodThis were rated \'Good\'. Mood, energy and stress ratings '
-            'alongside these days can help you see what works for you.',
-        periodLabel: 'This month',
+            'Out of $sleepDaysThis logged sleep entries '
+            '${label.toLowerCase()}, $goodThis were rated \'Good\'. Mood, '
+            'energy and stress ratings alongside these days can help you see '
+            'what works for you.',
+        periodLabel: label,
         basisLabel: 'Based on $sleepDaysThis days of data',
         kind: InsightKind.sleep,
         category: InsightCategory.observation,
+        suggestion: goodLast > 0 && goodThis > goodLast
+            ? 'Keep your current sleep routine going - it is working for you.'
+            : 'Try keeping a consistent sleep and wake time to support '
+                'quality.',
       ),
     ];
   }
@@ -376,13 +513,15 @@ class AiPatternService {
   // MOOD distribution
   // -------------------------------------------------------------------------
 
-  List<AiInsight> _moodInsight(List<HealthEntry> all, DateTime today) {
-    final thisW = HealthAnalytics.thisWeek(all, today);
-    if (thisW.moodDistribution.isEmpty) return const [];
+  List<AiInsight> _moodInsight(
+    PeriodStats stats, {
+    required String label,
+  }) {
+    if (stats.moodDistribution.isEmpty) return const [];
 
     String? topMood;
     var topCount = 0;
-    thisW.moodDistribution.forEach((mood, count) {
+    stats.moodDistribution.forEach((mood, count) {
       if (count > topCount) {
         topMood = mood;
         topCount = count;
@@ -391,23 +530,26 @@ class AiPatternService {
 
     if (topMood == null || topCount < 1) return const [];
 
-    final total = thisW.moodDistribution.values
+    final total = stats.moodDistribution.values
         .fold(0, (sum, count) => sum + count);
     return [
       AiInsight(
         id: 'mood-week',
         title: 'Mood',
         summary:
-            'This week, your mood was most often marked as \'$topMood\' '
+            '$label, your mood was most often marked as \'$topMood\' '
             '($topCount of $total days you checked in).',
         detail:
             'Mood can shift with many factors. Looking at how your mood '
             'lines up with sleep, stress and activity across weeks may reveal '
             'patterns that feel supportive to notice.',
-        periodLabel: 'This week',
+        periodLabel: label,
         basisLabel: 'Based on $total daily check-ins',
         kind: InsightKind.mood,
         category: InsightCategory.observation,
+        suggestion:
+            'Try noticing how your sleep, activity and stress line up with '
+            'your mood.',
       ),
     ];
   }
@@ -416,31 +558,36 @@ class AiPatternService {
   // WEIGHT trend (observational only)
   // -------------------------------------------------------------------------
 
-  List<AiInsight> _weightInsight(List<HealthEntry> all, DateTime today) {
-    final thisM = HealthAnalytics.thisMonth(all, today);
-    final change = thisM.weightChangeKg;
+  List<AiInsight> _weightInsight(
+    PeriodStats stats, {
+    required String label,
+  }) {
+    final change = stats.weightChangeKg;
     if (change == null || change.abs() < 0.5) return const [];
 
-    final first = thisM.firstWeight!;
-    final last = thisM.lastWeight!;
+    final first = stats.firstWeight!;
+    final last = stats.lastWeight!;
     final sign = change > 0 ? '+' : '';
     return [
       AiInsight(
         id: 'weight-trend',
         title: 'Weight Trend',
         summary:
-            'This month, your weight went from ${_kg(first.weight)} '
+            '$label, your weight went from ${_kg(first.weight)} '
             '${first.unit} to ${_kg(last.weight)} ${last.unit} '
             '($sign${_kg(change)} kg).',
         detail:
             'Normal fluctuations in weight are expected. This is simply an '
             'observation of the days you logged; we do not label changes as '
             'good or bad.',
-        periodLabel: 'This month',
-        basisLabel: 'Based on ${thisM.daysWithData} days of data',
+        periodLabel: label,
+        basisLabel: 'Based on ${stats.daysWithData} days of data',
         kind: InsightKind.weight,
         trend: change > 0 ? InsightTrend.up : InsightTrend.down,
         category: InsightCategory.observation,
+        suggestion:
+            'Continue tracking regularly and look at the longer-term trend '
+            'rather than single days.',
       ),
     ];
   }
@@ -450,26 +597,34 @@ class AiPatternService {
   // -------------------------------------------------------------------------
 
   List<AiInsight> _supplementConsistencyInsight(
-    List<HealthEntry> all,
-    DateTime today,
-  ) {
-    final thisW = HealthAnalytics.thisWeek(all, today);
-    if (thisW.supplementDays < 5) return const [];
+    PeriodStats stats, {
+    required String label,
+    required int windowDays,
+  }) {
+    final minDays = windowDays == 7 ? 5 : 15;
+    if (stats.supplementDays < minDays) return const [];
+
+    final summary = windowDays == 7
+        ? 'You stayed consistent with your supplements on '
+            '${stats.supplementDays} of the last 7 days.'
+        : 'You stayed consistent with your supplements on '
+            '${stats.supplementDays} days this month.';
 
     return [
       AiInsight(
         id: 'supplement-consistency',
         title: 'Supplement Routine',
-        summary:
-            'You stayed consistent with your supplements on '
-            '${thisW.supplementDays} of the last 7 days.',
+        summary: summary,
         detail:
             'This tracker simply records what you already take. It does not '
             'recommend supplements or dosages.',
-        periodLabel: 'This week',
-        basisLabel: 'Based on ${thisW.supplementDays} days of data',
+        periodLabel: label,
+        basisLabel: 'Based on ${stats.supplementDays} days of data',
         kind: InsightKind.lifestyle,
         category: InsightCategory.observation,
+        suggestion:
+            'Consistency is a great start - continue the routine you already '
+            'follow with your professional.',
       ),
     ];
   }

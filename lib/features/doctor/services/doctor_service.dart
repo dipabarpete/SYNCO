@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/doctor.dart';
+import '../models/doctor_review.dart';
 import '../models/appointment.dart';
 import '../../../core/services/ai_summary_service.dart';
 import '../../../core/services/notification_service.dart';
@@ -191,5 +192,128 @@ class DoctorService {
       debugPrint('[DoctorService] Error seeding mock doctors: $e');
       rethrow;
     }
+  }
+
+  // ---------------------------------------------------------------------------
+  // DOCTOR REVIEWS
+  // ---------------------------------------------------------------------------
+
+  /// Streams the public reviews for a doctor (newest first).
+  ///
+  /// Reviews live under `doctors/{doctorId}/reviews/{consultationId}`.
+  Stream<List<DoctorReview>> streamDoctorReviews(String doctorId) {
+    return _db
+        .collection('doctors')
+        .doc(doctorId)
+        .collection('reviews')
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs.map(DoctorReview.fromFirestore).toList());
+  }
+
+  /// Returns the review attached to a consultation, or `null` when the user
+  /// has not reviewed that completed consultation yet.
+  Future<DoctorReview?> getReviewForConsultation(
+    String doctorId,
+    String consultationId,
+  ) async {
+    final doc = await _db
+        .collection('doctors')
+        .doc(doctorId)
+        .collection('reviews')
+        .doc(consultationId)
+        .get();
+    if (!doc.exists) return null;
+    return DoctorReview.fromFirestore(doc);
+  }
+
+  /// Submits a review for a completed consultation and updates the doctor's
+  /// overall rating.
+  ///
+  /// Validations enforced here (and mirrored in `firestore.rules`):
+  /// - Rating must be between 1 and 5.
+  /// - The consultation must exist and be `completed`.
+  /// - The consultation must belong to [userId] and [doctorId].
+  /// - Only one review per consultation (the review document ID is the
+  ///   consultation ID).
+  ///
+  /// Throws an [ArgumentError] with a user-facing message when validation
+  /// fails.
+  Future<void> submitDoctorReview({
+    required String doctorId,
+    required String consultationId,
+    required String userId,
+    required int rating,
+    required String text,
+    required String reviewerName,
+  }) async {
+    if (rating < 1 || rating > 5) {
+      throw ArgumentError('Please select a rating between 1 and 5 stars.');
+    }
+
+    // The review can only exist for a completed consultation with this user.
+    final bookingDoc =
+        await _db.collection('bookings').doc(consultationId).get();
+    if (!bookingDoc.exists) {
+      throw ArgumentError('This consultation could not be found.');
+    }
+    final booking = bookingDoc.data() ?? {};
+    if (booking['status'] != 'completed') {
+      throw ArgumentError(
+        'You can review a doctor only after the consultation is completed.',
+      );
+    }
+    if (booking['userId'] != userId) {
+      throw ArgumentError('This consultation does not belong to you.');
+    }
+    if (booking['doctorId'] != doctorId) {
+      throw ArgumentError('This consultation is not with this doctor.');
+    }
+
+    // One review per consultation.
+    final reviewRef = _db
+        .collection('doctors')
+        .doc(doctorId)
+        .collection('reviews')
+        .doc(consultationId);
+    if ((await reviewRef.get()).exists) {
+      throw ArgumentError('You have already submitted a review for this '
+          'consultation.');
+    }
+
+    // Transactionally save the review and recompute the doctor's rating from
+    // the real submitted ratings.
+    await _db.runTransaction((txn) async {
+      final doctorDoc = await txn.get(_db.collection('doctors').doc(doctorId));
+      if (!doctorDoc.exists) {
+        throw ArgumentError('This doctor could not be found.');
+      }
+      final doctorData = doctorDoc.data() ?? {};
+      final reviewCount = (doctorData['reviewCount'] is num)
+          ? (doctorData['reviewCount'] as num).toInt()
+          : 0;
+      final ratingSum = (doctorData['ratingSum'] is num)
+          ? (doctorData['ratingSum'] as num).toDouble()
+          : 0.0;
+
+      final newCount = reviewCount + 1;
+      final newSum = ratingSum + rating;
+      final newAverage = double.parse((newSum / newCount).toStringAsFixed(1));
+
+      txn.set(reviewRef, {
+        'doctorId': doctorId,
+        'userId': userId,
+        'consultationId': consultationId,
+        'rating': rating,
+        'text': text,
+        'reviewerName': reviewerName,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+      txn.update(_db.collection('doctors').doc(doctorId), {
+        'rating': newAverage,
+        'ratingSum': newSum,
+        'reviewCount': newCount,
+      });
+    });
   }
 }

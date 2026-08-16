@@ -19,6 +19,10 @@ class Doctor {
   final List<String> timeSlots;
   final Color avatarBackground;
 
+  /// Number of submitted reviews. The rating is only meaningful when this
+  /// count is greater than zero (ratings are recomputed from real reviews).
+  final int reviewCount;
+
   const Doctor({
     required this.id,
     required this.name,
@@ -34,6 +38,7 @@ class Doctor {
     required this.availableDays,
     required this.timeSlots,
     this.avatarBackground = AppColors.babyPink,
+    this.reviewCount = 0,
   });
 
   factory Doctor.fromFirestore(dynamic doc) {
@@ -60,6 +65,9 @@ class Doctor {
       specialization: safeStr('specialization'),
       experience: safeStr('experience'),
       rating: (data['rating'] is num) ? (data['rating'] as num).toDouble() : 0.0,
+      reviewCount: (data['reviewCount'] is num)
+          ? (data['reviewCount'] as num).toInt()
+          : 0,
       consultationFee: (data['consultationFee'] is num) ? (data['consultationFee'] as num).toInt() : 0,
       availability: safeStr('availability'),
       mode: safeStr('mode') == 'offline' ? ConsultationMode.offline : ConsultationMode.online,
@@ -77,6 +85,7 @@ class Doctor {
       'specialization': specialization,
       'experience': experience,
       'rating': rating,
+      'reviewCount': reviewCount,
       'consultationFee': consultationFee,
       'availability': availability,
       'mode': mode == ConsultationMode.offline ? 'offline' : 'online',

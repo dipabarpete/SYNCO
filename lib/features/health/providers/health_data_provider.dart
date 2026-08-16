@@ -96,6 +96,24 @@ final aiInsightsProvider = Provider<List<AiInsight>>((ref) {
   return const AiPatternService().detect(all: data.allEntries);
 });
 
+/// AI patterns detected from the last 7 days of data only.
+final aiWeeklyInsightsProvider = Provider<List<AiInsight>>((ref) {
+  final data = ref.watch(healthDataProvider);
+  return const AiPatternService().detectPeriod(
+    all: data.allEntries,
+    range: PatternRange.week,
+  );
+});
+
+/// AI patterns detected from the current month of data only.
+final aiMonthlyInsightsProvider = Provider<List<AiInsight>>((ref) {
+  final data = ref.watch(healthDataProvider);
+  return const AiPatternService().detectPeriod(
+    all: data.allEntries,
+    range: PatternRange.month,
+  );
+});
+
 class HealthDataNotifier extends StateNotifier<HealthDataState> {
   final HealthDataRepository _repository;
 

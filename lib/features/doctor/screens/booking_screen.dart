@@ -7,6 +7,12 @@ import '../../auth/providers/auth_provider.dart';
 import '../models/doctor.dart';
 import 'booking_confirmation_screen.dart';
 
+const _purpleGradient = LinearGradient(
+  colors: [AppColors.softPurple, AppColors.softPurpleLight],
+  begin: Alignment.topLeft,
+  end: Alignment.bottomRight,
+);
+
 class BookingScreen extends ConsumerStatefulWidget {
   final Doctor doctor;
 
@@ -174,7 +180,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: const BoxDecoration(
-                        gradient: AppColors.primaryGradient,
+                        gradient: _purpleGradient,
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(
@@ -231,11 +237,11 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 15),
               decoration: BoxDecoration(
-                gradient: AppColors.primaryGradient,
+                gradient: _purpleGradient,
                 borderRadius: BorderRadius.circular(18),
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.blushPink.withValues(alpha: 0.45),
+                    color: AppColors.softPurple.withValues(alpha: 0.4),
                     blurRadius: 14,
                     offset: const Offset(0, 6),
                   ),
@@ -356,7 +362,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
             padding: const EdgeInsets.all(2.5),
             decoration: const BoxDecoration(
               shape: BoxShape.circle,
-              gradient: AppColors.primaryGradient,
+              gradient: _purpleGradient,
             ),
             child: CircleAvatar(
               radius: 24,
@@ -483,7 +489,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
         width: 62,
         decoration: BoxDecoration(
           gradient: isSelected
-              ? AppColors.primaryGradient
+              ? _purpleGradient
               : const LinearGradient(
                   colors: [AppColors.pureWhite, AppColors.pureWhite],
                 ),
@@ -497,7 +503,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
           boxShadow: [
             BoxShadow(
               color: isSelected
-                  ? AppColors.blushPink.withValues(alpha: 0.4)
+                  ? AppColors.softPurple.withValues(alpha: 0.35)
                   : AppColors.shadowColor,
               blurRadius: 8,
               offset: const Offset(0, 4),

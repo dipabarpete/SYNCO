@@ -61,10 +61,9 @@ class LocalScreeningResultsRepository implements ScreeningResultsRepository {
 class FirebaseScreeningResultsRepository
     implements ScreeningResultsRepository {
   FirebaseScreeningResultsRepository({
-    required FirebaseFirestore firestore,
+    required this._firestore,
     required String userId,
-  })  : _firestore = firestore,
-        _userId = userId;
+  })  : _userId = userId;
 
   final FirebaseFirestore _firestore;
   final String _userId;

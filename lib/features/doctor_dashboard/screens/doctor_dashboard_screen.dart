@@ -92,8 +92,8 @@ class DoctorDashboardScreen extends ConsumerWidget {
         body: TabBarView(
           children: [
             _buildTabContent(ref, pendingRequestsProvider, showActions: true),
-            _buildTabContent(ref, todayAppointmentsProvider, showEnterChat: true),
-            _buildTabContent(ref, upcomingAppointmentsProvider, showActions: false, showEnterChat: true),
+            _buildTabContent(ref, todayAppointmentsProvider, showEnterChat: true, showComplete: true),
+            _buildTabContent(ref, upcomingAppointmentsProvider, showActions: false, showEnterChat: true, showComplete: true),
             _buildTabContent(ref, completedAppointmentsProvider, showActions: false),
             const DoctorSettingsScreen(),
           ],
@@ -102,7 +102,7 @@ class DoctorDashboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildTabContent(WidgetRef ref, Provider<List<Appointment>> provider, {bool showActions = false, bool showEnterChat = false}) {
+  Widget _buildTabContent(WidgetRef ref, Provider<List<Appointment>> provider, {bool showActions = false, bool showEnterChat = false, bool showComplete = false}) {
     final appointments = ref.watch(provider);
     
     if (appointments.isEmpty) {
@@ -125,12 +125,12 @@ class DoctorDashboardScreen extends ConsumerWidget {
       padding: const EdgeInsets.all(16),
       itemCount: appointments.length,
       itemBuilder: (context, index) {
-        return _buildAppointmentCard(context, ref, appointments[index], showActions, showEnterChat);
+        return _buildAppointmentCard(context, ref, appointments[index], showActions, showEnterChat, showComplete);
       },
     );
   }
 
-  Widget _buildAppointmentCard(BuildContext context, WidgetRef ref, Appointment a, bool showActions, bool showEnterChat) {
+  Widget _buildAppointmentCard(BuildContext context, WidgetRef ref, Appointment a, bool showActions, bool showEnterChat, bool showComplete) {
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
       padding: const EdgeInsets.all(16),
@@ -285,6 +285,27 @@ class DoctorDashboardScreen extends ConsumerWidget {
                 label: const Text('Message Patient'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.softPurple,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+              ),
+            ),
+          ],
+          if (showComplete) ...[
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  ref
+                      .read(doctorDashboardControllerProvider)
+                      .updateStatus(a.id, 'completed');
+                },
+                icon: const Icon(Icons.done_all_rounded, size: 16),
+                label: const Text('Mark Consultation Completed'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF2E8B76),
                   foregroundColor: Colors.white,
                   elevation: 0,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),

@@ -254,4 +254,85 @@ void main() {
       }
     });
   });
+
+  group('period detection', () {
+    test('weekly view detects week-window patterns', () {
+      final all = <HealthEntry>[
+        stepEntry('a0', 0, 9000),
+        stepEntry('a1', 1, 9500),
+        stepEntry('a2', 2, 8800),
+        stepEntry('b0', 7, 5000),
+        stepEntry('b1', 8, 4800),
+        stepEntry('b2', 9, 5200),
+      ];
+
+      final weekly =
+          service.detectPeriod(all: all, range: PatternRange.week, now: now);
+      final activity =
+          weekly.where((i) => i.id == 'steps-trend').firstOrNull;
+
+      expect(activity, isNotNull);
+      expect(activity!.trend, InsightTrend.up);
+      expect(activity.periodLabel, 'This week');
+    });
+
+    test('weekly view ignores patterns only visible in the month window', () {
+      final all = <HealthEntry>[
+        weightEntry('w0', 12, 64.0),
+        weightEntry('w1', 20, 63.5),
+        weightEntry('w2', 25, 63.0),
+      ];
+
+      final weekly =
+          service.detectPeriod(all: all, range: PatternRange.week, now: now);
+      expect(weekly.any((i) => i.id == 'weight-trend'), isFalse);
+    });
+
+    test('monthly view detects month-window patterns', () {
+      final all = <HealthEntry>[
+        weightEntry('w0', 12, 64.0),
+        weightEntry('w1', 8, 63.5),
+        weightEntry('w2', 3, 63.0),
+      ];
+
+      final monthly =
+          service.detectPeriod(all: all, range: PatternRange.month, now: now);
+      final weight =
+          monthly.where((i) => i.id == 'weight-trend').firstOrNull;
+
+      expect(weight, isNotNull);
+      expect(weight!.periodLabel, 'This month');
+      expect(weight.summary, contains('This month'));
+    });
+
+    test('pattern insights carry supportive how-to-improve suggestions', () {
+      final all = <HealthEntry>[
+        sleepEntry('s0', 0, 360, 'Poor'),
+        wellnessEntry('w0', 0, 4, 2),
+        sleepEntry('s1', 1, 330, 'Poor'),
+        wellnessEntry('w1', 1, 5, 1),
+        sleepEntry('s2', 2, 345, 'Poor'),
+        wellnessEntry('w2', 2, 4, 2),
+        sleepEntry('s3', 3, 480, 'Good'),
+        wellnessEntry('w3', 3, 2, 4),
+        sleepEntry('s4', 4, 500, 'Good'),
+        wellnessEntry('w4', 4, 1, 5),
+        sleepEntry('s5', 5, 490, 'Good'),
+        wellnessEntry('w5', 5, 2, 4),
+      ];
+
+      final weekly =
+          service.detectPeriod(all: all, range: PatternRange.week, now: now);
+      final sleepEnergy =
+          weekly.where((i) => i.id == 'sleep-energy').firstOrNull;
+
+      expect(sleepEnergy, isNotNull);
+      expect(sleepEnergy!.suggestion, isNotNull);
+      expect(sleepEnergy.suggestion, startsWith('Try'));
+      expect(
+        sleepEnergy.suggestion!.toLowerCase(),
+        isNot(contains('diagnos')),
+      );
+    });
+  });
 }
