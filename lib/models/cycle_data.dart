@@ -40,12 +40,22 @@ class DailySymptomLog {
   final int painScale; // 0 - 5
   final String mood; // Happy, Calm, Anxious, Moody, Tired
 
+  // Extended fields persisted with the period record (date-linked).
+  final List<String> moods;
+  final String? discharge;
+  final List<String> digestion;
+  final List<String> otherFactors;
+
   DailySymptomLog({
     required this.date,
     required this.symptoms,
     required this.flowLevel,
     required this.painScale,
     required this.mood,
+    this.moods = const [],
+    this.discharge,
+    this.digestion = const [],
+    this.otherFactors = const [],
   });
 }
 

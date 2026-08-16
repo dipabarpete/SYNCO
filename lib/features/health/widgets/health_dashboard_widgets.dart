@@ -130,6 +130,9 @@ class AiHeroBanner extends StatelessWidget {
 }
 
 /// One AI insight card shown on the dashboard and in the all-insights screen.
+///
+/// Presented as a clean tappable row: tapping the card or the arrow on the
+/// right opens that insight's own detail.
 class AiInsightCard extends StatelessWidget {
   final AiInsight insight;
   final VoidCallback? onViewDetails;
@@ -158,104 +161,92 @@ class AiInsightCard extends StatelessWidget {
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [AppColors.softPurpleLight, AppColors.softPurple],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          onTap: onViewDetails,
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.all(2),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [AppColors.softPurpleLight, AppColors.softPurple],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  borderRadius: BorderRadius.circular(12),
+                  child: const Icon(
+                    Icons.auto_awesome_rounded,
+                    color: Colors.white,
+                    size: 18,
+                  ),
                 ),
-                child: const Icon(
-                  Icons.auto_awesome_rounded,
-                  color: Colors.white,
-                  size: 18,
-                ),
-              ),
-              const SizedBox(width: 11),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            insight.title,
-                            style: GoogleFonts.outfit(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.textDark,
+                const SizedBox(width: 11),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              insight.title,
+                              style: GoogleFonts.outfit(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.textDark,
+                              ),
                             ),
                           ),
-                        ),
-                        _TrendChip(trend: insight.trend),
-                      ],
-                    ),
-                    const SizedBox(height: 5),
-                    Text(
-                      insight.summary,
-                      style: GoogleFonts.inter(
-                        fontSize: 12.5,
-                        height: 1.4,
-                        color: AppColors.textMedium,
+                          _TrendChip(trend: insight.trend),
+                        ],
                       ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  '${insight.periodLabel}  \u00B7  ${insight.basisLabel}',
-                  style: GoogleFonts.inter(
-                    fontSize: 10.5,
-                    color: AppColors.textLight,
+                      const SizedBox(height: 5),
+                      Text(
+                        insight.summary,
+                        style: GoogleFonts.inter(
+                          fontSize: 12.5,
+                          height: 1.4,
+                          color: AppColors.textMedium,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        '${insight.periodLabel}  \u00B7  ${insight.basisLabel}',
+                        style: GoogleFonts.inter(
+                          fontSize: 10.5,
+                          color: AppColors.textLight,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ),
-              _CategoryPill(category: insight.category),
-            ],
-          ),
-          if (onViewDetails != null)
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton.icon(
-                onPressed: onViewDetails,
-                style: TextButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  minimumSize: Size.zero,
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                ),
-                icon: const Icon(
-                  Icons.info_outline_rounded,
-                  size: 14,
-                  color: AppColors.softPurple,
-                ),
-                label: Text(
-                  'View details',
-                  style: GoogleFonts.inter(
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.bold,
+                const SizedBox(width: 4),
+                Container(
+                  width: 30,
+                  height: 30,
+                  decoration: BoxDecoration(
+                    color: AppColors.softPurple.withValues(alpha: 0.08),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.arrow_forward_rounded,
+                    size: 16,
                     color: AppColors.softPurple,
                   ),
                 ),
-              ),
+              ],
             ),
-        ],
+          ),
+        ),
       ),
     );
   }
@@ -289,38 +280,6 @@ class _TrendChip extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
       ),
       child: Icon(icon, size: 13, color: color),
-    );
-  }
-}
-
-class _CategoryPill extends StatelessWidget {
-  final InsightCategory category;
-
-  const _CategoryPill({required this.category});
-
-  @override
-  Widget build(BuildContext context) {
-    final color = switch (category) {
-      InsightCategory.observation => AppColors.skyBlue,
-      InsightCategory.pattern => AppColors.softPurpleLight,
-      InsightCategory.suggestion => AppColors.peachCoral,
-    };
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.16),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Text(
-        category.label,
-        style: GoogleFonts.inter(
-          fontSize: 10,
-          fontWeight: FontWeight.bold,
-          color: color == AppColors.softPurpleLight
-              ? AppColors.softPurple
-              : color,
-        ),
-      ),
     );
   }
 }
@@ -397,7 +356,6 @@ void showAiInsightDetails(BuildContext context, AiInsight insight) {
                   ],
                 ),
               ),
-              _CategoryPill(category: insight.category),
             ],
           ),
           const SizedBox(height: 14),

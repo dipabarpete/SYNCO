@@ -1,6 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart' as fb;
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import '../core/backend.dart';
 import '../core/services/notification_service.dart';
 import '../features/pink_corner/services/pink_corner_service.dart';
 import '../features/doctor/models/doctor.dart';
@@ -16,7 +21,9 @@ import '../models/article_item.dart';
 import '../models/faq_item.dart';
 import '../models/reminder_item.dart';
 import '../models/period_record.dart';
+import '../models/period_day_log.dart';
 import '../features/cycle/services/period_repository.dart';
+import '../features/cycle/services/cycle_calculation_service.dart';
 import '../features/auth/providers/auth_provider.dart';
 import '../features/whisper_room/services/whisper_service.dart';
 
@@ -94,34 +101,45 @@ class HealthMetricsNotifier extends StateNotifier<HealthMetrics> {
 }
 
 // Period Cycle Provider
-final cycleDataProvider = StateNotifierProvider<CycleDataNotifier, CycleData>((ref) {
-  return CycleDataNotifier();
+//
+// Computed from the user's persisted period records via the centralized
+// [CycleCalculationService]. Estimates are recalculated automatically after
+// every add/edit/delete because this provider watches [periodLogsProvider].
+final cycleInsightsProvider = Provider<CycleInsights>((ref) {
+  final records = ref.watch(periodLogsProvider).records;
+  return CycleCalculationService().computeInsights(records);
 });
 
-class CycleDataNotifier extends StateNotifier<CycleData> {
-  CycleDataNotifier() : super(CycleData.defaultData());
+final cycleDataProvider = Provider<CycleData>((ref) {
+  final insights = ref.watch(cycleInsightsProvider);
 
-  void logSymptomToday(String symptom, String flow, int pain, String mood) {
-    final newLog = DailySymptomLog(
-      date: DateTime.now(),
-      symptoms: [symptom],
-      flowLevel: flow,
-      painScale: pain,
-      mood: mood,
-    );
-    state = CycleData(
-      lastPeriodStartDate: state.lastPeriodStartDate,
-      cycleLengthDays: state.cycleLengthDays,
-      periodDurationDays: state.periodDurationDays,
-      currentDayOfCycle: state.currentDayOfCycle,
-      currentPhase: state.currentPhase,
-      daysUntilNextPeriod: state.daysUntilNextPeriod,
-      ovulationDate: state.ovulationDate,
-      fertilityWindow: state.fertilityWindow,
-      symptomLogs: [newLog, ...state.symptomLogs],
-    );
+  final now = DateTime.now();
+  final lastStart =
+      insights.lastPeriodStartDate ?? now.subtract(const Duration(days: 11));
+  final ovulation =
+      insights.estimatedOvulation ?? lastStart.add(const Duration(days: 14));
+  final fertileWindow = <DateTime>[];
+  if (insights.fertileWindowStart != null) {
+    var day = insights.fertileWindowStart!;
+    final end = insights.fertileWindowEnd ?? day;
+    while (!day.isAfter(end)) {
+      fertileWindow.add(day);
+      day = day.add(const Duration(days: 1));
+    }
   }
-}
+
+  return CycleData(
+    lastPeriodStartDate: lastStart,
+    cycleLengthDays: insights.averageCycleLength,
+    periodDurationDays: insights.averagePeriodDuration,
+    currentDayOfCycle: insights.currentDayOfCycle,
+    currentPhase: insights.currentPhase,
+    daysUntilNextPeriod: (insights.daysUntilNextPeriod ?? 0).clamp(0, 999),
+    ovulationDate: ovulation,
+    fertilityWindow: fertileWindow,
+    symptomLogs: insights.dailySymptomLogs,
+  );
+});
 
 // Period Logs Provider
 final periodRepositoryProvider = Provider<PeriodRepository>((ref) {
@@ -182,15 +200,19 @@ class PeriodLogsNotifier extends StateNotifier<PeriodLogsState> {
     }
   }
 
-  /// Saves a new period to Supabase.
+  /// Saves a new period to Firebase.
   /// Returns null on success, or a user-facing error message on failure.
   Future<String?> addPeriod({
     required DateTime startDate,
     DateTime? endDate,
     String? flowLevel,
     int? painLevel,
-    String? mood,
+    List<String>? moods,
     List<String>? symptoms,
+    String? discharge,
+    List<String>? digestion,
+    List<String>? otherFactors,
+    Map<String, PeriodDayLog>? dailyLogs,
     String? notes,
   }) async {
     try {
@@ -199,8 +221,12 @@ class PeriodLogsNotifier extends StateNotifier<PeriodLogsState> {
         endDate: endDate,
         flowLevel: flowLevel,
         painLevel: painLevel,
-        mood: mood,
+        moods: moods,
         symptoms: symptoms,
+        discharge: discharge,
+        digestion: digestion,
+        otherFactors: otherFactors,
+        dailyLogs: dailyLogs,
         notes: notes,
       );
       if (mounted) {
@@ -213,7 +239,7 @@ class PeriodLogsNotifier extends StateNotifier<PeriodLogsState> {
     }
   }
 
-  /// Updates an existing period in Supabase.
+  /// Updates an existing period in Firebase.
   /// Returns null on success, or a user-facing error message on failure.
   Future<String?> updatePeriod(
     String id, {
@@ -221,8 +247,12 @@ class PeriodLogsNotifier extends StateNotifier<PeriodLogsState> {
     DateTime? endDate,
     String? flowLevel,
     int? painLevel,
-    String? mood,
+    List<String>? moods,
     List<String>? symptoms,
+    String? discharge,
+    List<String>? digestion,
+    List<String>? otherFactors,
+    Map<String, PeriodDayLog>? dailyLogs,
     String? notes,
   }) async {
     try {
@@ -232,8 +262,12 @@ class PeriodLogsNotifier extends StateNotifier<PeriodLogsState> {
         endDate: endDate,
         flowLevel: flowLevel,
         painLevel: painLevel,
-        mood: mood,
+        moods: moods,
         symptoms: symptoms,
+        discharge: discharge,
+        digestion: digestion,
+        otherFactors: otherFactors,
+        dailyLogs: dailyLogs,
         notes: notes,
       );
       if (mounted) {
@@ -280,135 +314,517 @@ final remindersProvider = StateNotifierProvider<RemindersNotifier, List<Reminder
   return RemindersNotifier();
 });
 
+/// Manages the user's reminders.
+///
+/// Reminders are persisted per-user in Firestore under
+/// `users/{userId}/reminders/{id}` and mirrored to real device
+/// notifications through [NotificationService].
 class RemindersNotifier extends StateNotifier<List<ReminderItem>> {
   RemindersNotifier()
-      : super([
-          ReminderItem(
-            id: 'rem_1',
-            title: 'Period Expected',
-            category: 'Period',
-            subtitle: 'May 28, 2026',
-            colorKey: 'Pink',
-            isEnabled: true,
-          ),
-          ReminderItem(
-            id: 'rem_2',
-            title: 'Drink 2.5L Water',
-            category: 'Water',
-            subtitle: 'Daily Goal',
-            reminderTimes: const [TimeOfDay(hour: 10, minute: 30)],
-            colorKey: 'Blue',
-            isEnabled: true,
-          ),
-          ReminderItem(
-            id: 'rem_3',
-            title: 'Take Supplements',
-            category: 'Medicine',
-            subtitle: 'After Breakfast',
-            reminderTimes: const [TimeOfDay(hour: 13, minute: 0)],
-            colorKey: 'Purple',
-            isEnabled: true,
-          ),
-          ReminderItem(
-            id: 'rem_4',
-            title: 'Evening Walk',
-            category: 'Exercise',
-            subtitle: '30 mins activity',
-            reminderTimes: const [TimeOfDay(hour: 18, minute: 0)],
-            colorKey: 'Peach',
-            isEnabled: true,
-          ),
-          ReminderItem(
-            id: 'rem_5',
-            title: 'Sleep Reminder',
-            category: 'Sleep',
-            subtitle: 'Wind down time',
-            reminderTimes: const [TimeOfDay(hour: 22, minute: 30)],
-            colorKey: 'Purple',
-            isEnabled: false,
-          ),
-          ReminderItem(
-            id: 'rem_6',
-            title: 'Log Daily Health',
-            category: 'Health',
-            subtitle: 'Update your wellness tracker',
-            reminderTimes: const [TimeOfDay(hour: 20, minute: 0)],
-            colorKey: 'Pink',
-            isEnabled: true,
-          ),
-        ]) {
-    // Schedule initial enabled reminders on startup
-    _scheduleAllEnabled();
+      : _userId = Backend.auth?.currentUser?.uid,
+        super(const []) {
+    // Deferred so `state` is never modified while the provider is first
+    // created during the widget build phase.
+    Future.microtask(_initialize);
+
+    // Reload when the signed-in user changes so one user's reminders are
+    // never shown to (or scheduled for) another user.
+    _authSubscription = Backend.auth?.authStateChanges().listen((fbUser) {
+      final newUserId = fbUser?.uid;
+      if (newUserId == _userId) return;
+      _clearAllScheduled();
+      _notificationIds.clear();
+      _userId = newUserId;
+      if (_userId == null) {
+        _restoreDemoReminders();
+      } else {
+        _loadFromBackend();
+      }
+    });
   }
 
-  void _scheduleAllEnabled() {
-    for (final r in state) {
-      if (r.isEnabled) _scheduleReminder(r);
+  String? _userId;
+  StreamSubscription<fb.User?>? _authSubscription;
+
+  Future<void> _initialize() async {
+    if (_userId == null) {
+      _restoreDemoReminders();
+    } else {
+      await _loadFromBackend();
     }
   }
 
-  void _scheduleReminder(ReminderItem reminder) {
-    if (reminder.reminderTimes.isEmpty) return;
-    final int notifId = reminder.id.hashCode;
-    NotificationService().scheduleDailyReminder(
-      id: notifId,
-      title: reminder.title,
-      body: reminder.subtitle ?? 'Time for your reminder',
-      time: reminder.reminderTimes.first,
+  /// Tracks the notification IDs scheduled for each reminder id so that
+  /// edits/toggles/deletes can cancel exactly the right notifications.
+  final Map<String, List<int>> _notificationIds = {};
+
+  @override
+  void dispose() {
+    _authSubscription?.cancel();
+    super.dispose();
+  }
+
+  // -------------------------------------------------------------------------
+  // DATA LOADING & PERSISTENCE
+  // -------------------------------------------------------------------------
+
+  Future<void> _loadFromBackend() async {
+    final uid = _userId;
+    final firestore = Backend.firestore;
+    if (uid == null || firestore == null) {
+      _restoreDemoReminders();
+      return;
+    }
+
+    try {
+      final snapshot = await firestore
+          .collection('users')
+          .doc(uid)
+          .collection('reminders')
+          .get();
+
+      final items = <ReminderItem>[];
+      for (final doc in snapshot.docs) {
+        items.add(_fromFirestoreMap(doc.data()));
+      }
+
+      if (!mounted) return;
+      state = items;
+
+      // Reschedule enabled reminders. Scheduling with the same notification
+      // IDs replaces existing entries, so this never creates duplicates.
+      for (final r in items) {
+        if (r.isEnabled) {
+          await _scheduleReminder(r);
+        }
+      }
+    } catch (e) {
+      debugPrint('[Reminders] Failed to load reminders: $e');
+      if (mounted && state.isEmpty) {
+        _restoreDemoReminders();
+      }
+    }
+  }
+
+  Future<void> _persistReminder(ReminderItem reminder) async {
+    final uid = _userId;
+    final firestore = Backend.firestore;
+    if (uid == null || firestore == null) return;
+    try {
+      await firestore
+          .collection('users')
+          .doc(uid)
+          .collection('reminders')
+          .doc(reminder.id)
+          .set(_toFirestoreMap(reminder));
+    } catch (e) {
+      debugPrint('[Reminders] Failed to persist reminder ${reminder.id}: $e');
+    }
+  }
+
+  Future<void> _deleteFromBackend(String id) async {
+    final uid = _userId;
+    final firestore = Backend.firestore;
+    if (uid == null || firestore == null) return;
+    try {
+      await firestore
+          .collection('users')
+          .doc(uid)
+          .collection('reminders')
+          .doc(id)
+          .delete();
+    } catch (e) {
+      debugPrint('[Reminders] Failed to delete reminder $id: $e');
+    }
+  }
+
+  Map<String, dynamic> _toFirestoreMap(ReminderItem r) => {
+        'id': r.id,
+        'user_id': _userId ?? '',
+        'title': r.title,
+        'category': r.category,
+        'subtitle': r.subtitle,
+        'notes': r.notes,
+        'color_key': r.colorKey,
+        'repeat_schedule': r.repeatSchedule,
+        'custom_days': r.customDays,
+        'selected_dates':
+            r.selectedDates.map((d) => d.toIso8601String()).toList(),
+        'reminder_times': r.reminderTimes
+            .map((t) => {'hour': t.hour, 'minute': t.minute})
+            .toList(),
+        'is_enabled': r.isEnabled,
+        'notification_ids': _notificationIds[r.id] ?? const <int>[],
+        'created_at': DateTime.now().toIso8601String(),
+        'updated_at': DateTime.now().toIso8601String(),
+      };
+
+  ReminderItem _fromFirestoreMap(Map<String, dynamic> data) {
+    var dates = const <DateTime>[];
+    var days = const <String>[];
+    var times = const <TimeOfDay>[];
+    var ids = const <int>[];
+
+    try {
+      dates = (data['selected_dates'] as List)
+          .map((e) => DateTime.parse(e.toString()))
+          .toList();
+    } catch (_) {}
+    try {
+      days = (data['custom_days'] as List).map((e) => e.toString()).toList();
+    } catch (_) {}
+    try {
+      times = (data['reminder_times'] as List)
+          .map((e) {
+            final m = Map<String, dynamic>.from(e as Map);
+            return TimeOfDay(
+              hour: (m['hour'] as num).toInt(),
+              minute: (m['minute'] as num).toInt(),
+            );
+          })
+          .toList();
+    } catch (_) {}
+    try {
+      ids = (data['notification_ids'] as List)
+          .map((e) => (e as num).toInt())
+          .toList();
+    } catch (_) {}
+
+    final id = data['id']?.toString() ?? '';
+    if (id.isNotEmpty) {
+      _notificationIds[id] = ids;
+    }
+
+    return ReminderItem(
+      id: id,
+      title: data['title']?.toString() ?? 'Reminder',
+      category: data['category']?.toString() ?? 'Custom',
+      subtitle: data['subtitle']?.toString() ?? '',
+      selectedDates: dates,
+      repeatSchedule: data['repeat_schedule']?.toString() ?? 'Daily',
+      customDays: days,
+      reminderTimes: times,
+      colorKey: data['color_key']?.toString() ?? 'Pink',
+      notes: data['notes']?.toString() ?? '',
+      isEnabled: data['is_enabled'] == true,
     );
   }
 
-  void _cancelReminder(String id) {
-    final int notifId = id.hashCode;
-    NotificationService().cancelReminder(notifId);
-  }
+  // -------------------------------------------------------------------------
+  // NOTIFICATION SCHEDULING
+  // -------------------------------------------------------------------------
 
-  void toggleReminder(String id) {
-    final newState = <ReminderItem>[];
+  void _restoreDemoReminders() {
+    state = _demoReminders();
     for (final r in state) {
-      if (r.id == id) {
-        final toggled = r.copyWith(isEnabled: !r.isEnabled);
-        if (toggled.isEnabled) {
-          _scheduleReminder(toggled);
-        } else {
-          _cancelReminder(id);
-        }
-        newState.add(toggled);
-      } else {
-        newState.add(r);
+      if (r.isEnabled) {
+        unawaited(_scheduleReminder(r));
       }
     }
-    state = newState;
   }
 
-  void addReminder(ReminderItem reminder) {
-    state = [...state, reminder];
-    if (reminder.isEnabled) {
-      _scheduleReminder(reminder);
+  /// Placeholder reminders shown only when no user is signed in or when the
+  /// backend is unavailable (demo/preview mode). Never persisted.
+  List<ReminderItem> _demoReminders() {
+    return [
+      ReminderItem(
+        id: 'rem_1',
+        title: 'Period Expected',
+        category: 'Period',
+        subtitle: 'May 28, 2026',
+        colorKey: 'Pink',
+        isEnabled: true,
+      ),
+      ReminderItem(
+        id: 'rem_2',
+        title: 'Drink 2.5L Water',
+        category: 'Water',
+        subtitle: 'Daily Goal',
+        reminderTimes: const [TimeOfDay(hour: 10, minute: 30)],
+        colorKey: 'Blue',
+        isEnabled: true,
+      ),
+      ReminderItem(
+        id: 'rem_3',
+        title: 'Take Supplements',
+        category: 'Medicine',
+        subtitle: 'After Breakfast',
+        reminderTimes: const [TimeOfDay(hour: 13, minute: 0)],
+        colorKey: 'Purple',
+        isEnabled: true,
+      ),
+      ReminderItem(
+        id: 'rem_4',
+        title: 'Evening Walk',
+        category: 'Exercise',
+        subtitle: '30 mins activity',
+        reminderTimes: const [TimeOfDay(hour: 18, minute: 0)],
+        colorKey: 'Peach',
+        isEnabled: true,
+      ),
+      ReminderItem(
+        id: 'rem_5',
+        title: 'Sleep Reminder',
+        category: 'Sleep',
+        subtitle: 'Wind down time',
+        reminderTimes: const [TimeOfDay(hour: 22, minute: 30)],
+        colorKey: 'Purple',
+        isEnabled: false,
+      ),
+      ReminderItem(
+        id: 'rem_6',
+        title: 'Log Daily Health',
+        category: 'Health',
+        subtitle: 'Update your wellness tracker',
+        reminderTimes: const [TimeOfDay(hour: 20, minute: 0)],
+        colorKey: 'Pink',
+        isEnabled: true,
+      ),
+    ];
+  }
+
+  /// Schedules all notifications for [reminder], cancelling any previously
+  /// scheduled notifications for it first. Returns false when the user has
+  /// denied notification permission (the reminder is still saved, but no
+  /// device notification can fire).
+  ///
+  /// [promptForExactAlarm] should be true only when the user is actively
+  /// saving/toggling a reminder so the Android exact-alarm settings screen is
+  /// not shown on every app launch.
+  Future<bool> _scheduleReminder(
+    ReminderItem reminder, {
+    bool promptForExactAlarm = false,
+  }) async {
+    if (reminder.reminderTimes.isEmpty) return true;
+
+    final service = NotificationService();
+    if (!await service.canScheduleNotifications()) return false;
+    if (promptForExactAlarm) {
+      await service.requestExactAlarmsPermissionIfNeeded();
+    }
+
+    await _cancelReminder(reminder.id);
+
+    final times = reminder.reminderTimes;
+    final repeat = reminder.repeatSchedule;
+    const dayNumbers = {
+      'Mon': 1, 'Tue': 2, 'Wed': 3, 'Thu': 4,
+      'Fri': 5, 'Sat': 6, 'Sun': 7,
+    };
+    final ids = <int>[];
+
+    for (var timeIndex = 0; timeIndex < times.length; timeIndex++) {
+      final time = times[timeIndex];
+
+      Future<int> scheduleOne({
+        required int weekday,
+        required int dayOfMonth,
+        required DateTimeComponents? match,
+      }) async {
+        final id = _notificationId(reminder.id, timeIndex, weekday, dayOfMonth);
+        final when = service.nextDateTime(
+          hour: time.hour,
+          minute: time.minute,
+          weekday: weekday,
+          dayOfMonth: dayOfMonth,
+        );
+        await service.schedule(
+          id: id,
+          title: 'SYNCO Reminder 💜',
+          body: _notificationBody(reminder),
+          scheduledDate: when,
+          matchDateTimeComponents: match,
+        );
+        return id;
+      }
+
+      switch (repeat) {
+        case 'Never':
+          ids.add(await scheduleOne(
+            weekday: 0, dayOfMonth: 0, match: null,
+          ));
+          break;
+        case 'Every Weekday':
+          for (var weekday = 1; weekday <= 5; weekday++) {
+            ids.add(await scheduleOne(
+              weekday: weekday, dayOfMonth: 0,
+              match: DateTimeComponents.dayOfWeekAndTime,
+            ));
+          }
+          break;
+        case 'Weekends':
+          ids.add(await scheduleOne(
+            weekday: 6, dayOfMonth: 0,
+            match: DateTimeComponents.dayOfWeekAndTime,
+          ));
+          ids.add(await scheduleOne(
+            weekday: 7, dayOfMonth: 0,
+            match: DateTimeComponents.dayOfWeekAndTime,
+          ));
+          break;
+        case 'Weekly':
+          final weekday = reminder.selectedDates.isNotEmpty
+              ? reminder.selectedDates.first.weekday
+              : DateTime.now().weekday;
+          ids.add(await scheduleOne(
+            weekday: weekday, dayOfMonth: 0,
+            match: DateTimeComponents.dayOfWeekAndTime,
+          ));
+          break;
+        case 'Monthly':
+          final dayOfMonth = reminder.selectedDates.isNotEmpty
+              ? reminder.selectedDates.first.day
+              : DateTime.now().day;
+          ids.add(await scheduleOne(
+            weekday: 0, dayOfMonth: dayOfMonth,
+            match: DateTimeComponents.dayOfMonthAndTime,
+          ));
+          break;
+        case 'Custom Days':
+          if (reminder.customDays.isEmpty) {
+            ids.add(await scheduleOne(
+              weekday: 0, dayOfMonth: 0,
+              match: DateTimeComponents.time,
+            ));
+            break;
+          }
+          for (final day in reminder.customDays) {
+            final weekday = dayNumbers[day];
+            if (weekday != null) {
+              ids.add(await scheduleOne(
+                weekday: weekday, dayOfMonth: 0,
+                match: DateTimeComponents.dayOfWeekAndTime,
+              ));
+            }
+          }
+          break;
+        case 'Daily':
+        default:
+          ids.add(await scheduleOne(
+            weekday: 0, dayOfMonth: 0,
+            match: DateTimeComponents.time,
+          ));
+          break;
+      }
+    }
+
+    _notificationIds[reminder.id] = ids;
+    return true;
+  }
+
+  /// Cancels every notification currently scheduled for [id].
+  Future<void> _cancelReminder(String id) async {
+    final ids = _notificationIds.remove(id);
+    if (ids != null && ids.isNotEmpty) {
+      await NotificationService().cancelAll(ids);
     }
   }
 
-  void updateReminder(ReminderItem updated) {
+  void _clearAllScheduled() {
+    for (final ids in _notificationIds.values) {
+      unawaited(NotificationService().cancelAll(ids));
+    }
+  }
+
+  /// Stable, positive, collision-resistant notification ID derived from the
+  /// reminder id and schedule slot so each scheduled notification is unique
+  /// and survives app restarts.
+  int _notificationId(String reminderId, int timeIndex, int weekday, int dayOfMonth) {
+    const seed = 0x811C9DC5; // FNV-1a 32-bit offset basis
+    const prime = 0x01000193;
+    final text = '$reminderId|$timeIndex|$weekday|$dayOfMonth';
+    var hash = seed;
+    for (final unit in text.codeUnits) {
+      hash ^= unit;
+      hash = (hash * prime) & 0x7FFFFFFF;
+    }
+    return hash;
+  }
+
+  /// Neutral, title-driven notification body.
+  String _notificationBody(ReminderItem reminder) {
+    return "It's time for your scheduled reminder: ${reminder.title}";
+  }
+
+  // -------------------------------------------------------------------------
+  // USER ACTIONS
+  // -------------------------------------------------------------------------
+
+  /// Adds a reminder, persists it and schedules its notifications.
+  /// Returns false when notifications are disabled on the device.
+  Future<bool> addReminder(ReminderItem reminder) async {
+    state = [...state, reminder];
+    var notificationOk = true;
+    if (reminder.isEnabled && reminder.reminderTimes.isNotEmpty) {
+      notificationOk =
+          await _scheduleReminder(reminder, promptForExactAlarm: true);
+    }
+    await _persistReminder(reminder);
+    return notificationOk;
+  }
+
+  /// Toggles a reminder ON/OFF. ON reschedules notifications, OFF cancels
+  /// them. Returns false when turning ON failed because notifications are
+  /// disabled on the device.
+  Future<bool> toggleReminder(String id) async {
+    var notificationOk = true;
+    var toggled = const <ReminderItem>[];
     final newState = <ReminderItem>[];
-    for (final r in state) {
-      if (r.id == updated.id) {
-        // Cancel the old one just in case the time changed
-        _cancelReminder(r.id);
-        
+
+    for (final reminder in state) {
+      if (reminder.id == id) {
+        final updated = reminder.copyWith(isEnabled: !reminder.isEnabled);
         if (updated.isEnabled) {
-          _scheduleReminder(updated);
+          if (updated.reminderTimes.isNotEmpty) {
+            notificationOk =
+                await _scheduleReminder(updated, promptForExactAlarm: true);
+          }
+        } else {
+          await _cancelReminder(id);
+        }
+        toggled = [updated];
+        newState.add(updated);
+      } else {
+        newState.add(reminder);
+      }
+    }
+
+    state = newState;
+    if (toggled.isNotEmpty) {
+      await _persistReminder(toggled.first);
+    }
+    return notificationOk;
+  }
+
+  /// Updates a reminder: cancels the old notifications, saves the changes
+  /// and schedules the new notifications. Returns false when the updated
+  /// reminder is enabled but notifications are disabled on the device.
+  Future<bool> updateReminder(ReminderItem updated) async {
+    var notificationOk = true;
+    final newState = <ReminderItem>[];
+    for (final reminder in state) {
+      if (reminder.id == updated.id) {
+        if (updated.isEnabled && updated.reminderTimes.isNotEmpty) {
+          notificationOk =
+              await _scheduleReminder(updated, promptForExactAlarm: true);
+        } else {
+          await _cancelReminder(updated.id);
         }
         newState.add(updated);
       } else {
-        newState.add(r);
+        newState.add(reminder);
       }
     }
     state = newState;
+    await _persistReminder(updated);
+    return notificationOk;
   }
 
-  void deleteReminder(String id) {
-    _cancelReminder(id);
+  /// Deletes a reminder and cancels its scheduled notifications.
+  Future<void> deleteReminder(String id) async {
+    await _cancelReminder(id);
     state = state.where((r) => r.id != id).toList();
+    await _deleteFromBackend(id);
   }
 }
 

@@ -90,22 +90,24 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
             if (_imageBase64 == null) ...[
               Container(
                 height: 250,
+                padding: const EdgeInsets.symmetric(horizontal: 20),
                 decoration: BoxDecoration(
-                  color: AppColors.babyPink,
+                  color: AppColors.softLavender.withValues(alpha: 0.5),
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: AppColors.rosePink.withValues(alpha: 0.3), width: 2),
+                  border: Border.all(color: AppColors.softPurple.withValues(alpha: 0.3), width: 2),
                 ),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.fastfood_rounded, size: 64, color: AppColors.rosePink),
+                    const Icon(Icons.fastfood_rounded, size: 64, color: AppColors.softPurple),
                     const SizedBox(height: 16),
                     Text(
                       'Scan a meal to check its impact\non your cycle and PCOS.',
                       textAlign: TextAlign.center,
                       style: GoogleFonts.inter(
                         fontSize: 15,
-                        color: AppColors.textMedium,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textDark,
                       ),
                     ),
                   ],
@@ -123,7 +125,7 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
                     icon: const Icon(Icons.camera_alt_rounded, color: Colors.white),
                     label: const Text('Camera', style: TextStyle(color: Colors.white)),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.deepRose,
+                      backgroundColor: AppColors.softPurple,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                     ),
@@ -133,13 +135,12 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
                 Expanded(
                   child: ElevatedButton.icon(
                     onPressed: _isLoading ? null : () => _pickImage(ImageSource.gallery),
-                    icon: const Icon(Icons.photo_library_rounded, color: AppColors.deepRose),
-                    label: const Text('Gallery', style: TextStyle(color: AppColors.deepRose)),
+                    icon: const Icon(Icons.photo_library_rounded, color: Colors.white),
+                    label: const Text('Gallery', style: TextStyle(color: Colors.white)),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
+                      backgroundColor: AppColors.softPurple,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      side: const BorderSide(color: AppColors.deepRose),
                     ),
                   ),
                 ),
@@ -153,7 +154,7 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
               const Center(
                 child: Column(
                   children: [
-                    CircularProgressIndicator(color: AppColors.deepRose),
+                    CircularProgressIndicator(color: AppColors.softPurple),
                     SizedBox(height: 16),
                     Text('Analyzing nutritional profile...'),
                   ],
@@ -178,7 +179,7 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
                   children: [
                     Row(
                       children: [
-                        const Icon(Icons.analytics_rounded, color: AppColors.deepRose),
+                        const Icon(Icons.analytics_rounded, color: AppColors.softPurple),
                         const SizedBox(width: 8),
                         Text(
                           'Meal Report',

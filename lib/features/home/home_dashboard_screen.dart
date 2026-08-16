@@ -14,11 +14,48 @@ import 'widgets/symptoms_assessment_card.dart';
 import 'widgets/upcoming_reminders_card.dart';
 import '../whisper_room/notifications_screen.dart';
 import '../health/screens/health_report_screen.dart';
-class HomeDashboardScreen extends ConsumerWidget {
+class HomeDashboardScreen extends ConsumerStatefulWidget {
   const HomeDashboardScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HomeDashboardScreen> createState() => _HomeDashboardScreenState();
+}
+
+class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
+  late final ScrollController _scrollController;
+  double _scrollOffset = 0.0;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController = ScrollController();
+    _scrollController.addListener(_onScroll);
+  }
+
+  void _onScroll() {
+    if (_scrollController.hasClients) {
+      final offset = _scrollController.offset;
+      if (offset >= 0 && offset <= 220) {
+        setState(() {
+          _scrollOffset = offset;
+        });
+      } else if (_scrollOffset < 220 && offset > 220) {
+        setState(() {
+          _scrollOffset = 220;
+        });
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final authState = ref.watch(authNotifierProvider);
     final cycleState = ref.watch(cycleProvider);
     final healthScoreState = ref.watch(healthScoreProvider);
@@ -27,34 +64,72 @@ class HomeDashboardScreen extends ConsumerWidget {
     final displayName = _resolveDisplayName(authState);
     final avatarUrl = authState.userProfile?.avatarUrl ?? '';
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFFAF8F5), // Premium pastel cream background
-      body: SafeArea(
-        child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.symmetric(horizontal: 18.0, vertical: 14.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // 1. APP BAR
-              AppBarHeader(
-                userName: displayName,
-                avatarUrl: avatarUrl,
-                onAvatarTap: () => _showProfileDialog(context, ref, displayName, authState),
-                onNotificationTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (ctx) => const NotificationsScreen(),
-                    ),
-                  );
-                },
-              ),
-              const SizedBox(height: 20),
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final isCompact = screenWidth < 360;
+    final maxHeroHeight = isCompact ? 142.0 : 155.0;
+    const collapseThreshold = 135.0;
 
-              // 2. DASHBOARD HERO GREETING
-              DashboardHeroHeader(firstName: firstName),
-              const SizedBox(height: 18),
+    final progress = (_scrollOffset / collapseThreshold).clamp(0.0, 1.0);
+    final currentHeroHeight = maxHeroHeight * (1.0 - progress);
+    final currentGapHeight = 18.0 * (1.0 - progress);
+    final heroOpacity = (1.0 - progress * 1.15).clamp(0.0, 1.0);
+    final heroScale = 1.0 - (progress * 0.18);
+    final heroParallaxY = -progress * 28.0;
+    final textParallaxY = -progress * 18.0;
+
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: Stack(
+        children: [
+          // 0. FIXED FULL-SCREEN BACKGROUND IMAGE
+          Positioned.fill(
+            child: Image.asset(
+              'assets/images/dashboard_background.png',
+              fit: BoxFit.cover,
+              alignment: Alignment.topCenter,
+            ),
+          ),
+
+          // DASHBOARD CONTENT
+          SafeArea(
+            child: SingleChildScrollView(
+              controller: _scrollController,
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.symmetric(horizontal: 18.0, vertical: 14.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 1. APP BAR
+                  AppBarHeader(
+                    userName: displayName,
+                    avatarUrl: avatarUrl,
+                    onAvatarTap: () => _showProfileDialog(context, ref, displayName, authState),
+                    onNotificationTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (ctx) => const NotificationsScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                  SizedBox(height: 20 * (1.0 - progress * 0.3)),
+
+                  // 2. DASHBOARD HERO GREETING (SCROLL COLLAPSIBLE)
+                  if (currentHeroHeight > 0.5)
+                    SizedBox(
+                      height: currentHeroHeight,
+                      child: ClipRect(
+                        child: DashboardHeroHeader(
+                          firstName: firstName,
+                          heroScale: heroScale,
+                          heroParallaxY: heroParallaxY,
+                          textParallaxY: textParallaxY,
+                          opacity: heroOpacity,
+                        ),
+                      ),
+                    ),
+                  SizedBox(height: currentGapHeight),
 
               // 3. PERIOD CYCLE OVERVIEW
               if (cycleState.isLoading)
@@ -110,7 +185,9 @@ class HomeDashboardScreen extends ConsumerWidget {
           ),
         ),
       ),
-    );
+    ],
+  ),
+);
   }
 
   String _resolveDisplayName(AuthState authState) {

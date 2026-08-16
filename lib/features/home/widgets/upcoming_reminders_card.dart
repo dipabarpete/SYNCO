@@ -14,23 +14,40 @@ class UpcomingRemindersCard extends ConsumerWidget {
     BuildContext context,
     WidgetRef ref, {
     ReminderItem? item,
-  }) {
-    showModalBottomSheet(
+  }) async {
+    final notifier = ref.read(remindersProvider.notifier);
+    final notificationOk = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => ReminderFormSheet(
         initialItem: item,
-        onSave: (savedItem) {
+        onSave: (savedItem) async {
           if (item == null) {
-            ref.read(remindersProvider.notifier).addReminder(savedItem);
-          } else {
-            ref.read(remindersProvider.notifier).updateReminder(savedItem);
+            return await notifier.addReminder(savedItem);
           }
+          return await notifier.updateReminder(savedItem);
         },
-        onDelete: (id) {
-          ref.read(remindersProvider.notifier).deleteReminder(id);
-        },
+        onDelete: (id) async => await notifier.deleteReminder(id),
+      ),
+    );
+
+    if (notificationOk == false && context.mounted) {
+      _showNotificationsDisabledMessage(context);
+    }
+  }
+
+  void _showNotificationsDisabledMessage(BuildContext context) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text(
+          'Notifications are disabled. Allow SYNCO notifications in your '
+          'device settings so we can remind you about your scheduled '
+          'health reminders.',
+        ),
+        backgroundColor: AppColors.softPurple,
+        duration: const Duration(seconds: 5),
+        behavior: SnackBarBehavior.floating,
       ),
     );
   }
@@ -114,8 +131,13 @@ class UpcomingRemindersCard extends ConsumerWidget {
                 final item = reminders[index];
                 return ReminderTile(
                   item: item,
-                  onToggle: (val) {
-                    ref.read(remindersProvider.notifier).toggleReminder(item.id);
+                  onToggle: (val) async {
+                    final ok = await ref
+                        .read(remindersProvider.notifier)
+                        .toggleReminder(item.id);
+                    if (!ok && context.mounted) {
+                      _showNotificationsDisabledMessage(context);
+                    }
                   },
                   onTap: () => _openReminderForm(context, ref, item: item),
                 );

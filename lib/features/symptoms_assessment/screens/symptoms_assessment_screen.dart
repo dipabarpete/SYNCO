@@ -1,15 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_colors.dart';
+import '../models/saved_screening_result.dart';
+import '../providers/screening_results_provider.dart';
 import 'pcos_assessment_screen.dart';
 import 'endometriosis_assessment_screen.dart';
 import 'fibroids_assessment_screen.dart';
 
-class SymptomsAssessmentScreen extends StatelessWidget {
+class SymptomsAssessmentScreen extends ConsumerWidget {
   const SymptomsAssessmentScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final results = ref.watch(screeningResultsProvider);
+
     return Scaffold(
       backgroundColor: AppColors.creamWhite,
       body: Container(
@@ -137,6 +142,7 @@ class SymptomsAssessmentScreen extends StatelessWidget {
                         title: 'PCOS',
                         subtitle: 'Symptom screening for Polycystic Ovary Syndrome / PCOD',
                         icon: Icons.donut_large_rounded,
+                        lastResult: results[ScreeningAssessmentType.pcos],
                         onTap: () {
                           Navigator.push(
                             context,
@@ -153,6 +159,7 @@ class SymptomsAssessmentScreen extends StatelessWidget {
                         title: 'Endometriosis',
                         subtitle: 'Symptom screening for Endometriosis & pelvic health',
                         icon: Icons.favorite_border_rounded,
+                        lastResult: results[ScreeningAssessmentType.endometriosis],
                         onTap: () {
                           Navigator.push(
                             context,
@@ -169,6 +176,7 @@ class SymptomsAssessmentScreen extends StatelessWidget {
                         title: 'Uterine Fibroids',
                         subtitle: 'Symptom screening for Uterine Fibroids & uterine health',
                         icon: Icons.grain_rounded,
+                        lastResult: results[ScreeningAssessmentType.uterineFibroids],
                         onTap: () {
                           Navigator.push(
                             context,
@@ -194,12 +202,14 @@ class _AssessmentOptionCard extends StatelessWidget {
   final String title;
   final String subtitle;
   final IconData icon;
+  final SavedScreeningResult? lastResult;
   final VoidCallback onTap;
 
   const _AssessmentOptionCard({
     required this.title,
     required this.subtitle,
     required this.icon,
+    this.lastResult,
     required this.onTap,
   });
 
@@ -227,67 +237,188 @@ class _AssessmentOptionCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(20),
           child: Padding(
             padding: const EdgeInsets.all(20.0),
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: AppColors.babyPink,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: AppColors.lavenderAccent.withValues(alpha: 0.4),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppColors.babyPink,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: AppColors.lavenderAccent.withValues(alpha: 0.4),
+                        ),
+                      ),
+                      child: Icon(
+                        icon,
+                        color: AppColors.softPurple,
+                        size: 26,
+                      ),
                     ),
-                  ),
-                  child: Icon(
-                    icon,
-                    color: AppColors.softPurple,
-                    size: 26,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: GoogleFonts.outfit(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.textDark,
-                        ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            title,
+                            style: GoogleFonts.outfit(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.textDark,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            subtitle,
+                            style: GoogleFonts.inter(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w400,
+                              color: AppColors.textMedium,
+                              height: 1.35,
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        subtitle,
-                        style: GoogleFonts.inter(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w400,
-                          color: AppColors.textMedium,
-                          height: 1.35,
-                        ),
+                    ),
+                    const SizedBox(width: 12),
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppColors.softLavender.withValues(alpha: 0.4),
+                        shape: BoxShape.circle,
                       ),
-                    ],
-                  ),
+                      child: const Icon(
+                        Icons.arrow_forward_ios_rounded,
+                        color: AppColors.softPurple,
+                        size: 16,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 12),
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: AppColors.softLavender.withValues(alpha: 0.4),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.arrow_forward_ios_rounded,
-                    color: AppColors.softPurple,
-                    size: 16,
-                  ),
-                ),
+                if (lastResult != null) ...[
+                  const SizedBox(height: 16),
+                  _LastAssessmentSection(result: lastResult!),
+                ],
               ],
             ),
           ),
         ),
       ),
+    );
+  }
+}
+
+class _LastAssessmentSection extends StatelessWidget {
+  final SavedScreeningResult result;
+
+  const _LastAssessmentSection({required this.result});
+
+  @override
+  Widget build(BuildContext context) {
+    final (Color bg, Color text, Color border) = _levelColors(result.levelLabel);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.creamWhite,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.borderGrey.withValues(alpha: 0.7)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.history_rounded,
+                size: 16,
+                color: AppColors.softPurple,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                'Last Assessment',
+                style: GoogleFonts.outfit(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textDark,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Score: ${result.rawScore}',
+            style: GoogleFonts.inter(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textDark,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: bg,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: border),
+            ),
+            child: Text(
+              result.levelLabel,
+              style: GoogleFonts.inter(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: text,
+              ),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Last assessed: ${_formatDate(result.completedAt)}',
+            style: GoogleFonts.inter(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: AppColors.textMedium,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  static const List<String> _months = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+  ];
+
+  String _formatDate(DateTime date) {
+    return '${date.day} ${_months[date.month - 1]} ${date.year}';
+  }
+
+  /// Mirrors the LOW / MODERATE / HIGH colors used across SYNCO result screens.
+  (Color, Color, Color) _levelColors(String levelLabel) {
+    final label = levelLabel.toLowerCase();
+    if (label.contains('low')) {
+      return (
+        const Color(0xFFEBF7EE),
+        const Color(0xFF2E7D32),
+        const Color(0xFFA5D6A7),
+      );
+    }
+    if (label.contains('moderate')) {
+      return (
+        const Color(0xFFFFF8E1),
+        const Color(0xFFF57F17),
+        const Color(0xFFFFE082),
+      );
+    }
+    return (
+      AppColors.babyPink,
+      AppColors.softPurple,
+      AppColors.softPurple.withValues(alpha: 0.3),
     );
   }
 }

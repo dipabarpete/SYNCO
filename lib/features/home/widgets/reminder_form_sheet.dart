@@ -6,8 +6,8 @@ import '../../../models/reminder_item.dart';
 
 class ReminderFormSheet extends StatefulWidget {
   final ReminderItem? initialItem;
-  final Function(ReminderItem item) onSave;
-  final Function(String id)? onDelete;
+  final Future<bool> Function(ReminderItem item) onSave;
+  final Future<void> Function(String id)? onDelete;
 
   const ReminderFormSheet({
     super.key,
@@ -144,7 +144,7 @@ class _ReminderFormSheetState extends State<ReminderFormSheet> {
     }
   }
 
-  void _save() {
+  Future<void> _save() async {
     if (_titleController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please enter a reminder title')),
@@ -171,8 +171,10 @@ class _ReminderFormSheetState extends State<ReminderFormSheet> {
       isEnabled: widget.initialItem?.isEnabled ?? true,
     );
 
-    widget.onSave(newItem);
-    Navigator.pop(context);
+    final notificationOk = await widget.onSave(newItem);
+    if (mounted) {
+      Navigator.pop(context, notificationOk);
+    }
   }
 
   @override
@@ -612,7 +614,7 @@ class _ReminderFormSheetState extends State<ReminderFormSheet> {
                 ),
                 child: Ink(
                   decoration: BoxDecoration(
-                    gradient: AppColors.primaryGradient,
+                    color: AppColors.softPurple,
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Container(
@@ -637,9 +639,11 @@ class _ReminderFormSheetState extends State<ReminderFormSheet> {
                 width: double.infinity,
                 height: 48,
                 child: OutlinedButton.icon(
-                  onPressed: () {
-                    widget.onDelete!(widget.initialItem!.id);
-                    Navigator.pop(context);
+                  onPressed: () async {
+                    await widget.onDelete!(widget.initialItem!.id);
+                    if (context.mounted) {
+                      Navigator.pop(context);
+                    }
                   },
                   icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent),
                   label: Text(

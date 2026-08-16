@@ -1,8 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/fibroids_questions_data.dart';
 import '../models/fibroids_assessment_result.dart';
 import '../models/fibroids_question.dart';
+import '../models/saved_screening_result.dart';
 import '../services/fibroids_assessment_scoring_service.dart';
+import 'screening_results_provider.dart';
 
 class FibroidsAssessmentState {
   final int currentQuestionIndex;
@@ -38,11 +42,13 @@ class FibroidsAssessmentState {
 
 final fibroidsAssessmentProvider =
     StateNotifierProvider<FibroidsAssessmentNotifier, FibroidsAssessmentState>((ref) {
-  return FibroidsAssessmentNotifier();
+  return FibroidsAssessmentNotifier(ref);
 });
 
 class FibroidsAssessmentNotifier extends StateNotifier<FibroidsAssessmentState> {
-  FibroidsAssessmentNotifier() : super(const FibroidsAssessmentState());
+  FibroidsAssessmentNotifier(this._ref) : super(const FibroidsAssessmentState());
+
+  final Ref _ref;
 
   void selectOption(int optionIndex) {
     final updatedAnswers = Map<int, int>.from(state.answers);
@@ -64,8 +70,19 @@ class FibroidsAssessmentNotifier extends StateNotifier<FibroidsAssessmentState> 
         result: calculatedResult,
         isCompleted: true,
       );
+      _persistResult(calculatedResult);
       return true;
     }
+  }
+
+  /// Saves the completed result so the user's latest attempt survives
+  /// restarts and re-logins.
+  void _persistResult(UterineFibroidAssessmentResult result) {
+    unawaited(
+      _ref
+          .read(screeningResultsProvider.notifier)
+          .save(SavedScreeningResult.fromFibroids(result)),
+    );
   }
 
   bool previousQuestion() {
