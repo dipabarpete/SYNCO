@@ -72,13 +72,22 @@ class ChatService {
       });
 
       // Update the parent chat document
-      batch.set(chatRef, {
-        if (patientId != null && doctorId != null) 'participants': [patientId, doctorId],
-        'patientId': patientId, // keep for backward compatibility
-        'doctorId': doctorId,
+      final updateData = <String, dynamic>{
         'lastMessage': text,
         'lastUpdated': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
+      };
+
+      if (patientId != null && doctorId != null) {
+        updateData['participants'] = [patientId, doctorId];
+      }
+      if (patientId != null) {
+        updateData['patientId'] = patientId;
+      }
+      if (doctorId != null) {
+        updateData['doctorId'] = doctorId;
+      }
+
+      batch.set(chatRef, updateData, SetOptions(merge: true));
 
       await batch.commit();
 
