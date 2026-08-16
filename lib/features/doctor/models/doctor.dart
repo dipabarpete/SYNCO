@@ -9,6 +9,7 @@ class Doctor {
   final String specialization;
   final String experience;
   final double rating;
+  final int totalReviews;
   final int consultationFee;
   final String availability;
   final ConsultationMode mode;
@@ -25,6 +26,7 @@ class Doctor {
     required this.specialization,
     required this.experience,
     required this.rating,
+    this.totalReviews = 0,
     required this.consultationFee,
     required this.availability,
     required this.mode,
@@ -73,6 +75,7 @@ class Doctor {
       specialization: safeStr('specialization'),
       experience: safeStr('experience'),
       rating: (data['rating'] is num) ? (data['rating'] as num).toDouble() : 0.0,
+      totalReviews: (data['totalReviews'] is num) ? (data['totalReviews'] as num).toInt() : 0,
       consultationFee: (data['consultationFee'] is num) ? (data['consultationFee'] as num).toInt() : 0,
       availability: _parseAvailability(data['availability']),
       mode: safeStr('mode') == 'offline' ? ConsultationMode.offline : ConsultationMode.online,
@@ -90,6 +93,7 @@ class Doctor {
       'specialization': specialization,
       'experience': experience,
       'rating': rating,
+      'totalReviews': totalReviews,
       'consultationFee': consultationFee,
       'availability': availability,
       'mode': mode == ConsultationMode.offline ? 'offline' : 'online',
