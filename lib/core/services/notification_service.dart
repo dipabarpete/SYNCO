@@ -373,4 +373,19 @@ class NotificationService {
       debugPrint('[NotificationService] Failed to save notification: $e');
     }
   }
+
+  void showImmediateNotification({
+    required int id,
+    required String title,
+    required String body,
+    String? payload,
+  }) {
+    schedule(
+      id: id,
+      title: title,
+      body: body,
+      scheduledDate: tz.TZDateTime.now(tz.local).add(const Duration(seconds: 1)),
+      matchDateTimeComponents: null,
+    );
+  }
 }
