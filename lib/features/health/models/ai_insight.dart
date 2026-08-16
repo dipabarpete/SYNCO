@@ -3,6 +3,9 @@
 /// Insights are always derived from the user's own stored health data by
 /// [AiPatternService]. They use observational language and are never
 /// diagnostic or prescriptive about medical treatment.
+///
+/// [suggestion] carries a supportive, non-diagnostic "How you can improve"
+/// tip derived from the detected pattern.
 library;
 
 enum InsightKind {
@@ -55,6 +58,7 @@ class AiInsight {
   final InsightKind kind;
   final InsightTrend trend;
   final InsightCategory category;
+  final String? suggestion;
 
   const AiInsight({
     required this.id,
@@ -66,6 +70,7 @@ class AiInsight {
     required this.kind,
     this.trend = InsightTrend.neutral,
     this.category = InsightCategory.observation,
+    this.suggestion,
   });
 
   /// Used internally to rank which insights to show when there are many.

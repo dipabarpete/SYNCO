@@ -90,22 +90,30 @@ final healthDataProvider =
   return HealthDataNotifier(ref.read(healthRepositoryProvider));
 });
 
-final aiInsightsProvider = StateNotifierProvider<AiInsightsNotifier, List<AiInsight>>((ref) {
-  return AiInsightsNotifier();
+/// AI insights recomputed from the user's stored health data whenever any
+/// health entry changes.
+final aiInsightsProvider = Provider<List<AiInsight>>((ref) {
+  final data = ref.watch(healthDataProvider);
+  return const AiPatternService().detect(all: data.allEntries);
 });
 
-class AiInsightsNotifier extends StateNotifier<List<AiInsight>> {
-  AiInsightsNotifier() : super([]) {
-    _fetchInsights();
-  }
+/// AI patterns detected from the last 7 days of data only.
+final aiWeeklyInsightsProvider = Provider<List<AiInsight>>((ref) {
+  final data = ref.watch(healthDataProvider);
+  return const AiPatternService().detectPeriod(
+    all: data.allEntries,
+    range: PatternRange.week,
+  );
+});
 
-  Future<void> _fetchInsights() async {
-    final insights = await const AiPatternService().detect();
-    if (mounted) state = insights;
-  }
-  
-  void refresh() => _fetchInsights();
-}
+/// AI patterns detected from the current month of data only.
+final aiMonthlyInsightsProvider = Provider<List<AiInsight>>((ref) {
+  final data = ref.watch(healthDataProvider);
+  return const AiPatternService().detectPeriod(
+    all: data.allEntries,
+    range: PatternRange.month,
+  );
+});
 
 class HealthDataNotifier extends StateNotifier<HealthDataState> {
   final HealthDataRepository _repository;

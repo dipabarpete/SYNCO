@@ -8,6 +8,7 @@ import 'models/health_entries.dart';
 import 'providers/health_data_provider.dart';
 import 'screens/ai_insights_screen.dart';
 import 'screens/health_history_screen.dart';
+import 'services/ai_pattern_service.dart';
 import 'services/health_analytics.dart';
 import 'widgets/health_dashboard_widgets.dart';
 import 'widgets/food_tracker_sheet.dart';
@@ -23,8 +24,8 @@ import 'widgets/wellness_tracker_sheet.dart';
 ///
 /// Layout:
 ///  1. App bar: "Health"
-///  2. Kyra AI (first and most prominent section)
-///  3. Today summary
+///  2. Today summary
+///  3. Kyra AI pattern detection (banner, Weekly/Monthly filter, insight cards)
 ///  4. Health Trackers (8 loggable trackers in a 2 x 4 card grid)
 ///  5. Privacy note
 class HealthTrackingScreen extends ConsumerStatefulWidget {
@@ -36,6 +37,8 @@ class HealthTrackingScreen extends ConsumerStatefulWidget {
 }
 
 class _HealthTrackingScreenState extends ConsumerState<HealthTrackingScreen> {
+  PatternRange _range = PatternRange.week;
+
   @override
   void initState() {
     super.initState();
@@ -98,7 +101,10 @@ class _HealthTrackingScreenState extends ConsumerState<HealthTrackingScreen> {
   @override
   Widget build(BuildContext context) {
     final data = ref.watch(healthDataProvider);
-    final insights = ref.watch(aiInsightsProvider);
+    final weeklyInsights = ref.watch(aiWeeklyInsightsProvider);
+    final monthlyInsights = ref.watch(aiMonthlyInsightsProvider);
+    final insights =
+        _range == PatternRange.week ? weeklyInsights : monthlyInsights;
     final now = DateTime.now();
     final today = HealthAnalytics.daily(all: data.allEntries, date: now);
     final dataDays =
@@ -150,14 +156,20 @@ class _HealthTrackingScreenState extends ConsumerState<HealthTrackingScreen> {
                 padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
                 children: [
                   // -----------------------------------------------------------------
-                  // 1. KYRA AI
+                  // 2. TODAY SUMMARY
                   // -----------------------------------------------------------------
-                  const HealthSectionHeader(
-                    title: 'Kyra AI',
-                    subtitle: 'Personalized patterns from your health data',
-                  ),
+                  TodaySummaryCard(snapshot: today),
+                  const SizedBox(height: 22),
+
+                  // -----------------------------------------------------------------
+                  // 3. KYRA AI PATTERN DETECTION (banner, filter, insight cards)
+                  // -----------------------------------------------------------------
+                  AiHeroBanner(patternCount: insights.length),
                   const SizedBox(height: 12),
-                  const AiHeroBanner(),
+                  _PatternRangeSelector(
+                    range: _range,
+                    onChanged: (range) => setState(() => _range = range),
+                  ),
                   const SizedBox(height: 12),
 
                   if (data.errorMessage != null) ...[
@@ -200,13 +212,7 @@ class _HealthTrackingScreenState extends ConsumerState<HealthTrackingScreen> {
                   const SizedBox(height: 20),
 
                   // -----------------------------------------------------------------
-                  // 2. TODAY SUMMARY
-                  // -----------------------------------------------------------------
-                  TodaySummaryCard(snapshot: today),
-                  const SizedBox(height: 22),
-
-                  // -----------------------------------------------------------------
-                  // 3. HEALTH TRACKERS (2 x 4 card grid)
+                  // 4. HEALTH TRACKERS (2 x 4 card grid)
                   // -----------------------------------------------------------------
                   const HealthSectionHeader(
                     title: 'Health Trackers',
@@ -218,7 +224,7 @@ class _HealthTrackingScreenState extends ConsumerState<HealthTrackingScreen> {
                   const SizedBox(height: 10),
 
                   // -----------------------------------------------------------------
-                  // 4. PRIVACY NOTE
+                  // 5. PRIVACY NOTE
                   // -----------------------------------------------------------------
                   _buildPrivacyNote(),
                 ],
@@ -412,4 +418,82 @@ class _HealthTrackingScreenState extends ConsumerState<HealthTrackingScreen> {
 
   static String _monthName(DateTime d) =>
       const ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][d.month - 1];
+}
+
+/// Pill-style Weekly / Monthly selector for the AI pattern detection section.
+class _PatternRangeSelector extends StatelessWidget {
+  final PatternRange range;
+  final ValueChanged<PatternRange> onChanged;
+
+  const _PatternRangeSelector({required this.range, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: AppColors.softLavender.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        children: [
+          _segment(
+            PatternRange.week,
+            'Weekly',
+            Icons.calendar_view_week_rounded,
+          ),
+          _segment(
+            PatternRange.month,
+            'Monthly',
+            Icons.calendar_month_rounded,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _segment(PatternRange value, String label, IconData icon) {
+    final selected = range == value;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => onChanged(value),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(vertical: 9),
+          decoration: BoxDecoration(
+            gradient: selected
+                ? const LinearGradient(
+                    colors: [
+                      AppColors.softPurple,
+                      AppColors.softPurpleLight,
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  )
+                : null,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                size: 15,
+                color: selected ? Colors.white : AppColors.textMedium,
+              ),
+              const SizedBox(width: 5),
+              Text(
+                label,
+                style: GoogleFonts.outfit(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.bold,
+                  color: selected ? Colors.white : AppColors.textMedium,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }

@@ -16,17 +16,67 @@ class _SavedPostsScreenState extends ConsumerState<SavedPostsScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
 
+  // `null` while the first load is in flight.
+  List<CommunityPost>? _savedPosts;
+  bool _isLoading = false;
+  String? _loadError;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSavedPosts();
+  }
+
   @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
   }
 
+  Future<void> _loadSavedPosts() async {
+    setState(() {
+      _isLoading = true;
+      _loadError = null;
+    });
+    try {
+      final posts = await ref.read(whisperServiceProvider).getSavedPosts();
+      if (!mounted) return;
+      setState(() {
+        _savedPosts = posts;
+        _isLoading = false;
+      });
+    } catch (e) {
+      debugPrint('Failed to load saved posts: $e');
+      if (!mounted) return;
+      setState(() {
+        _loadError = 'Could not load your saved posts. Please check your connection and try again.';
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _unsavePost(String postId) async {
+    final saved = await ref.read(whisperRoomProvider.notifier).toggleSave(postId);
+    if (!mounted) return;
+    if (!saved) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Could not remove the saved post. Please try again.'),
+        ),
+      );
+      return;
+    }
+    setState(() {
+      _savedPosts?.removeWhere((p) => p.id == postId);
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Removed from Saved Posts')),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final whisperState = ref.watch(whisperRoomProvider);
-    final allPosts = whisperState;
-    final savedPosts = allPosts.where((p) => p.isSaved).toList();
+    final savedPosts = _savedPosts ?? const <CommunityPost>[];
 
     final filteredPosts = savedPosts.where((p) {
       if (_searchQuery.isEmpty) return true;
@@ -80,8 +130,48 @@ class _SavedPostsScreenState extends ConsumerState<SavedPostsScreen> {
 
           // Saved Posts List
           Expanded(
-            child: filteredPosts.isEmpty
-                ? Center(
+            child: _isLoading && _savedPosts == null
+                ? const Center(
+                    child: CircularProgressIndicator(color: AppColors.softPurple),
+                  )
+                : _loadError != null
+                    ? Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(32.0),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(
+                                Icons.cloud_off_rounded,
+                                size: 40,
+                                color: AppColors.softPurple,
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                _loadError!,
+                                textAlign: TextAlign.center,
+                                style: GoogleFonts.inter(
+                                  fontSize: 13,
+                                  color: AppColors.textMedium,
+                                  height: 1.4,
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              ElevatedButton.icon(
+                                onPressed: _loadSavedPosts,
+                                icon: const Icon(Icons.refresh_rounded, size: 18),
+                                label: const Text('Try Again'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.softPurple,
+                                  foregroundColor: Colors.white,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      )
+                    : filteredPosts.isEmpty
+                    ? Center(
                     child: Padding(
                       padding: const EdgeInsets.all(32.0),
                       child: Column(
@@ -224,12 +314,7 @@ class _SavedPostsScreenState extends ConsumerState<SavedPostsScreen> {
                   color: AppColors.softPurple,
                   size: 22,
                 ),
-                onPressed: () {
-                  ref.read(whisperRoomProvider.notifier).toggleSave(post.id);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Removed from Saved Posts')),
-                  );
-                },
+                onPressed: () => _unsavePost(post.id),
               ),
             ],
           ),

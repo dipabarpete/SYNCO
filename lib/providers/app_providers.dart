@@ -10,6 +10,7 @@ import '../core/services/notification_service.dart';
 import '../features/pink_corner/services/pink_corner_service.dart';
 import '../features/doctor/models/doctor.dart';
 import '../features/doctor/models/appointment.dart';
+import '../features/doctor/models/doctor_review.dart';
 import '../features/doctor/services/doctor_service.dart';
 import '../features/kyra/services/kyra_api_service.dart';
 import '../models/user_profile.dart';
@@ -834,6 +835,16 @@ final whisperServiceProvider = Provider<WhisperService>((ref) {
   return WhisperService();
 });
 
+/// The profile of the currently authenticated user.
+///
+/// Falls back to [userProfileProvider] during the brief window before the
+/// database profile finishes loading, so the Whisper Room never authors posts
+/// or comments as another user's identity.
+final effectiveUserProfileProvider = Provider<UserProfile>((ref) {
+  return ref.watch(authNotifierProvider).userProfile ??
+      ref.watch(userProfileProvider);
+});
+
 // Whisper Room Posts Provider
 final whisperRoomProvider = StateNotifierProvider<WhisperRoomNotifier, List<CommunityPost>>((ref) {
   return WhisperRoomNotifier(ref.read(whisperServiceProvider), ref);
@@ -849,6 +860,31 @@ class WhisperRoomNotifier extends StateNotifier<List<CommunityPost>> {
 
   WhisperRoomNotifier(this._service, this.ref) : super([]) {
     _init();
+
+    // Rebuild the feed from the database whenever the authenticated user
+    // changes (login, logout, account switch) so one user's data is never
+    // shown to another user from a stale in-memory state.
+    ref.listen<AuthState>(authNotifierProvider, (previous, next) {
+      final prevUid = previous?.user?.id;
+      final nextUid = next.user?.id;
+      if (prevUid == nextUid) return;
+
+      if (nextUid == null || nextUid.isEmpty) {
+        // Signed out: clear all in-memory Whisper Room data.
+        state = [];
+        _blockedUsers = [];
+        _lastDoc = null;
+        _hasMore = true;
+        return;
+      }
+
+      // New user signed in (including re-login of the same account):
+      // refetch their data from the database.
+      _blockedUsers = [];
+      _lastDoc = null;
+      _hasMore = true;
+      loadMorePosts(refresh: true);
+    });
   }
 
   bool get hasMore => _hasMore;
@@ -868,26 +904,26 @@ class WhisperRoomNotifier extends StateNotifier<List<CommunityPost>> {
     if (!_hasMore) return;
 
     _isLoading = true;
-    final newPosts = await _service.getPosts(
+    final (newPosts, lastDoc) = await _service.getPosts(
       limit: 10,
       startAfter: _lastDoc,
       blockedUserNames: _blockedUsers,
     );
 
-    if (newPosts.isEmpty) {
+    _lastDoc = lastDoc;
+    if (newPosts.length < 10 || lastDoc == null) {
       _hasMore = false;
-    } else {
-      // In a real implementation we would need a way to get the last doc snapshot from the service.
-      // Since we just return List<CommunityPost> from the service, let's just assume we can't easily do startAfterDocument without refactoring the service to return a Tuple.
-      // For the sake of this implementation, we will mock pagination by just taking the first batch if startAfter is not easily tracked, or we can track it by date.
-      // Actually, since we didn't return the DocumentSnapshot from getPosts, we can't paginate perfectly here. We will just load the first 10 for now.
-      _hasMore = false; 
     }
 
     if (refresh) {
       state = newPosts;
     } else {
-      state = [...state, ...newPosts];
+      // Avoid duplicates when paginating after a refresh raced with a load.
+      final existingIds = state.map((p) => p.id).toSet();
+      state = [
+        ...state,
+        ...newPosts.where((p) => !existingIds.contains(p.id)),
+      ];
     }
     _isLoading = false;
   }
@@ -896,7 +932,7 @@ class WhisperRoomNotifier extends StateNotifier<List<CommunityPost>> {
     final post = state.firstWhere((p) => p.id == postId);
     final isLiked = post.isLiked;
     final currentLikes = post.likesCount;
-    
+
     // Optimistic update
     state = [
       for (final p in state)
@@ -912,30 +948,74 @@ class WhisperRoomNotifier extends StateNotifier<List<CommunityPost>> {
     try {
       await _service.toggleLike(postId, isLiked);
     } catch (e) {
-      // Rollback on failure (simplified)
-      debugPrint('Failed to toggle like');
+      // Rollback on failure so the UI never shows a like that was not
+      // persisted to the database.
+      debugPrint('Failed to toggle like: $e');
+      state = [
+        for (final p in state)
+          if (p.id == postId)
+            p.copyWith(isLiked: isLiked, likesCount: currentLikes)
+          else
+            p
+      ];
     }
   }
 
-  Future<void> toggleSave(String postId) async {
-    final post = state.firstWhere((p) => p.id == postId);
-    final isSaved = post.isSaved;
+  /// Saves or unsaves a post for the current user.
+  ///
+  /// Returns `true` only when the change was successfully persisted to the
+  /// database. On failure the optimistic state is rolled back.
+  Future<bool> toggleSave(String postId) async {
+    CommunityPost? post;
+    for (final p in state) {
+      if (p.id == postId) {
+        post = p;
+        break;
+      }
+    }
+    // When the post is not in the in-memory feed (e.g. it was opened from the
+    // Saved section which is fetched from the database directly), assume it is
+    // currently saved — it was loaded through `savedBy` containing this user.
+    final isSaved = post?.isSaved ?? true;
 
-    state = [
-      for (final p in state)
-        if (p.id == postId) p.copyWith(isSaved: !isSaved) else p
-    ];
+    if (post != null) {
+      state = [
+        for (final p in state)
+          if (p.id == postId) p.copyWith(isSaved: !isSaved) else p
+      ];
+    }
 
     try {
       await _service.toggleSave(postId, isSaved);
+      return true;
     } catch (e) {
-      debugPrint('Failed to toggle save');
+      debugPrint('Failed to toggle save: $e');
+      if (post != null) {
+        state = [
+          for (final p in state)
+            if (p.id == postId) p.copyWith(isSaved: isSaved) else p
+        ];
+      }
+      return false;
     }
   }
 
   Future<void> votePoll(String postId, String optionId) async {
-    final post = state.firstWhere((p) => p.id == postId);
-    if (post.userVotedPollOptionId != null) return; // Prevent multiple votes
+final previous = state.firstWhere(
+      (post) => post.id == postId,
+      orElse: () => CommunityPost(
+        id: postId,
+        authorName: '',
+        authorAvatar: '',
+        category: '',
+        title: '',
+        content: '',
+        createdAt: DateTime.now(),
+      ),
+    );
+    if (previous.userVotedPollOptionId != null) return; // Prevent multiple votes
+    final prevVotedId = previous.userVotedPollOptionId;
+    final prevOptions = previous.pollOptions;
 
     state = [
       for (final p in state)
@@ -954,11 +1034,28 @@ class WhisperRoomNotifier extends StateNotifier<List<CommunityPost>> {
     try {
       await _service.votePoll(postId, optionId);
     } catch (e) {
-      debugPrint('Failed to vote poll');
+      // Rollback on failure so the UI never shows a vote that was not
+      // persisted to the database.
+      debugPrint('Failed to vote poll: $e');
+      state = [
+        for (final post in state)
+          if (post.id == postId)
+            post.copyWith(
+              userVotedPollOptionId: prevVotedId,
+              pollOptions: prevOptions,
+            )
+          else
+            post
+      ];
     }
   }
 
-  Future<void> addPost(CommunityPost post) async {
+  /// Creates a post in the database.
+  ///
+  /// Returns `true` only when the post was successfully persisted (and the
+  /// optimistic placeholder replaced by the real document). On failure the
+  /// optimistic post is removed from the feed.
+  Future<bool> addPost(CommunityPost post) async {
     // Optimistic Update
     final tempId = 'temp_${DateTime.now().millisecondsSinceEpoch}';
     final tempPost = post.copyWith(id: tempId);
@@ -971,28 +1068,81 @@ class WhisperRoomNotifier extends StateNotifier<List<CommunityPost>> {
           for (final p in state)
             if (p.id == tempId) updatedPost else p
         ];
+        return true;
       }
+      state = state.where((p) => p.id != tempId).toList();
+      return false;
     } catch (e) {
       // Revert optimistic update on failure
       state = state.where((p) => p.id != tempId).toList();
       debugPrint('Failed to add post: $e');
+      return false;
     }
   }
 
-  Future<void> deletePost(String postId) async {
+  /// Deletes the current user's own post from the database.
+  ///
+  /// The post is only removed from the feed after the database deletion
+  /// succeeded, so a failed delete never falsely looks completed.
+  Future<bool> deletePost(String postId) async {
+    final post = state.firstWhere(
+      (p) => p.id == postId,
+      orElse: () => CommunityPost(
+        id: postId,
+        authorName: '',
+        authorAvatar: '',
+        category: '',
+        title: '',
+        content: '',
+        createdAt: DateTime.now(),
+      ),
+    );
+
+    final currentUid = ref
+        .read(authNotifierProvider)
+        .user
+        ?.id;
+    if (currentUid == null || currentUid.isEmpty) return false;
+    if (!post.isMine && post.authorId != currentUid) return false;
+
+    try {
+      await _service.deletePost(postId);
+    } catch (e) {
+      debugPrint('Failed to delete post: $e');
+      return false;
+    }
+
     state = state.where((post) => post.id != postId).toList();
-    await _service.deletePost(postId);
+    return true;
   }
 
   Future<void> editPost(String postId, String newTitle, String newContent) async {
+    final previous = state.firstWhere((p) => p.id == postId);
+    final prevTitle = previous.title;
+    final prevContent = previous.content;
+
     state = [
       for (final post in state)
         if (post.id == postId)
-          post.copyWith(title: newTitle, content: newContent)
+          post.copyWith(title: newTitle, content: newContent, updatedAt: DateTime.now())
         else
           post
     ];
-    await _service.editPost(postId, newTitle, newContent);
+
+    try {
+      await _service.editPost(postId, newTitle, newContent);
+    } catch (e) {
+      // Rollback on failure so the UI never shows an edit that was not
+      // persisted to the database.
+      debugPrint('Failed to edit post: $e');
+      state = [
+        for (final post in state)
+          if (post.id == postId)
+            post.copyWith(title: prevTitle, content: prevContent)
+          else
+            post
+      ];
+    }
   }
 
   Future<void> reportPost(String postId) async {
@@ -1008,12 +1158,20 @@ class WhisperRoomNotifier extends StateNotifier<List<CommunityPost>> {
     await _service.blockUser(authorName);
   }
 
+  /// Adds a comment written by the authenticated user to a post.
+  ///
+  /// The comment is persisted to the database; on failure the optimistic
+  /// comment is rolled back and the error is rethrown so callers can inform
+  /// the user that the comment was not saved.
   Future<void> addComment(String postId, String commentText, {bool isAnonymous = false}) async {
-    final userProfile = ref.read(userProfileProvider);
+    final userProfile = ref.read(effectiveUserProfileProvider);
+    final currentUserId = ref.read(authNotifierProvider).user?.id;
     final newComment = CommentItem(
       id: 'c_${DateTime.now().millisecondsSinceEpoch}',
+      authorId: currentUserId ?? userProfile.id,
       authorName: isAnonymous ? 'Anonymous' : userProfile.username,
       authorAvatar: isAnonymous ? '' : userProfile.avatarUrl,
+      isAnonymous: isAnonymous,
       text: commentText,
       createdAt: DateTime.now(),
       likesCount: 0,
@@ -1031,7 +1189,25 @@ class WhisperRoomNotifier extends StateNotifier<List<CommunityPost>> {
           post
     ];
 
-    await _service.addComment(postId, newComment);
+    try {
+      await _service.addComment(postId, newComment);
+    } catch (e) {
+      // Rollback on failure so the UI never shows a comment that was not
+      // persisted to the database.
+      debugPrint('Failed to add comment: $e');
+      state = [
+        for (final post in state)
+          if (post.id == postId)
+            post.copyWith(
+              commentsCount:
+                  post.commentsCount > 0 ? post.commentsCount - 1 : 0,
+              comments: post.comments.where((c) => c.id != newComment.id).toList(),
+            )
+          else
+            post
+      ];
+      rethrow;
+    }
   }
 }
 
@@ -1146,20 +1322,20 @@ Future<void> seedMockDoctors(WidgetRef ref) async {
   final staticDoctors = [
     Doctor(
       id: 'doc_1',
-      name: 'Dr. Sarah Jenkins',
+      name: 'Dr. Ananya Sharma',
       specialization: 'Gynecologist',
       experience: '10 Years',
       rating: 4.8,
       consultationFee: 50,
       availability: 'Available Today',
       mode: ConsultationMode.online,
-      about: 'Dr. Sarah Jenkins specializes in reproductive health and PCOS management. She has helped over 500 women regain hormonal balance.',
+      about: 'Dr. Ananya Sharma specializes in reproductive health and PCOS management. She has helped over 500 women regain hormonal balance.',
       availableDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
       timeSlots: ['10:00 AM', '11:00 AM', '02:00 PM', '04:00 PM'],
     ),
     Doctor(
       id: 'doc_2',
-      name: 'Dr. Emily Chen',
+      name: 'Dr. Neha Iyer',
       specialization: 'Endocrinologist',
       experience: '8 Years',
       rating: 4.9,
@@ -1167,21 +1343,21 @@ Future<void> seedMockDoctors(WidgetRef ref) async {
       availability: 'Available Tomorrow',
       mode: ConsultationMode.offline,
       distanceKm: 2.5,
-      clinicLocation: 'Wellness Clinic, 123 Health Ave.',
-      about: 'Dr. Emily Chen is a leading expert in hormonal disorders, focusing on thyroid issues and insulin resistance.',
+      clinicLocation: 'Wellness Clinic, Andheri West, Mumbai',
+      about: 'Dr. Neha Iyer is a leading expert in hormonal disorders, focusing on thyroid issues and insulin resistance.',
       availableDays: ['Mon', 'Wed', 'Fri'],
       timeSlots: ['09:00 AM', '01:00 PM', '03:00 PM'],
     ),
     Doctor(
       id: 'doc_3',
-      name: 'Dr. Aisha Patel',
+      name: 'Dr. Aditi Verma',
       specialization: 'Nutritionist',
       experience: '5 Years',
       rating: 4.7,
       consultationFee: 40,
       availability: 'Available Today',
       mode: ConsultationMode.online,
-      about: 'Dr. Aisha Patel helps women create sustainable, hormone-balancing diets without restrictive eating.',
+      about: 'Dr. Aditi Verma helps women create sustainable, hormone-balancing diets without restrictive eating.',
       availableDays: ['Tue', 'Thu', 'Sat'],
       timeSlots: ['11:00 AM', '12:30 PM', '05:00 PM'],
     ),
@@ -1196,6 +1372,28 @@ final appointmentsProvider = StreamProvider<List<Appointment>>((ref) {
   final user = ref.watch(authNotifierProvider).userProfile;
   if (user == null) return Stream.value([]);
   return service.streamUserAppointments(user.id);
+});
+
+// Doctor Reviews Provider
+//
+// Public reviews for a doctor's profile, newest first. The overall rating
+// shown on the profile is computed from these actual reviews.
+final doctorReviewsProvider =
+    StreamProvider.family<List<DoctorReview>, String>((ref, doctorId) {
+  return ref.read(doctorServiceProvider).streamDoctorReviews(doctorId);
+});
+
+/// Family key identifying a review lookup by doctor + consultation.
+typedef DoctorReviewLookup = ({String doctorId, String consultationId});
+
+/// The review (if any) the current user already submitted for a completed
+/// consultation. Used to show "Review submitted" instead of a second form.
+final doctorReviewForConsultationProvider =
+    FutureProvider.family<DoctorReview?, DoctorReviewLookup>(
+        (ref, lookup) {
+  return ref
+      .read(doctorServiceProvider)
+      .getReviewForConsultation(lookup.doctorId, lookup.consultationId);
 });
 
 // User Active/Confirmed Appointments Provider

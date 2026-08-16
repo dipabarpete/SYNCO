@@ -7,6 +7,7 @@ import '../models/appointment.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'find_doctor_screen.dart';
 import 'consultation_chat_screen.dart';
+import 'review_doctor_screen.dart';
 
 /// User-facing list of appointment requests.
 ///
@@ -44,6 +45,7 @@ class MyAppointmentsScreen extends ConsumerWidget {
             final confirmed = appointments.where((a) => a.status == AppointmentStatus.confirmed).toList();
             final declined = appointments.where((a) => a.status == AppointmentStatus.declined).toList();
             final cancelled = appointments.where((a) => a.status == AppointmentStatus.cancelled).toList();
+            final completed = appointments.where((a) => a.status == AppointmentStatus.completed).toList();
 
             final latestConfirmed = confirmed.isEmpty ? null : confirmed.first;
 
@@ -69,6 +71,12 @@ class MyAppointmentsScreen extends ConsumerWidget {
                           _buildSectionTitle('CONFIRMED'),
                           const SizedBox(height: 12),
                           ...confirmed.map((a) => _buildAppointmentCard(context, ref, a)),
+                          const SizedBox(height: 20),
+                        ],
+                        if (completed.isNotEmpty) ...[
+                          _buildSectionTitle('COMPLETED'),
+                          const SizedBox(height: 12),
+                          ...completed.map((a) => _buildCompletedCard(context, ref, a)),
                           const SizedBox(height: 20),
                         ],
                         if (declined.isNotEmpty) ...[
@@ -529,6 +537,203 @@ class MyAppointmentsScreen extends ConsumerWidget {
               ],
             ),
           ],
+        ],
+      ),
+    );
+  }
+
+  /// Card shown for a completed consultation in the COMPLETED section.
+  ///
+  /// Lets the user rate & review the doctor — unless a review for this
+  /// consultation was already submitted ("Review submitted").
+  Widget _buildCompletedCard(
+    BuildContext context,
+    WidgetRef ref,
+    Appointment a,
+  ) {
+    final doctor = a.doctor;
+    final reviewAsync = ref.watch(
+      doctorReviewForConsultationProvider((
+        doctorId: doctor.id,
+        consultationId: a.id,
+      )),
+    );
+
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.pureWhite,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: AppColors.borderGrey.withValues(alpha: 0.6),
+          width: 1,
+        ),
+        boxShadow: const [
+          BoxShadow(
+            color: AppColors.shadowColor,
+            blurRadius: 12,
+            offset: Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(2),
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: AppColors.primaryGradient,
+                ),
+                child: CircleAvatar(
+                  radius: 20,
+                  backgroundColor: doctor.avatarBackground,
+                  child: Text(
+                    doctor.initials,
+                    style: GoogleFonts.outfit(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.softPurple,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      doctor.name,
+                      style: GoogleFonts.outfit(
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textDark,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${a.modeName} \u2022 ${a.formattedDateShort} \u2022 ${a.slot}',
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        color: AppColors.textMedium,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              _buildStatusPill(a.status),
+            ],
+          ),
+          const SizedBox(height: 12),
+          reviewAsync.when(
+            loading: () => const Padding(
+              padding: EdgeInsets.symmetric(vertical: 8),
+              child: Center(
+                child: SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                    color: AppColors.softPurple,
+                    strokeWidth: 2,
+                  ),
+                ),
+              ),
+            ),
+            error: (_, _) => _buildReviewButton(context, ref, a),
+            data: (review) => review != null
+                ? _buildReviewSubmittedCard()
+                : _buildReviewButton(context, ref, a),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildReviewButton(
+    BuildContext context,
+    WidgetRef ref,
+    Appointment a,
+  ) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ReviewDoctorScreen(appointment: a),
+          ),
+        );
+      },
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          gradient: AppColors.primaryGradient,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.softPurple.withValues(alpha: 0.3),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.rate_review_rounded,
+              color: Colors.white,
+              size: 18,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              'Rate & Review Doctor',
+              style: GoogleFonts.inter(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildReviewSubmittedCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+      decoration: BoxDecoration(
+        color: AppColors.mintGreen.withValues(alpha: 0.35),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: AppColors.mintGreen.withValues(alpha: 0.8),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(
+            Icons.check_circle_rounded,
+            color: AppColors.confirmedGreen,
+            size: 18,
+          ),
+          const SizedBox(width: 8),
+          Text(
+            'Review submitted',
+            style: GoogleFonts.inter(
+              fontSize: 13.5,
+              fontWeight: FontWeight.bold,
+              color: AppColors.confirmedGreen,
+            ),
+          ),
         ],
       ),
     );

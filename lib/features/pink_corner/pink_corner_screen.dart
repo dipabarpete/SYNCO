@@ -201,16 +201,29 @@ class PinkCornerScreen extends ConsumerWidget {
     final articlesAsync = ref.watch(latestArticlesProvider);
     final faqsAsync = ref.watch(faqsProvider);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Row(
-          children: [
-            const Icon(Icons.menu_book_rounded, color: AppColors.softPurple),
-            const SizedBox(width: 8),
-            Text('Learn', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
-          ],
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: Image.asset(
+            'assets/images/whisper_room_bg.jpg',
+            fit: BoxFit.cover,
+            alignment: Alignment.center,
+          ),
         ),
-      ),
+        Scaffold(
+          backgroundColor: Colors.transparent,
+          appBar: AppBar(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            surfaceTintColor: Colors.transparent,
+            title: Row(
+              children: [
+                const Icon(Icons.menu_book_rounded, color: AppColors.softPurple),
+                const SizedBox(width: 8),
+                Text('Learn', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+              ],
+            ),
+          ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -434,6 +447,8 @@ class PinkCornerScreen extends ConsumerWidget {
           ],
         ),
       ),
-    );
+    ),
+  ],
+);
   }
 }

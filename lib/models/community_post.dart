@@ -38,6 +38,7 @@ class PollOption {
 
 class CommentItem {
   final String id;
+  final String authorId;
   final String authorName;
   final String authorAvatar;
   final bool isAnonymous;
@@ -47,6 +48,7 @@ class CommentItem {
 
   CommentItem({
     required this.id,
+    this.authorId = '',
     required this.authorName,
     required this.authorAvatar,
     this.isAnonymous = false,
@@ -66,6 +68,7 @@ class CommentItem {
   Map<String, dynamic> toMap() {
     return {
       'id': id,
+      'authorId': authorId,
       'authorName': authorName,
       'authorAvatar': authorAvatar,
       'isAnonymous': isAnonymous,
@@ -78,6 +81,7 @@ class CommentItem {
   factory CommentItem.fromMap(Map<String, dynamic> map) {
     return CommentItem(
       id: map['id'] ?? '',
+      authorId: map['authorId'] ?? '',
       authorName: map['authorName'] ?? '',
       authorAvatar: map['authorAvatar'] ?? '',
       isAnonymous: map['isAnonymous'] ?? false,
@@ -99,6 +103,7 @@ class CommunityPost {
   final String title;
   final String content;
   final DateTime createdAt;
+  final DateTime? updatedAt;
   final int likesCount;
   final int commentsCount;
   final bool isLiked;
@@ -121,6 +126,7 @@ class CommunityPost {
     required this.title,
     required this.content,
     required this.createdAt,
+    this.updatedAt,
     this.likesCount = 0,
     this.commentsCount = 0,
     this.isLiked = false,
@@ -146,6 +152,7 @@ class CommunityPost {
     String? authorId,
     String? title,
     String? content,
+    DateTime? updatedAt,
     int? likesCount,
     int? commentsCount,
     bool? isLiked,
@@ -169,6 +176,7 @@ class CommunityPost {
       title: title ?? this.title,
       content: content ?? this.content,
       createdAt: createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
       likesCount: likesCount ?? this.likesCount,
       commentsCount: commentsCount ?? this.commentsCount,
       isLiked: isLiked ?? this.isLiked,
@@ -192,6 +200,7 @@ class CommunityPost {
       'title': title,
       'content': content,
       'createdAt': Timestamp.fromDate(createdAt),
+      'updatedAt': Timestamp.fromDate(updatedAt ?? createdAt),
       'pollOptions': pollOptions?.map((x) => x.toMap()).toList(),
       'comments': comments.map((x) => x.toMap()).toList(),
       'attachedImages': attachedImages,
@@ -220,6 +229,7 @@ class CommunityPost {
       title: map['title'] ?? '',
       content: map['content'] ?? '',
       createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      updatedAt: (map['updatedAt'] as Timestamp?)?.toDate(),
       likesCount: likedByList.length,
       isLiked: likedByList.contains(currentUserId),
       isSaved: savedByList.contains(currentUserId),

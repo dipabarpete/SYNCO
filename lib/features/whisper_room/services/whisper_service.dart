@@ -8,14 +8,16 @@ class WhisperService {
   FirebaseFirestore? get _firestore => Backend.firestore;
   FirebaseAuth? get _auth => Backend.auth;
 
-  /// Fetches a paginated list of posts, excluding those from blocked users
-  Future<List<CommunityPost>> getPosts({
+  /// Fetches a paginated list of posts, excluding those from blocked users.
+  /// Returns the fetched posts together with the last document snapshot so the
+  /// caller can paginate with [startAfter].
+  Future<(List<CommunityPost>, DocumentSnapshot?)> getPosts({
     int limit = 10,
     DocumentSnapshot? startAfter,
     List<String> blockedUserNames = const [],
   }) async {
     final firestore = _firestore;
-    if (firestore == null) return [];
+    if (firestore == null) return (<CommunityPost>[], null);
 
     try {
       Query query = firestore
@@ -28,19 +30,50 @@ class WhisperService {
       }
 
       final snapshot = await query.get();
-      
+
       final currentUserId = _auth?.currentUser?.uid ?? '';
-      
+
       final posts = snapshot.docs.map((doc) {
         final data = doc.data() as Map<String, dynamic>;
         return CommunityPost.fromMap(doc.id, data, currentUserId);
       }).toList();
 
       // Filter out blocked users locally because Firestore doesn't support complex NOT IN arrays easily across collections
-      return posts.where((p) => !blockedUserNames.contains(p.authorName)).toList();
+      final filtered = posts
+          .where((p) => !blockedUserNames.contains(p.authorName))
+          .toList();
+
+      final lastDoc = snapshot.docs.isNotEmpty ? snapshot.docs.last : null;
+      return (filtered, lastDoc);
     } catch (e) {
       debugPrint('Error fetching whisper posts: $e');
-      return [];
+      return (<CommunityPost>[], null);
+    }
+  }
+
+  /// Fetches the posts saved by the currently authenticated user directly
+  /// from the database (source of truth).
+  Future<List<CommunityPost>> getSavedPosts() async {
+    final firestore = _firestore;
+    final user = _auth?.currentUser;
+    if (firestore == null || user == null) return [];
+
+    try {
+      final snapshot = await firestore
+          .collection('whisper_posts')
+          .where('savedBy', arrayContains: user.uid)
+          .get();
+
+      final posts = snapshot.docs.map((doc) {
+        final data = doc.data();
+        return CommunityPost.fromMap(doc.id, data, user.uid);
+      }).toList();
+
+      posts.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return posts;
+    } catch (e) {
+      debugPrint('Error fetching saved posts: $e');
+      rethrow;
     }
   }
 
@@ -187,6 +220,7 @@ class WhisperService {
       await firestore.collection('whisper_posts').doc(postId).update({
         'title': newTitle,
         'content': newContent,
+        'updatedAt': FieldValue.serverTimestamp(),
       });
     } catch (e) {
       debugPrint('Error editing post: $e');

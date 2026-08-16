@@ -133,4 +133,48 @@ void main() {
 
     expect(find.byType(HealthHistoryScreen), findsOneWidget);
   });
+
+  testWidgets('AI section shows dynamic pattern count and period selector',
+      (tester) async {
+    final container = createContainer();
+    await pumpScreen(tester, container);
+
+    expect(find.text('AI found no important patterns yet'), findsOneWidget);
+    expect(find.text('Weekly'), findsOneWidget);
+    expect(find.text('Monthly'), findsOneWidget);
+
+    final notifier = container.read(healthDataProvider.notifier);
+    final today = dateOnly(DateTime.now());
+    for (var i = 0; i < 3; i++) {
+      final err = await notifier.saveSugarCraving(
+        date: today.subtract(Duration(days: i)),
+        craving: 'Chocolate',
+        level: 'Medium',
+      );
+      expect(err, isNull);
+    }
+    await tester.pumpAndSettle();
+
+    expect(find.text('AI found 1 important pattern'), findsOneWidget);
+    expect(find.text('How you can improve'), findsWidgets);
+    expect(find.text('Sugar Cravings'), findsWidgets);
+    expect(find.text('Stable'), findsWidgets);
+
+    await tester.tap(find.text('Monthly'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('AI found 1 important pattern'), findsOneWidget);
+    expect(find.text('Weekly'), findsOneWidget);
+    expect(find.text('Monthly'), findsOneWidget);
+  });
+
+  testWidgets('AI section shows empty state without fabricated patterns',
+      (tester) async {
+    final container = createContainer();
+    await pumpScreen(tester, container);
+
+    expect(find.text('AI found no important patterns yet'), findsOneWidget);
+    expect(find.text('Your patterns will appear here.'), findsOneWidget);
+    expect(find.text('How you can improve'), findsNothing);
+  });
 }

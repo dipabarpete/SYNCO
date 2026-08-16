@@ -71,8 +71,10 @@ class DoctorCard extends StatelessWidget {
                         const SizedBox(height: 7),
                         Row(
                           children: [
-                            _buildRatingChip(),
-                            const SizedBox(width: 8),
+                            if (doctor.reviewCount > 0) ...[
+                              _buildRatingChip(),
+                              const SizedBox(width: 8),
+                            ],
                             Text(
                               '${doctor.experience} exp',
                               style: GoogleFonts.inter(
@@ -155,11 +157,11 @@ class DoctorCard extends StatelessWidget {
                       vertical: 9,
                     ),
                     decoration: BoxDecoration(
-                      gradient: AppColors.primaryGradient,
+                      color: AppColors.softPurple,
                       borderRadius: BorderRadius.circular(14),
                       boxShadow: [
                         BoxShadow(
-                          color: AppColors.blushPink.withValues(alpha: 0.45),
+                          color: AppColors.softPurple.withValues(alpha: 0.35),
                           blurRadius: 10,
                           offset: const Offset(0, 4),
                         ),

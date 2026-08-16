@@ -223,7 +223,7 @@ class _CreateWhisperScreenState extends ConsumerState<CreateWhisperScreen> {
                     color: AppColors.textMedium,
                   ),
                 ),
-                activeColor: AppColors.softPurple,
+                activeThumbColor: AppColors.softPurple,
                 value: _isAnonymous,
                 onChanged: (val) {
                   setState(() {
