@@ -9,6 +9,21 @@ import '../../core/providers/notification_providers.dart';
 import '../auth/providers/auth_provider.dart';
 import '../doctor/screens/consultation_chat_screen.dart';
 
+/// Maps known notification icon codepoints to const [Icons] values so that
+/// the Flutter Web release tree-shaker can include them correctly.
+IconData _iconFromCode(int code) {
+  switch (code) {
+    case 0xe0b0: return Icons.calendar_today;
+    case 0xe86c: return Icons.check_circle;
+    case 0xe14c: return Icons.cancel;
+    case 0xe88e: return Icons.info;
+    case 0xe7fc: return Icons.person;
+    case 0xe0be: return Icons.chat_bubble;
+    case 0xe62a: return Icons.favorite;
+    default:     return Icons.notifications;
+  }
+}
+
 class NotificationsScreen extends ConsumerWidget {
   const NotificationsScreen({super.key});
 
@@ -129,7 +144,7 @@ class NotificationsScreen extends ConsumerWidget {
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
-                          IconData(item.iconCode, fontFamily: 'MaterialIcons'),
+                          _iconFromCode(item.iconCode),
                           color: Color(int.parse(item.iconColorHex, radix: 16)),
                           size: 20,
                         ),

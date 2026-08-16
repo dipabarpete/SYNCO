@@ -82,15 +82,19 @@ class AuthService {
     }
 
     try {
+      // Android uses the native GoogleSignIn plugin for best UX.
       if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
         return _signInWithGoogleNative(auth);
       }
 
+      // Web (and all other platforms) — use signInWithPopup.
+      // signInWithProvider() is not implemented on Flutter Web;
+      // signInWithPopup() is the correct web method.
       final provider = fb.GoogleAuthProvider();
       provider.setCustomParameters({'prompt': 'select_account'});
 
-      debugPrint('[DIAGNOSTIC] signInWithGoogle (Firebase) launching...');
-      final cred = await auth.signInWithProvider(provider);
+      debugPrint('[DIAGNOSTIC] signInWithGoogle (Web popup) launching...');
+      final cred = await auth.signInWithPopup(provider);
 
       debugPrint('[DIAGNOSTIC] Firebase Google sign-in user: ${cred.user?.uid ?? "NONE"}');
 
@@ -99,6 +103,10 @@ class AuthService {
       }
       return AuthResult.failure('Google sign-in did not return a user.');
     } on fb.FirebaseAuthException catch (e) {
+      // popup-closed-by-user is not a real error — just a cancellation
+      if (e.code == 'popup-closed-by-user' || e.code == 'cancelled-popup-request') {
+        return AuthResult.failure('Google sign-in was cancelled.');
+      }
       return AuthResult.failure(_formatFirebaseAuthError(e));
     } catch (e) {
       return AuthResult.failure('Google Sign-In failed: ${e.toString()}');

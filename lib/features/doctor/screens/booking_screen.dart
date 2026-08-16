@@ -288,7 +288,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
       final authUid = FirebaseAuth.instance.currentUser?.uid;
       final userId = user?.id ?? authUid ?? 'user_123';
       
-      final patientName = user?.name ?? 'Unknown Patient';
+      final patientName = user?.username ?? 'Unknown Patient';
 
       await doctorService.bookAppointment(
         userId: userId,

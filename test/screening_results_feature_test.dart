@@ -19,6 +19,8 @@ import 'package:hersync/features/symptoms_assessment/screens/endometriosis_asses
 import 'package:hersync/features/symptoms_assessment/screens/fibroids_assessment_result_screen.dart';
 import 'package:hersync/features/symptoms_assessment/screens/pcos_assessment_result_screen.dart';
 import 'package:hersync/features/symptoms_assessment/screens/pcos_assessment_screen.dart';
+import 'package:hersync/providers/app_providers.dart';
+import 'package:hersync/features/doctor/models/doctor.dart';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -431,6 +433,9 @@ void main() {
         (tester) async {
       await tester.pumpWidget(
         ProviderScope(
+          overrides: [
+            doctorsProvider.overrideWith((ref) => Stream.value(<Doctor>[])),
+          ],
           child: MaterialApp(
             home: PcosAssessmentResultScreen(
               result: _dummyPcosForNav(),
@@ -452,6 +457,9 @@ void main() {
         (tester) async {
       await tester.pumpWidget(
         ProviderScope(
+          overrides: [
+            doctorsProvider.overrideWith((ref) => Stream.value(<Doctor>[])),
+          ],
           child: MaterialApp(
             home: EndometriosisAssessmentResultScreen(
               result: _dummyEndoForNav(),
@@ -473,6 +481,9 @@ void main() {
         (tester) async {
       await tester.pumpWidget(
         ProviderScope(
+          overrides: [
+            doctorsProvider.overrideWith((ref) => Stream.value(<Doctor>[])),
+          ],
           child: MaterialApp(
             home: FibroidsAssessmentResultScreen(
               result: _dummyFibroidsForNav(),
