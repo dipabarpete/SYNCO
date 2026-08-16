@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../data/health_repository.dart';
 import '../data/local_health_data_repository.dart';
 import '../models/ai_insight.dart';
 import '../models/health_entries.dart';
@@ -81,7 +82,7 @@ class HealthDataState {
 }
 
 final healthRepositoryProvider = Provider<HealthDataRepository>((ref) {
-  return LocalHealthDataRepository();
+  return HealthRepository();
 });
 
 final healthDataProvider =
@@ -89,12 +90,22 @@ final healthDataProvider =
   return HealthDataNotifier(ref.read(healthRepositoryProvider));
 });
 
-/// AI insights recomputed from the user's stored health data whenever any
-/// health entry changes.
-final aiInsightsProvider = Provider<List<AiInsight>>((ref) {
-  final data = ref.watch(healthDataProvider);
-  return const AiPatternService().detect(all: data.allEntries);
+final aiInsightsProvider = StateNotifierProvider<AiInsightsNotifier, List<AiInsight>>((ref) {
+  return AiInsightsNotifier();
 });
+
+class AiInsightsNotifier extends StateNotifier<List<AiInsight>> {
+  AiInsightsNotifier() : super([]) {
+    _fetchInsights();
+  }
+
+  Future<void> _fetchInsights() async {
+    final insights = await const AiPatternService().detect();
+    if (mounted) state = insights;
+  }
+  
+  void refresh() => _fetchInsights();
+}
 
 class HealthDataNotifier extends StateNotifier<HealthDataState> {
   final HealthDataRepository _repository;

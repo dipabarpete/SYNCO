@@ -22,18 +22,20 @@ class ConsultationChatScreen extends ConsumerStatefulWidget {
 
 class _ConsultationChatScreenState extends ConsumerState<ConsultationChatScreen> {
   final TextEditingController _messageController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
 
-  void _sendMessage(String senderId) {
+  void _sendMessage(String senderId, String senderRole) {
     final text = _messageController.text.trim();
     if (text.isEmpty) return;
 
-    ref.read(chatServiceProvider).sendMessage(widget.chatId, senderId, text);
+    ref.read(chatServiceProvider).sendMessage(widget.chatId, senderId, senderRole, text);
     _messageController.clear();
   }
 
   @override
   void dispose() {
     _messageController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -41,6 +43,23 @@ class _ConsultationChatScreenState extends ConsumerState<ConsultationChatScreen>
   Widget build(BuildContext context) {
     final currentUser = ref.watch(authNotifierProvider).userProfile;
     final messagesAsyncValue = ref.watch(chatMessagesProvider(widget.chatId));
+
+    // Auto-scroll logic
+    ref.listen(chatMessagesProvider(widget.chatId), (previous, next) {
+      next.whenData((messages) {
+        if (messages.isNotEmpty) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (_scrollController.hasClients) {
+              _scrollController.animateTo(
+                _scrollController.position.maxScrollExtent,
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeOut,
+              );
+            }
+          });
+        }
+      });
+    });
 
     return Scaffold(
       backgroundColor: const Color(0xFFFAF8F5),
@@ -93,7 +112,7 @@ class _ConsultationChatScreenState extends ConsumerState<ConsultationChatScreen>
                   }
 
                   return ListView.builder(
-                    reverse: true,
+                    controller: _scrollController,
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
                     itemCount: messages.length,
                     itemBuilder: (context, index) {
@@ -120,7 +139,10 @@ class _ConsultationChatScreenState extends ConsumerState<ConsultationChatScreen>
                 ),
               ),
             ),
-            _buildMessageInput(currentUser?.id ?? 'unknown_user'),
+            _buildMessageInput(
+              currentUser?.id ?? 'unknown_user',
+              currentUser?.role.name ?? 'user',
+            ),
           ],
         ),
       ),
@@ -175,7 +197,7 @@ class _ConsultationChatScreenState extends ConsumerState<ConsultationChatScreen>
     );
   }
 
-  Widget _buildMessageInput(String senderId) {
+  Widget _buildMessageInput(String senderId, String senderRole) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
@@ -210,7 +232,7 @@ class _ConsultationChatScreenState extends ConsumerState<ConsultationChatScreen>
                       ),
                       maxLines: null,
                       textInputAction: TextInputAction.send,
-                      onSubmitted: (_) => _sendMessage(senderId),
+                      onSubmitted: (_) => _sendMessage(senderId, senderRole),
                     ),
                   ),
                 ],
@@ -219,7 +241,7 @@ class _ConsultationChatScreenState extends ConsumerState<ConsultationChatScreen>
           ),
           const SizedBox(width: 12),
           GestureDetector(
-            onTap: () => _sendMessage(senderId),
+            onTap: () => _sendMessage(senderId, senderRole),
             child: Container(
               padding: const EdgeInsets.all(12),
               decoration: const BoxDecoration(

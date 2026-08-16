@@ -18,6 +18,7 @@ import '../models/cycle_data.dart';
 import '../models/community_post.dart';
 import '../models/kyra_message.dart';
 import '../models/article_item.dart';
+import '../models/faq_item.dart';
 import '../models/reminder_item.dart';
 import '../models/period_record.dart';
 import '../models/period_day_log.dart';
@@ -570,6 +571,15 @@ class RemindersNotifier extends StateNotifier<List<ReminderItem>> {
         colorKey: 'Purple',
         isEnabled: false,
       ),
+      ReminderItem(
+        id: 'rem_6',
+        title: 'Log Daily Health',
+        category: 'Health',
+        subtitle: 'Update your wellness tracker',
+        reminderTimes: const [TimeOfDay(hour: 20, minute: 0)],
+        colorKey: 'Pink',
+        isEnabled: true,
+      ),
     ];
   }
 
@@ -924,18 +934,21 @@ class WhisperRoomNotifier extends StateNotifier<List<CommunityPost>> {
   }
 
   Future<void> votePoll(String postId, String optionId) async {
+    final post = state.firstWhere((p) => p.id == postId);
+    if (post.userVotedPollOptionId != null) return; // Prevent multiple votes
+
     state = [
-      for (final post in state)
-        if (post.id == postId && post.pollOptions != null)
-          post.copyWith(
+      for (final p in state)
+        if (p.id == postId && p.pollOptions != null)
+          p.copyWith(
             userVotedPollOptionId: optionId,
             pollOptions: [
-              for (final opt in post.pollOptions!)
+              for (final opt in p.pollOptions!)
                 if (opt.id == optionId) opt.copyWith(votes: opt.votes + 1) else opt
             ],
           )
         else
-          post
+          p
     ];
 
     try {
@@ -1115,54 +1128,6 @@ class KyraNotifier extends StateNotifier<List<KyraMessage>> {
 final pinkCornerServiceProvider = Provider<PinkCornerService>((ref) {
   return PinkCornerService();
 });
-
-// Pink Corner Educational Articles Provider
-final articlesProvider = StreamProvider<List<ArticleItem>>((ref) {
-  final service = ref.read(pinkCornerServiceProvider);
-  return service.streamArticles();
-});
-
-// Seed mock articles helper
-Future<void> seedMockArticles(WidgetRef ref) async {
-  final service = ref.read(pinkCornerServiceProvider);
-  final staticArticles = [
-    ArticleItem(
-      id: 'art_1',
-      title: 'PCOS vs PCOD: Understanding the Key Differences & Daily Habits',
-      category: 'PCOS & PCOD',
-      readTime: '4 min read',
-      summary:
-          'Learn how hormonal balance, insulin sensitivity, and cycle tracking can help manage PCOS symptoms effectively.',
-      fullBody:
-          'PCOS (Polycystic Ovary Syndrome) and PCOD (Polycystic Ovarian Disease) are endocrine conditions affecting millions of women worldwide.\n\nWhile PCOD is primarily a metabolic imbalance causing ovaries to produce immature eggs, PCOS involves higher androgen levels leading to irregular cycles, acne, and hirsutism.\n\nKey Daily Habits to Balance Hormones:\n1. Seed Cycling: Pumpkin & flax seeds in follicular phase; sunflower & sesame in luteal phase.\n2. Spearmint Tea: 2 cups daily helps lower free testosterone levels.\n3. Strength Training: Builds muscle sensitivity to insulin.\n4. Prioritize Sleep: 7-8 hours prevents cortisol spikes.',
-      imageUrl: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=600',
-      isTrending: true,
-    ),
-    ArticleItem(
-      id: 'art_2',
-      title: 'Deciphering Cervical Mucus & Your Fertile Window',
-      category: 'Fertility & Flow',
-      readTime: '3 min read',
-      summary: 'Identify egg-white discharge patterns to predict your exact ovulation day naturally.',
-      fullBody:
-          'Cervical mucus changes dynamically throughout your cycle under the influence of estrogen and progesterone.\n\n• Dry/Sticky: Right after your period.\n• Creamy: Early follicular phase.\n• Egg-White Clear & Stretchy: Peak fertile window right before ovulation!',
-      imageUrl: 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=600',
-      isTrending: true,
-    ),
-    ArticleItem(
-      id: 'art_3',
-      title: 'The Science of PMS & Luteal Phase Nutrition',
-      category: 'Body Changes',
-      readTime: '5 min read',
-      summary: 'Reduce mood swings and bloating with magnesium, B6, and complex carbohydrates.',
-      fullBody:
-          'During the luteal phase (days 15-28), progesterone rises while serotonin drops. This can cause cravings and mood dips.\n\nNourish your body with dark chocolate (70%+), spinach, bananas, and herbal chamomiles.',
-      imageUrl: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=600',
-      isTrending: false,
-    ),
-  ];
-  await service.seedMockArticles(staticArticles);
-}
 
 // Doctor Service Provider
 final doctorServiceProvider = Provider<DoctorService>((ref) {

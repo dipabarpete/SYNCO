@@ -226,6 +226,7 @@ class CommunityPost {
       pollOptions: map['pollOptions'] != null
           ? List<PollOption>.from((map['pollOptions'] as List<dynamic>).map((x) => PollOption.fromMap(x)))
           : null,
+      userVotedPollOptionId: _findUserVotedOptionId(map, currentUserId),
       comments: map['comments'] != null
           ? List<CommentItem>.from((map['comments'] as List<dynamic>).map((x) => CommentItem.fromMap(x)))
           : [],
@@ -236,5 +237,18 @@ class CommunityPost {
       likedBy: likedByList,
       savedBy: savedByList,
     );
+  }
+
+  static String? _findUserVotedOptionId(Map<String, dynamic> map, String currentUserId) {
+    if (map['pollOptions'] == null || currentUserId.isEmpty) return null;
+    final options = map['pollOptions'] as List<dynamic>;
+    for (final opt in options) {
+      final optId = opt['id'] as String;
+      final voters = map['votedBy_$optId'] as List<dynamic>?;
+      if (voters != null && voters.contains(currentUserId)) {
+        return optId;
+      }
+    }
+    return null;
   }
 }
