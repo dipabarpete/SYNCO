@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../../core/theme/app_colors.dart';
 import '../models/doctor.dart';
 import 'booking_screen.dart';
 import 'consultation_chat_screen.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../widgets/doctor_reviews_list.dart';
 
 class DoctorProfileScreen extends ConsumerWidget {
   final Doctor doctor;
@@ -43,7 +45,9 @@ class DoctorProfileScreen extends ConsumerWidget {
                 const SizedBox(height: 16),
                 _buildClinicCard(),
               ],
-              const SizedBox(height: 16),
+              const SizedBox(height: 24),
+              DoctorReviewsList(doctor: doctor),
+              const SizedBox(height: 24),
             ],
           ),
         ),
@@ -58,7 +62,8 @@ class DoctorProfileScreen extends ConsumerWidget {
                 child: GestureDetector(
                   onTap: () {
                     final user = ref.read(authNotifierProvider).userProfile;
-                    final userId = user?.id ?? 'user_123';
+                    final authUid = FirebaseAuth.instance.currentUser?.uid;
+                    final userId = user?.id ?? authUid ?? 'user_123';
                     Navigator.push(
                       context,
                       MaterialPageRoute(
