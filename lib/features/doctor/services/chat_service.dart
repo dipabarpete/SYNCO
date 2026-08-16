@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import '../../../core/backend.dart';
+import '../../../core/services/notification_service.dart';
 import '../models/chat_message.dart';
 
 class ChatService {
@@ -16,7 +17,7 @@ class ChatService {
         .collection('chats')
         .doc(chatId)
         .collection('messages')
-        .orderBy('timestamp', descending: true)
+        .orderBy('timestamp', descending: false) // ASCENDING
         .snapshots()
         .map((snapshot) {
       return snapshot.docs.map((doc) {
@@ -25,22 +26,87 @@ class ChatService {
     });
   }
 
-  Future<void> sendMessage(String chatId, String senderId, String text) async {
+  Future<void> sendMessage(String chatId, String senderId, String senderRole, String text) async {
     if (_firestore == null) {
       debugPrint('[ChatService] Firestore is null, cannot send message.');
       return;
     }
 
     try {
-      await _firestore!
-          .collection('chats')
-          .doc(chatId)
-          .collection('messages')
-          .add({
+      // Fetch booking document to get participants for security rules, or parse from inquiry ID
+      String? patientId;
+      String? doctorId;
+      
+      if (chatId.startsWith('inquiry_')) {
+        final parts = chatId.split('_');
+        if (parts.length >= 3) {
+          patientId = parts[1];
+          doctorId = parts[2];
+        }
+      } else {
+        try {
+          final aptDoc = await _firestore!.collection('bookings').doc(chatId).get();
+          if (aptDoc.exists) {
+            final aptData = aptDoc.data();
+            if (aptData != null) {
+              patientId = aptData['userId'] ?? aptData['patientId'];
+              doctorId = aptData['doctorId'];
+            }
+          }
+        } catch (e) {
+          debugPrint('[ChatService] Error fetching booking for chat: $e');
+        }
+      }
+
+      final batch = _firestore!.batch();
+      
+      final chatRef = _firestore!.collection('chats').doc(chatId);
+      final messagesRef = chatRef.collection('messages').doc();
+
+      // Write the new message
+      batch.set(messagesRef, {
         'senderId': senderId,
+        'senderRole': senderRole,
         'text': text,
         'timestamp': FieldValue.serverTimestamp(),
       });
+
+      // Update the parent chat document
+      final updateData = <String, dynamic>{
+        'lastMessage': text,
+        'lastUpdated': FieldValue.serverTimestamp(),
+      };
+
+      if (patientId != null && doctorId != null) {
+        updateData['participants'] = [patientId, doctorId];
+      }
+      if (patientId != null) {
+        updateData['patientId'] = patientId;
+      }
+      if (doctorId != null) {
+        updateData['doctorId'] = doctorId;
+      }
+
+      batch.set(chatRef, updateData, SetOptions(merge: true));
+
+      await batch.commit();
+
+      if (senderRole == 'doctor') {
+        final doc = await chatRef.get();
+        if (doc.exists) {
+          final patientId = doc.data()?['patientId'];
+          if (patientId != null) {
+            await NotificationService().saveAppNotification(
+              userId: patientId,
+              title: 'New Message from Doctor',
+              subtitle: text,
+              iconCode: 0xe153, // chat bubble
+              iconColorHex: 'FF9C27B0',
+              payload: 'chat:$chatId',
+            );
+          }
+        }
+      }
     } catch (e) {
       debugPrint('[ChatService] Error sending message: $e');
       rethrow;

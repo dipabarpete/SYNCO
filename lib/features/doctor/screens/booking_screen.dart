@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../providers/app_providers.dart';
 import '../../auth/providers/auth_provider.dart';
@@ -290,8 +291,10 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
     try {
       final doctorService = ref.read(doctorServiceProvider);
       final user = ref.read(authNotifierProvider).userProfile;
-      final userId = user?.id ?? 'user_123';
-      final patientName = user?.username ?? 'Guest User';
+      final authUid = FirebaseAuth.instance.currentUser?.uid;
+      final userId = user?.id ?? authUid ?? 'user_123';
+      
+      final patientName = user?.username ?? 'Unknown Patient';
 
       await doctorService.bookAppointment(
         userId: userId,

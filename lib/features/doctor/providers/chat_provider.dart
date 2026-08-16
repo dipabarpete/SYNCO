@@ -6,7 +6,7 @@ final chatServiceProvider = Provider<ChatService>((ref) {
   return ChatService();
 });
 
-final chatMessagesProvider = StreamProvider.family<List<ChatMessage>, String>((ref, chatId) {
+final chatMessagesProvider = StreamProvider.autoDispose.family<List<ChatMessage>, String>((ref, chatId) {
   final chatService = ref.watch(chatServiceProvider);
   return chatService.getMessages(chatId);
 });

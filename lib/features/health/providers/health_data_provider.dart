@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../data/health_repository.dart';
 import '../data/local_health_data_repository.dart';
 import '../models/ai_insight.dart';
 import '../models/health_entries.dart';
@@ -81,7 +82,7 @@ class HealthDataState {
 }
 
 final healthRepositoryProvider = Provider<HealthDataRepository>((ref) {
-  return LocalHealthDataRepository();
+  return HealthRepository();
 });
 
 final healthDataProvider =

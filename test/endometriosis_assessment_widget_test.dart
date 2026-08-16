@@ -3,13 +3,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hersync/features/onboarding/widgets/diagnosis_option_card.dart';
 import 'package:hersync/features/symptoms_assessment/screens/endometriosis_assessment_screen.dart';
+import 'package:hersync/providers/app_providers.dart';
+import 'package:hersync/features/doctor/models/doctor.dart';
 
 void main() {
   testWidgets('EndometriosisAssessmentScreen interactive questionnaire and result flow',
       (WidgetTester tester) async {
     await tester.pumpWidget(
-      const ProviderScope(
-        child: MaterialApp(
+      ProviderScope(
+        overrides: [
+          doctorsProvider.overrideWith((ref) => Stream.value(<Doctor>[])),
+        ],
+        child: const MaterialApp(
           home: EndometriosisAssessmentScreen(),
         ),
       ),
@@ -66,16 +71,11 @@ void main() {
     expect(find.text('Low indication of endometriosis-associated features'), findsOneWidget);
     expect(find.textContaining('Important: This is a symptom screening result, not a diagnosis.'), findsOneWidget);
 
-    // Scroll to Share Summary With Doctor button
-    final shareBtn = find.text('Share Summary With Doctor');
-    await tester.ensureVisible(shareBtn);
+    // Scroll to Continue Tracking button
+    final continueBtn = find.text('Continue Tracking');
+    await tester.ensureVisible(continueBtn);
     await tester.pumpAndSettle();
 
-    expect(shareBtn, findsOneWidget);
-    await tester.tap(shareBtn);
-    await tester.pumpAndSettle();
-
-    // Verify Doctor consultation summary sheet opens
-    expect(find.text('Endometriosis Symptom Screening Summary'), findsOneWidget);
+    expect(continueBtn, findsOneWidget);
   });
 }

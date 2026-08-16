@@ -8,6 +8,7 @@ import 'package:hersync/features/health/screens/health_history_screen.dart';
 import 'package:hersync/features/health/widgets/health_dashboard_widgets.dart';
 import 'package:hersync/features/health/widgets/sleep_tracker_sheet.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:hersync/features/health/data/local_health_data_repository.dart';
 
 void main() {
   setUp(() {
@@ -27,10 +28,19 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  ProviderContainer createContainer() {
+    final container = ProviderContainer(
+      overrides: [
+        healthRepositoryProvider.overrideWithValue(LocalHealthDataRepository()),
+      ],
+    );
+    addTearDown(container.dispose);
+    return container;
+  }
+
   testWidgets('shows Kyra AI header, section titles and all 8 grid cards',
       (tester) async {
-    final container = ProviderContainer();
-    addTearDown(container.dispose);
+    final container = createContainer();
     await pumpScreen(tester, container);
 
     expect(find.text('Kyra AI'), findsWidgets);
@@ -59,8 +69,7 @@ void main() {
   });
 
   testWidgets('empty cards show Not logged placeholders', (tester) async {
-    final container = ProviderContainer();
-    addTearDown(container.dispose);
+    final container = createContainer();
     await pumpScreen(tester, container);
 
     for (final card in find.byType(TrackerGridCard).evaluate()) {
@@ -75,8 +84,7 @@ void main() {
   });
 
   testWidgets('tapping a card opens its tracker sheet', (tester) async {
-    final container = ProviderContainer();
-    addTearDown(container.dispose);
+    final container = createContainer();
     await pumpScreen(tester, container);
 
     await tester.tap(
@@ -91,8 +99,7 @@ void main() {
   });
 
   testWidgets('card reflects values saved through the provider', (tester) async {
-    final container = ProviderContainer();
-    addTearDown(container.dispose);
+    final container = createContainer();
     await pumpScreen(tester, container);
 
     final notifier = container.read(healthDataProvider.notifier);
@@ -118,8 +125,7 @@ void main() {
   });
 
   testWidgets('History button navigates to history screen', (tester) async {
-    final container = ProviderContainer();
-    addTearDown(container.dispose);
+    final container = createContainer();
     await pumpScreen(tester, container);
 
     await tester.tap(find.text('History'));
@@ -130,8 +136,7 @@ void main() {
 
   testWidgets('AI section shows dynamic pattern count and period selector',
       (tester) async {
-    final container = ProviderContainer();
-    addTearDown(container.dispose);
+    final container = createContainer();
     await pumpScreen(tester, container);
 
     expect(find.text('AI found no important patterns yet'), findsOneWidget);
@@ -165,8 +170,7 @@ void main() {
 
   testWidgets('AI section shows empty state without fabricated patterns',
       (tester) async {
-    final container = ProviderContainer();
-    addTearDown(container.dispose);
+    final container = createContainer();
     await pumpScreen(tester, container);
 
     expect(find.text('AI found no important patterns yet'), findsOneWidget);

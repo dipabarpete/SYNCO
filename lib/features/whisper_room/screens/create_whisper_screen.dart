@@ -1,9 +1,8 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:http/http.dart' as http;
 
+import '../../../core/services/api_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../auth/providers/auth_provider.dart';
 
@@ -43,29 +42,18 @@ class _CreateWhisperScreenState extends ConsumerState<CreateWhisperScreen> {
     });
 
     try {
-      final response = await http.post(
-        Uri.parse('https://synco-api.vercel.app/api/whisper-post'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'authorId': user.id,
-          'content': content,
-          'category': _selectedCategory,
-          'isAnonymous': _isAnonymous,
-        }),
-      );
+      await ApiService.post('whisper-post', {
+        'content': content,
+        'category': _selectedCategory,
+        'isAnonymous': _isAnonymous,
+      });
 
       if (!mounted) return;
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Whisper posted successfully!')),
-        );
-        Navigator.pop(context);
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to post. Error: ${response.statusCode}')),
-        );
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Whisper posted successfully!')),
+      );
+      Navigator.pop(context);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

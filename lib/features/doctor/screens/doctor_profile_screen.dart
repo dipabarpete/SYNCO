@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../providers/app_providers.dart';
 import '../models/doctor.dart';
@@ -56,7 +57,7 @@ class DoctorProfileScreen extends ConsumerWidget {
                 const SizedBox(height: 16),
                 _buildClinicCard(),
               ],
-              const SizedBox(height: 16),
+const SizedBox(height: 16),
               _buildReviewsCard(reviews: reviews, stats: stats),
               const SizedBox(height: 16),
             ],
@@ -73,7 +74,8 @@ class DoctorProfileScreen extends ConsumerWidget {
                 child: GestureDetector(
                   onTap: () {
                     final user = ref.read(authNotifierProvider).userProfile;
-                    final userId = user?.id ?? 'user_123';
+                    final authUid = FirebaseAuth.instance.currentUser?.uid;
+                    final userId = user?.id ?? authUid ?? 'user_123';
                     Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -256,12 +258,15 @@ class DoctorProfileScreen extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(width: 6),
-                Text(
-                  doctor.availability,
-                  style: GoogleFonts.inter(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
+                Flexible(
+                  child: Text(
+                    doctor.availability,
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],

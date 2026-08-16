@@ -487,9 +487,11 @@ class EndometriosisAssessmentResultScreen extends ConsumerWidget {
         children: [
           Icon(icon, size: 16, color: AppColors.softPurple),
           const SizedBox(width: 8),
-          Text(
-            label,
-            style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textDark),
+          Flexible(
+            child: Text(
+              label,
+              style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textDark),
+            ),
           ),
         ],
       ),

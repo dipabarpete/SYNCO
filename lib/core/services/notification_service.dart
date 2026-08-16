@@ -347,6 +347,7 @@ class NotificationService {
     required String subtitle,
     int iconCode = 0xe000,
     String iconColorHex = 'FF9C27B0',
+    String? payload,
   }) async {
     try {
       final docRef = FirebaseFirestore.instance
@@ -363,6 +364,7 @@ class NotificationService {
         iconCode: iconCode,
         iconColorHex: iconColorHex,
         isUnread: true,
+        payload: payload,
       );
 
       await docRef.set(notification.toMap());
@@ -370,5 +372,20 @@ class NotificationService {
     } catch (e) {
       debugPrint('[NotificationService] Failed to save notification: $e');
     }
+  }
+
+  void showImmediateNotification({
+    required int id,
+    required String title,
+    required String body,
+    String? payload,
+  }) {
+    schedule(
+      id: id,
+      title: title,
+      body: body,
+      scheduledDate: tz.TZDateTime.now(tz.local).add(const Duration(seconds: 1)),
+      matchDateTimeComponents: null,
+    );
   }
 }
