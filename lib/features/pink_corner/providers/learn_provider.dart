@@ -1,7 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../models/article_item.dart';
 import '../../../models/faq_item.dart';
-import '../services/pink_corner_service.dart';
 import '../../../providers/app_providers.dart';
 
 // Latest Articles Provider (Limit 5)

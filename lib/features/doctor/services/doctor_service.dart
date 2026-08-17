@@ -26,6 +26,19 @@ class DoctorService {
     return null;
   }
 
+  /// Loads a single appointment (booking) by ID together with its doctor.
+  /// Returns `null` when the booking or its doctor does not exist.
+  Future<Appointment?> getAppointment(String bookingId) async {
+    final doc = await _db.collection('bookings').doc(bookingId).get();
+    if (!doc.exists) return null;
+    final data = doc.data() ?? {};
+    final doctorId = data['doctorId'] as String?;
+    if (doctorId == null) return null;
+    final doctor = await getDoctor(doctorId);
+    if (doctor == null) return null;
+    return Appointment.fromMap(doc.id, data, doctor);
+  }
+
   // Create a doctor profile (used during sign up)
   Future<void> createDoctorProfile(Doctor doctor) async {
     await _db.collection('doctors').doc(doctor.id).set(doctor.toMap(), SetOptions(merge: true));
@@ -34,6 +47,81 @@ class DoctorService {
   // Update a doctor profile
   Future<void> updateDoctorProfile(String doctorId, Map<String, dynamic> data) async {
     await _db.collection('doctors').doc(doctorId).update(data);
+  }
+
+  /// Adds a weekly availability slot for the doctor and makes it usable by the
+  /// existing patient booking flow.
+  ///
+  /// The availability is written into the existing doctor document fields the
+  /// booking flow already reads (`availableDays` + `timeSlots`), so no
+  /// separate/duplicate backend system is created. Each entry is additionally
+  /// recorded in the structured `availabilitySlots` list (with the
+  /// consultation mode) so the portal can display what was saved.
+  ///
+  /// [start] and [end] use "h:mm AM/PM" formatting. [mode] is one of
+  /// 'online', 'offline' or 'both'.
+  ///
+  /// Throws an [ArgumentError] when the end time is not after the start time.
+  Future<void> addAvailability({
+    required String doctorId,
+    required String day,
+    required String start,
+    required String end,
+    required String mode,
+  }) async {
+    final slots = _hourlySlots(start, end);
+    if (slots.isEmpty) {
+      throw ArgumentError('End time must be after start time.');
+    }
+    await _db.collection('doctors').doc(doctorId).update({
+      'availableDays': FieldValue.arrayUnion([day]),
+      'timeSlots': FieldValue.arrayUnion(slots),
+      'availabilitySlots': FieldValue.arrayUnion([
+        {
+          'day': day,
+          'start': start,
+          'end': end,
+          'mode': mode,
+          'updatedAt': DateTime.now().toIso8601String(),
+        }
+      ]),
+    });
+  }
+
+  /// Generates hourly time slots between [start] and [end] (exclusive of the
+  /// end time), formatted like the existing slots, e.g. "09:00 AM".
+  static List<String> _hourlySlots(String start, String end) {
+    final startMinutes = _timeToMinutes(start);
+    final endMinutes = _timeToMinutes(end);
+    if (startMinutes == null || endMinutes == null || endMinutes <= startMinutes) {
+      return const [];
+    }
+    final slots = <String>[];
+    for (var minutes = startMinutes; minutes < endMinutes; minutes += 60) {
+      final hour12 = (minutes ~/ 60) % 12;
+      final displayHour = hour12 == 0 ? 12 : hour12;
+      final meridian = minutes ~/ 60 < 12 ? 'AM' : 'PM';
+      slots.add('${displayHour.toString().padLeft(2, '0')}:'
+          '${(minutes % 60).toString().padLeft(2, '0')} $meridian');
+    }
+    return slots;
+  }
+
+  /// Parses "h:mm AM/PM" (also accepts 24-hour "hh:mm") into minutes of the
+  /// day, or `null` when the value is not a valid time.
+  static int? _timeToMinutes(String value) {
+    final match = RegExp(
+      r'^(\d{1,2}):(\d{2})\s*(AM|PM)?$',
+      caseSensitive: false,
+    ).firstMatch(value.trim());
+    if (match == null) return null;
+    var hour = int.parse(match.group(1)!);
+    final minute = int.parse(match.group(2)!);
+    final meridian = match.group(3)?.toUpperCase();
+    if (hour > 23 || minute > 59) return null;
+    if (meridian == 'PM' && hour < 12) hour += 12;
+    if (meridian == 'AM' && hour == 12) hour = 0;
+    return hour * 60 + minute;
   }
 
   // Book an appointment
@@ -124,6 +212,11 @@ class DoctorService {
           subtitle = '$doctorName could not accept your request at this time.';
           iconCode = 0xe14c; // cancel
           iconColorHex = 'FFF44336';
+        } else if (status == 'cancelled') {
+          title = 'Appointment Cancelled';
+          subtitle = 'Your appointment with $doctorName has been cancelled.';
+          iconCode = 0xe14c; // cancel
+          iconColorHex = 'FF9E93A8';
         }
         
         if (title.isNotEmpty) {

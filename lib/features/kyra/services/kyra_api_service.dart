@@ -13,8 +13,8 @@ class KyraApiService {
       final response = await ApiService.post('kyra', {
         'prompt': message,
         'context': contextData,
-        if (imageBase64 != null) 'imageBase64': imageBase64,
-        if (fileBase64 != null) 'fileBase64': fileBase64,
+        'imageBase64': ?imageBase64,
+        'fileBase64': ?fileBase64,
         if (isPdf) 'isPdf': true,
       });
 

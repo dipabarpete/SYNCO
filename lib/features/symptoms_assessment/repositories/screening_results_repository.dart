@@ -62,8 +62,8 @@ class FirebaseScreeningResultsRepository
     implements ScreeningResultsRepository {
   FirebaseScreeningResultsRepository({
     required this._firestore,
-    required String userId,
-  })  : _userId = userId;
+    required this._userId,
+  });
 
   final FirebaseFirestore _firestore;
   final String _userId;

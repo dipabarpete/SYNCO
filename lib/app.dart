@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'core/navigation/app_navigator.dart';
+import 'core/services/notification_service.dart';
 import 'core/theme/app_theme.dart';
 import 'core/widgets/custom_bottom_nav_bar.dart';
 import 'models/user_profile.dart';
@@ -37,6 +39,8 @@ class HerSyncApp extends ConsumerWidget {
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: ThemeMode.light,
+
+      navigatorKey: AppNavigator.navigatorKey,
 
       home: const HerSyncAuthGateway(),
     );
@@ -76,6 +80,23 @@ class _HerSyncAuthGatewayState
     extends ConsumerState<HerSyncAuthGateway> {
 
   bool _isSplashDone = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Deep-link handler for notification taps: opens the Consultation Room
+    // of the appointment carried in the payload.
+    NotificationService().onPayloadTap = _handleNotificationPayload;
+  }
+
+  void _handleNotificationPayload(String payload) {
+    if (!payload.startsWith('consultation:')) return;
+    final appointmentId = payload.split(':').last;
+    if (appointmentId.isEmpty) return;
+    final role = ref.read(authNotifierProvider).userProfile?.role ??
+        UserRole.user;
+    AppNavigator.openConsultationRoom(appointmentId, role);
+  }
 
   @override
   Widget build(BuildContext context) {

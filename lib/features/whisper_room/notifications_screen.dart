@@ -6,8 +6,12 @@ import 'package:timeago/timeago.dart' as timeago;
 
 import '../../core/theme/app_colors.dart';
 import '../../core/providers/notification_providers.dart';
+import '../../core/models/app_notification.dart';
 import '../auth/providers/auth_provider.dart';
 import '../doctor/screens/consultation_chat_screen.dart';
+import '../doctor/screens/patient_consultation_screen.dart';
+import '../doctor_dashboard/screens/consultation_room_screen.dart';
+import '../../models/user_profile.dart';
 
 /// Maps known notification icon codepoints to const [Icons] values so that
 /// the Flutter Web release tree-shaker can include them correctly.
@@ -26,6 +30,43 @@ IconData _iconFromCode(int code) {
 
 class NotificationsScreen extends ConsumerWidget {
   const NotificationsScreen({super.key});
+
+  /// Routes a tapped notification to its destination. Consultation reminders
+  /// carry a `consultation:<appointmentId>` payload and open the same room
+  /// from either the doctor or the patient side.
+  void _handleTap(BuildContext context, WidgetRef ref, AppNotification item) {
+    final payload = item.payload;
+    if (payload == null) return;
+
+    if (payload.startsWith('chat:')) {
+      final chatId = payload.split(':')[1];
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ConsultationChatScreen(
+            chatId: chatId,
+            patientName: 'Doctor', // The chat screen will load data anyway
+          ),
+        ),
+      );
+      return;
+    }
+
+    if (payload.startsWith('consultation:')) {
+      final appointmentId = payload.split(':').last;
+      if (appointmentId.isEmpty) return;
+      final role = ref.read(authNotifierProvider).userProfile?.role ??
+          UserRole.user;
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => role == UserRole.doctor
+              ? DoctorConsultationRoomScreen(appointmentId: appointmentId)
+              : PatientConsultationScreen(appointmentId: appointmentId),
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -100,20 +141,7 @@ class NotificationsScreen extends ConsumerWidget {
               final isUnread = item.isUnread;
 
               return GestureDetector(
-                onTap: () {
-                  if (item.payload != null && item.payload!.startsWith('chat:')) {
-                    final chatId = item.payload!.split(':')[1];
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => ConsultationChatScreen(
-                          chatId: chatId,
-                          patientName: 'Doctor', // The chat screen will load data anyway
-                        ),
-                      ),
-                    );
-                  }
-                },
+                onTap: () => _handleTap(context, ref, item),
                 child: Container(
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(

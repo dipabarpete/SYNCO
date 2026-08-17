@@ -32,6 +32,19 @@ class DoctorHomeScreen extends ConsumerWidget {
     final todayAppointments = ref.watch(todayAppointmentsProvider);
     final completedToday = ref.watch(completedTodayAppointmentsProvider);
 
+    // Temporary demo records (UI/testing only). They are always shown so the
+    // dashboard looks populated, and real appointments are listed after them.
+    // They are pure UI-only demo data and never touch the real booking system.
+    final doctor = doctorAsync.value;
+    final shownToday = [
+      ..._dummyTodayAppointments(doctor ?? _fallbackDemoDoctor()),
+      ...todayAppointments,
+    ];
+    final shownCompleted = [
+      ..._dummyCompletedAppointments(doctor ?? _fallbackDemoDoctor()),
+      ...completedToday,
+    ];
+
     return SafeArea(
       bottom: false,
       child: RefreshIndicator(
@@ -55,33 +68,31 @@ class DoctorHomeScreen extends ConsumerWidget {
             ] else ...[
               const DoctorSectionHeader(
                 title: "Today's Appointments",
-                subtitle: 'Confirmed consultations scheduled for today',
               ),
               const SizedBox(height: 12),
-              if (todayAppointments.isEmpty)
+              if (shownToday.isEmpty)
                 const DoctorEmptyState(
                   icon: Icons.calendar_today_rounded,
                   title: 'No appointments scheduled for today',
                   subtitle: 'Your confirmed consultations will appear here.',
                 )
               else
-                ...todayAppointments.map(
+                ...shownToday.map(
                   (a) => _TodayAppointmentTile(appointment: a),
                 ),
               const SizedBox(height: 26),
               const DoctorSectionHeader(
                 title: 'Completed Today',
-                subtitle: 'Consultations you marked as completed today',
               ),
               const SizedBox(height: 12),
-              if (completedToday.isEmpty)
+              if (shownCompleted.isEmpty)
                 const DoctorEmptyState(
                   icon: Icons.task_alt_rounded,
                   title: 'No completed appointments today',
                   subtitle: 'Consultations you complete today will appear here.',
                 )
               else
-                ...completedToday.map(
+                ...shownCompleted.map(
                   (a) => _CompletedAppointmentTile(appointment: a),
                 ),
             ],
@@ -107,70 +118,29 @@ class DoctorHomeScreen extends ConsumerWidget {
         : (fallbackName?.isNotEmpty == true ? fallbackName! : 'Doctor');
     final displayName = formatDoctorDisplayName(rawName);
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFFFFF0F5), Color(0xFFE8DFF5)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppColors.softLavender),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.softPurple.withValues(alpha: 0.08),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      child: Row(
+    // Plain greeting text directly on the dashboard background - no card.
+    return Padding(
+      padding: const EdgeInsets.only(top: 6),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: const EdgeInsets.all(2),
-            decoration: const BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: AppColors.primaryGradient,
-            ),
-            child: CircleAvatar(
-              radius: 26,
-              backgroundColor: Colors.white,
-              child: Text(
-                doctor?.initials ?? 'D',
-                style: GoogleFonts.outfit(
-                  fontSize: 17,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.softPurple,
-                ),
-              ),
+          Text(
+            timeGreeting,
+            style: GoogleFonts.inter(
+              fontSize: 18,
+              fontWeight: FontWeight.w500,
+              color: AppColors.textDark.withValues(alpha: 0.85),
             ),
           ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  timeGreeting,
-                  style: GoogleFonts.inter(
-                    fontSize: 13,
-                    color: AppColors.textMedium,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  '$displayName 👋',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.outfit(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textDark,
-                  ),
-                ),
-              ],
+          const SizedBox(height: 2),
+          Text(
+            displayName,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: GoogleFonts.outfit(
+              fontSize: 28,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textDark,
             ),
           ),
         ],
@@ -418,7 +388,7 @@ class _TodayAppointmentTile extends ConsumerWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              DoctorStatusPill(status: a.status),
+              DoctorModePill(mode: a.mode),
               const SizedBox(width: 4),
               IconButton(
                 tooltip: 'Message Patient',
@@ -445,6 +415,140 @@ class _TodayAppointmentTile extends ConsumerWidget {
       ),
     );
   }
+}
+
+/// Stand-in doctor used when the logged-in doctor's profile is not available
+/// yet, so demo records can still render. Never persisted anywhere.
+Doctor _fallbackDemoDoctor() {
+  return Doctor(
+    id: 'demo_doctor',
+    name: 'Consultant',
+    specialization: '',
+    experience: '',
+    rating: 0,
+    consultationFee: 0,
+    availability: '',
+    mode: ConsultationMode.online,
+    about: '',
+    availableDays: const [],
+    timeSlots: const [],
+  );
+}
+
+/// Temporary demo records (UI/testing only). Always displayed at the top of
+/// the "Today's Appointments" section and never written to the real booking
+/// system.
+List<Appointment> _dummyTodayAppointments(Doctor doctor) {
+  final now = DateTime.now();
+  final createdAt = now.subtract(const Duration(hours: 2));
+  return [
+    Appointment(
+      id: 'demo_today_1',
+      doctor: doctor,
+      mode: ConsultationMode.online,
+      date: now,
+      slot: '09:30 AM',
+      fee: doctor.consultationFee,
+      patientName: 'Aisha Verma',
+      userId: '',
+      createdAt: createdAt,
+      status: AppointmentStatus.confirmed,
+    ),
+    Appointment(
+      id: 'demo_today_2',
+      doctor: doctor,
+      mode: ConsultationMode.offline,
+      date: now,
+      slot: '11:00 AM',
+      fee: doctor.consultationFee,
+      patientName: 'Meera Nair',
+      userId: '',
+      createdAt: createdAt,
+      status: AppointmentStatus.confirmed,
+    ),
+    Appointment(
+      id: 'demo_today_3',
+      doctor: doctor,
+      mode: ConsultationMode.online,
+      date: now,
+      slot: '02:30 PM',
+      fee: doctor.consultationFee,
+      patientName: 'Riya Kapoor',
+      userId: '',
+      createdAt: createdAt,
+      status: AppointmentStatus.confirmed,
+    ),
+    Appointment(
+      id: 'demo_today_4',
+      doctor: doctor,
+      mode: ConsultationMode.offline,
+      date: now,
+      slot: '04:00 PM',
+      fee: doctor.consultationFee,
+      patientName: 'Ananya Iyer',
+      userId: '',
+      createdAt: createdAt,
+      status: AppointmentStatus.confirmed,
+    ),
+  ];
+}
+
+/// Temporary demo records (UI/testing only), same rules as
+/// [_dummyTodayAppointments]: always shown at the top of the
+/// "Completed Today" section, never persisted.
+List<Appointment> _dummyCompletedAppointments(Doctor doctor) {
+  final now = DateTime.now();
+  final createdAt = now.subtract(const Duration(hours: 4));
+  return [
+    Appointment(
+      id: 'demo_completed_1',
+      doctor: doctor,
+      mode: ConsultationMode.online,
+      date: now,
+      slot: '08:15 AM',
+      fee: doctor.consultationFee,
+      patientName: 'Kavya Rao',
+      userId: '',
+      createdAt: createdAt,
+      status: AppointmentStatus.completed,
+    ),
+    Appointment(
+      id: 'demo_completed_2',
+      doctor: doctor,
+      mode: ConsultationMode.offline,
+      date: now,
+      slot: '09:00 AM',
+      fee: doctor.consultationFee,
+      patientName: 'Sneha Pillai',
+      userId: '',
+      createdAt: createdAt,
+      status: AppointmentStatus.completed,
+    ),
+    Appointment(
+      id: 'demo_completed_3',
+      doctor: doctor,
+      mode: ConsultationMode.online,
+      date: now,
+      slot: '10:30 AM',
+      fee: doctor.consultationFee,
+      patientName: 'Tanvi Desai',
+      userId: '',
+      createdAt: createdAt,
+      status: AppointmentStatus.completed,
+    ),
+    Appointment(
+      id: 'demo_completed_4',
+      doctor: doctor,
+      mode: ConsultationMode.offline,
+      date: now,
+      slot: '11:45 AM',
+      fee: doctor.consultationFee,
+      patientName: 'Divya Menon',
+      userId: '',
+      createdAt: createdAt,
+      status: AppointmentStatus.completed,
+    ),
+  ];
 }
 
 class _CompletedAppointmentTile extends StatelessWidget {

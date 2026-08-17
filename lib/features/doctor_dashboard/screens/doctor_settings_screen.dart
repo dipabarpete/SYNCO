@@ -22,10 +22,24 @@ class _DoctorSettingsScreenState extends ConsumerState<DoctorSettingsScreen> {
   final _feeController = TextEditingController();
   final _aboutController = TextEditingController();
   final _clinicLocationController = TextEditingController();
+  final _clinicNameController = TextEditingController();
+  final _licenseController = TextEditingController();
+  final _qualificationsController = TextEditingController();
+  final _languagesController = TextEditingController();
+
+  String? _gender;
+  bool _showGender = false;
 
   bool _isLoading = true;
   bool _isSaving = false;
   Doctor? _doctor;
+
+  static const _genderOptions = [
+    'Female',
+    'Male',
+    'Non-binary',
+    'Prefer not to say',
+  ];
 
   @override
   void initState() {
@@ -41,6 +55,10 @@ class _DoctorSettingsScreenState extends ConsumerState<DoctorSettingsScreen> {
     _feeController.dispose();
     _aboutController.dispose();
     _clinicLocationController.dispose();
+    _clinicNameController.dispose();
+    _licenseController.dispose();
+    _qualificationsController.dispose();
+    _languagesController.dispose();
     super.dispose();
   }
 
@@ -53,11 +71,17 @@ class _DoctorSettingsScreenState extends ConsumerState<DoctorSettingsScreen> {
       setState(() {
         _doctor = doctor;
         _nameController.text = doctor.name;
-        _specializationController.text = doctor.specialization;
+        _specializationController.text = doctor.specializationList.join(', ');
         _experienceController.text = doctor.experience;
         _feeController.text = doctor.consultationFee.toString();
         _aboutController.text = doctor.about;
         _clinicLocationController.text = doctor.clinicLocation ?? '';
+        _clinicNameController.text = doctor.clinicName ?? '';
+        _licenseController.text = doctor.licenseId ?? '';
+        _qualificationsController.text = doctor.qualifications.join(', ');
+        _languagesController.text = doctor.languages.join(', ');
+        _gender = doctor.gender;
+        _showGender = doctor.showGender;
         _isLoading = false;
       });
     }
@@ -71,13 +95,22 @@ class _DoctorSettingsScreenState extends ConsumerState<DoctorSettingsScreen> {
     setState(() => _isSaving = true);
 
     try {
+      final specializations = _splitList(_specializationController.text);
       final updatedData = {
         'name': _nameController.text.trim(),
-        'specialization': _specializationController.text.trim(),
+        'specialization':
+            specializations.isEmpty ? '' : specializations.first,
+        'specializations': specializations,
         'experience': _experienceController.text.trim(),
         'consultationFee': int.tryParse(_feeController.text.trim()) ?? 50,
         'about': _aboutController.text.trim(),
         'clinicLocation': _clinicLocationController.text.trim(),
+        'clinicName': _clinicNameController.text.trim(),
+        'licenseId': _licenseController.text.trim(),
+        'qualifications': _splitList(_qualificationsController.text),
+        'gender': _gender,
+        'showGender': _showGender,
+        'languages': _splitList(_languagesController.text),
       };
 
       await DoctorService().updateDoctorProfile(user.id, updatedData);
@@ -102,6 +135,15 @@ class _DoctorSettingsScreenState extends ConsumerState<DoctorSettingsScreen> {
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
+  }
+
+  /// Splits a comma-separated list into clean, non-empty trimmed entries.
+  List<String> _splitList(String raw) {
+    return raw
+        .split(',')
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
   }
 
   @override
@@ -155,25 +197,57 @@ class _DoctorSettingsScreenState extends ConsumerState<DoctorSettingsScreen> {
                         validator: (v) => v!.isEmpty ? 'Required' : null,
                       ),
                       const SizedBox(height: 16),
-                      
+
+                      _buildLabel('Medical License ID'),
+                      const SizedBox(height: 8),
+                      _buildTextField(
+                        controller: _licenseController,
+                        hintText: 'e.g. MCI-84920-IND',
+                        icon: Icons.verified_user_outlined,
+                      ),
+                      const SizedBox(height: 16),
+
+                      _buildLabel('Qualifications'),
+                      const SizedBox(height: 8),
+                      _buildTextField(
+                        controller: _qualificationsController,
+                        hintText: 'e.g. MBBS, MD (separate with commas)',
+                        icon: Icons.school_outlined,
+                      ),
+                      const SizedBox(height: 16),
+
                       Row(
                         children: [
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                _buildLabel('Specialization'),
+                                _buildLabel('Specializations'),
                                 const SizedBox(height: 8),
                                 _buildTextField(
                                   controller: _specializationController,
-                                  hintText: 'e.g. Gynecologist',
+                                  hintText: 'e.g. Gynecologist, Endometriosis',
                                   icon: Icons.medical_services_outlined,
-                                  validator: (v) => v!.isEmpty ? 'Required' : null,
+                                  validator: (v) =>
+                                      v!.isEmpty ? 'Required' : null,
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Separate multiple specializations with '
+                                  'commas.',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 11.5,
+                                    color: AppColors.textLight,
+                                  ),
                                 ),
                               ],
                             ),
                           ),
-                          const SizedBox(width: 12),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -184,12 +258,100 @@ class _DoctorSettingsScreenState extends ConsumerState<DoctorSettingsScreen> {
                                   controller: _experienceController,
                                   hintText: 'e.g. 10 Years',
                                   icon: Icons.timeline_rounded,
-                                  validator: (v) => v!.isEmpty ? 'Required' : null,
+                                  validator: (v) =>
+                                      v!.isEmpty ? 'Required' : null,
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildLabel('Languages'),
+                                const SizedBox(height: 8),
+                                _buildTextField(
+                                  controller: _languagesController,
+                                  hintText: 'e.g. English, Hindi',
+                                  icon: Icons.translate_rounded,
                                 ),
                               ],
                             ),
                           ),
                         ],
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Optional gender with a public-visibility toggle. When
+                      // the toggle is off the gender is never shown on the
+                      // public profile.
+                      _buildLabel('Gender (optional)'),
+                      const SizedBox(height: 8),
+                      DropdownButtonFormField<String>(
+                        initialValue: _gender,
+                        isExpanded: true,
+                        decoration: _buildInputDecoration(
+                          hintText: 'Prefer not to say',
+                          icon: Icons.wc_rounded,
+                        ),
+                        items: _genderOptions
+                            .map(
+                              (g) => DropdownMenuItem(
+                                value: g,
+                                child: Text(
+                                  g,
+                                  style: GoogleFonts.inter(
+                                    fontSize: 14,
+                                    color: AppColors.textDark,
+                                  ),
+                                ),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (value) =>
+                            setState(() => _gender = value),
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.softLavender.withValues(alpha: 0.4),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              _showGender
+                                  ? Icons.visibility_rounded
+                                  : Icons.visibility_off_rounded,
+                              size: 18,
+                              color: _showGender
+                                  ? AppColors.softPurple
+                                  : AppColors.textLight,
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                'Show gender on my profile',
+                                style: GoogleFonts.inter(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.textDark,
+                                ),
+                              ),
+                            ),
+                            Switch(
+                              value: _showGender,
+                              activeTrackColor: AppColors.softPurpleLight,
+                              onChanged: (value) =>
+                                  setState(() => _showGender = value),
+                            ),
+                          ],
+                        ),
                       ),
                       const SizedBox(height: 24),
 
@@ -203,6 +365,14 @@ class _DoctorSettingsScreenState extends ConsumerState<DoctorSettingsScreen> {
                         icon: Icons.currency_rupee_rounded,
                         keyboardType: TextInputType.number,
                         validator: (v) => v!.isEmpty ? 'Required' : null,
+                      ),
+                      const SizedBox(height: 16),
+                      _buildLabel('Clinic / Hospital Name'),
+                      const SizedBox(height: 8),
+                      _buildTextField(
+                        controller: _clinicNameController,
+                        hintText: 'e.g. Sunflower Women\u2019s Hospital',
+                        icon: Icons.local_hospital_outlined,
                       ),
                       const SizedBox(height: 16),
                       _buildLabel('Clinic Location'),
@@ -340,7 +510,7 @@ class _DoctorSettingsScreenState extends ConsumerState<DoctorSettingsScreen> {
         await authService.deleteAccount();
         // The authStateChanges stream will naturally log the user out and redirect them to login.
       } catch (e) {
-        if (mounted) {
+        if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(e.toString()),
@@ -387,27 +557,34 @@ class _DoctorSettingsScreenState extends ConsumerState<DoctorSettingsScreen> {
       maxLines: maxLines,
       keyboardType: keyboardType,
       validator: validator,
-      decoration: InputDecoration(
-        hintText: hintText,
-        prefixIcon: maxLines == 1 ? Icon(icon, color: AppColors.softPurple) : null,
-        filled: true,
-        fillColor: AppColors.pureWhite,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: AppColors.borderGrey.withValues(alpha: 0.8)),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: AppColors.borderGrey.withValues(alpha: 0.8)),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: AppColors.softPurple, width: 2),
-        ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: AppColors.deepRose, width: 2),
-        ),
+      decoration: _buildInputDecoration(hintText: hintText, icon: icon),
+    );
+  }
+
+  InputDecoration _buildInputDecoration({
+    required String hintText,
+    required IconData icon,
+  }) {
+    return InputDecoration(
+      hintText: hintText,
+      prefixIcon: Icon(icon, color: AppColors.softPurple),
+      filled: true,
+      fillColor: AppColors.pureWhite,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(color: AppColors.borderGrey.withValues(alpha: 0.8)),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(color: AppColors.borderGrey.withValues(alpha: 0.8)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: AppColors.softPurple, width: 2),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: AppColors.deepRose, width: 2),
       ),
     );
   }

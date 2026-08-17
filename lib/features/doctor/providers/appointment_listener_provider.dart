@@ -9,7 +9,7 @@ final appointmentListenerProvider = Provider<void>((ref) {
   if (user == null) return;
 
   // We keep a cache of known appointment statuses to detect transitions
-  final Map<String, String> _statusCache = {};
+  final Map<String, String> statusCache = {};
   
   final subscription = FirebaseFirestore.instance
       .collection('bookings')
@@ -22,9 +22,9 @@ final appointmentListenerProvider = Provider<void>((ref) {
           final appointmentId = doc.id;
           
           if (change.type == DocumentChangeType.added) {
-            _statusCache[appointmentId] = currentStatus ?? 'requested';
+            statusCache[appointmentId] = currentStatus ?? 'requested';
           } else if (change.type == DocumentChangeType.modified) {
-            final previousStatus = _statusCache[appointmentId];
+            final previousStatus = statusCache[appointmentId];
             
             // Check for transition from 'requested' to 'confirmed'
             if (previousStatus == 'requested' && currentStatus == 'confirmed') {
@@ -50,7 +50,7 @@ final appointmentListenerProvider = Provider<void>((ref) {
               );
             }
             
-            _statusCache[appointmentId] = currentStatus ?? 'requested';
+            statusCache[appointmentId] = currentStatus ?? 'requested';
           }
         }
       });

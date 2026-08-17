@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_colors.dart';
 
-/// Bottom navigation for the Doctor Portal with exactly four primary
-/// sections: Dashboard, Appointments, Patients and Profile.
+/// Bottom navigation for the Doctor Portal with five primary sections:
+/// Dashboard, Appointments, Consultation Room, Requests and Profile.
 class DoctorBottomNavBar extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int>? onTap;
@@ -19,15 +19,11 @@ class DoctorBottomNavBar extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(28),
-          topRight: Radius.circular(28),
-        ),
         boxShadow: const [
           BoxShadow(
             color: AppColors.shadowColor,
-            blurRadius: 20,
-            offset: Offset(0, -6),
+            blurRadius: 12,
+            offset: Offset(0, -4),
           ),
         ],
       ),
@@ -49,11 +45,17 @@ class DoctorBottomNavBar extends StatelessWidget {
             ),
             _buildNavItem(
               index: 2,
-              icon: Icons.group_rounded,
-              label: 'Patients',
+              icon: Icons.video_call_rounded,
+              label: 'Consultation Room',
+              emphasized: true,
             ),
             _buildNavItem(
               index: 3,
+              icon: Icons.group_rounded,
+              label: 'Requests',
+            ),
+            _buildNavItem(
+              index: 4,
               icon: Icons.person_rounded,
               label: 'Profile',
             ),
@@ -67,6 +69,7 @@ class DoctorBottomNavBar extends StatelessWidget {
     required int index,
     required IconData icon,
     required String label,
+    bool emphasized = false,
   }) {
     final bool isSelected = currentIndex == index;
 
@@ -91,7 +94,9 @@ class DoctorBottomNavBar extends StatelessWidget {
                 size: 22,
                 color: isSelected
                     ? AppColors.softPurple
-                    : AppColors.textLight,
+                    : emphasized
+                        ? AppColors.softPurpleLight
+                        : AppColors.textLight,
               ),
               const SizedBox(height: 3),
               Text(
@@ -99,12 +104,14 @@ class DoctorBottomNavBar extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: GoogleFonts.inter(
-                  fontSize: 10,
+                  fontSize: 9.5,
                   fontWeight:
                       isSelected ? FontWeight.bold : FontWeight.w500,
                   color: isSelected
                       ? AppColors.softPurple
-                      : AppColors.textLight,
+                      : emphasized
+                          ? AppColors.softPurpleLight
+                          : AppColors.textLight,
                 ),
               ),
             ],

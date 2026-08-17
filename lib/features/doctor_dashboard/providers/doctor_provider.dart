@@ -2,12 +2,20 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../doctor/models/appointment.dart';
 import '../../doctor/models/doctor.dart';
+import '../../doctor/models/patient_health_summary.dart';
+import '../../doctor/services/doctor_health_summary_service.dart';
 import '../../doctor/services/doctor_service.dart';
 import '../../../core/backend.dart';
 
 // Provides the singleton service
 final _dashboardDoctorServiceProvider = Provider<DoctorService>((ref) {
   return DoctorService();
+});
+
+// Provides the patient health summary aggregation service
+final _dashboardHealthSummaryServiceProvider =
+    Provider<DoctorHealthSummaryService>((ref) {
+  return DoctorHealthSummaryService();
 });
 
 /// The id of the currently logged-in user. For the doctor portal this id is
@@ -39,6 +47,25 @@ final doctorAppointmentsProvider = StreamProvider<List<Appointment>>((ref) {
 /// Whether [a] and [b] fall on the same calendar day.
 bool isSameDay(DateTime a, DateTime b) =>
     a.year == b.year && a.month == b.month && a.day == b.day;
+
+/// The health summary for the patient on [args.appointmentId], aggregated
+/// from the patient's real stored data.
+///
+/// Scoped to the logged-in doctor: the service refuses to return data unless
+/// the appointment belongs to that doctor and the given patient. Returns
+/// `null` when unauthorized or the appointment does not exist.
+final patientHealthSummaryProvider = FutureProvider.family<
+    PatientHealthSummary?, ({String appointmentId, String userId})>(
+  (ref, args) async {
+    final doctorId = ref.watch(currentDoctorIdProvider);
+    if (doctorId == null || Backend.firestore == null) return null;
+    return ref.watch(_dashboardHealthSummaryServiceProvider).fetch(
+          appointmentId: args.appointmentId,
+          userId: args.userId,
+          doctorId: doctorId,
+        );
+  },
+);
 
 /// Formats a doctor name for display, avoiding a duplicated "Dr." prefix.
 String formatDoctorDisplayName(String name) {

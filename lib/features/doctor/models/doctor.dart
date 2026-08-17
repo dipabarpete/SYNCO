@@ -23,6 +23,43 @@ class Doctor {
   /// count is greater than zero (ratings are recomputed from real reviews).
   final int reviewCount;
 
+  /// Profile photo URL. When empty the UI falls back to the initials avatar.
+  final String? photoUrl;
+
+  /// Qualifications such as "MBBS" or "MD", e.g. ['MBBS', 'MD'].
+  final List<String> qualifications;
+
+  /// Medical license ID shown on the profile.
+  final String? licenseId;
+
+  /// Whether the doctor's credentials have been verified. The "Verified
+  /// Doctor" badge is shown only when this is explicitly true.
+  final bool isVerified;
+
+  /// Optional gender. Only displayed publicly when [showGender] is true.
+  final String? gender;
+
+  /// Whether the doctor has chosen to display their gender on the profile.
+  final bool showGender;
+
+  /// All specializations the doctor practices. When empty the legacy single
+  /// [specialization] field is used (see [specializationList]).
+  final List<String> specializations;
+
+  /// Total consultations provided, when the doctor document tracks it. The
+  /// doctor portal prefers the live completed-booking count when available.
+  final int consultationsCount;
+
+  /// Hospital/clinic name where offline consultations happen.
+  final String? clinicName;
+
+  /// Languages the doctor can speak, e.g. ['English', 'Hindi', 'Bengali'].
+  final List<String> languages;
+
+  /// Structured weekly availability entries saved by the doctor, each with
+  /// `day`, `start`, `end` and `mode` ('online' | 'offline' | 'both').
+  final List<Map<String, dynamic>> availabilitySlots;
+
   const Doctor({
     required this.id,
     required this.name,
@@ -39,6 +76,17 @@ class Doctor {
     required this.timeSlots,
     this.avatarBackground = AppColors.babyPink,
     this.reviewCount = 0,
+    this.photoUrl,
+    this.qualifications = const [],
+    this.licenseId,
+    this.isVerified = false,
+    this.gender,
+    this.showGender = false,
+    this.specializations = const [],
+    this.consultationsCount = 0,
+    this.clinicName,
+    this.languages = const [],
+    this.availabilitySlots = const [],
   });
 
   factory Doctor.fromFirestore(dynamic doc) {
@@ -58,7 +106,7 @@ class Doctor {
       }
       return [];
     }
-    String _parseAvailability(dynamic val) {
+    String parseAvailability(dynamic val) {
       if (val == null) return 'Available';
       if (val is String) return val;
       if (val is Map) {
@@ -82,14 +130,40 @@ class Doctor {
           ? (data['reviewCount'] as num).toInt()
           : 0,
       consultationFee: (data['consultationFee'] is num) ? (data['consultationFee'] as num).toInt() : 0,
-      availability: _parseAvailability(data['availability']),
+      availability: parseAvailability(data['availability']),
       mode: safeStr('mode') == 'offline' ? ConsultationMode.offline : ConsultationMode.online,
       distanceKm: (data['distanceKm'] is num) ? (data['distanceKm'] as num).toDouble() : null,
       clinicLocation: data['clinicLocation']?.toString(),
       about: safeStr('about'),
       availableDays: safeList('availableDays'),
       timeSlots: safeList('timeSlots'),
+      photoUrl: data['photoUrl']?.toString(),
+      qualifications: safeList('qualifications'),
+      licenseId: data['licenseId']?.toString(),
+      isVerified: data['isVerified'] == true,
+      gender: data['gender']?.toString(),
+      showGender: data['showGender'] == true,
+      specializations: safeList('specializations'),
+      consultationsCount: (data['consultationsCount'] is num)
+          ? (data['consultationsCount'] as num).toInt()
+          : 0,
+      clinicName: data['clinicName']?.toString(),
+      languages: safeList('languages'),
+      availabilitySlots: _parseAvailabilitySlots(data['availabilitySlots']),
     );
+  }
+
+  /// Parses the structured availability entries saved through the doctor
+  /// portal. Any malformed entries are ignored so old documents never crash.
+  static List<Map<String, dynamic>> _parseAvailabilitySlots(dynamic raw) {
+    if (raw is! List) return const [];
+    final slots = <Map<String, dynamic>>[];
+    for (final entry in raw) {
+      if (entry is Map) {
+        slots.add(Map<String, dynamic>.from(entry));
+      }
+    }
+    return slots;
   }
 
   Map<String, dynamic> toMap() {
@@ -107,7 +181,38 @@ class Doctor {
       'about': about,
       'availableDays': availableDays,
       'timeSlots': timeSlots,
+      'photoUrl': photoUrl,
+      'qualifications': qualifications,
+      'licenseId': licenseId,
+      'isVerified': isVerified,
+      'gender': gender,
+      'showGender': showGender,
+      'specializations': specializations,
+      'consultationsCount': consultationsCount,
+      'clinicName': clinicName,
+      'languages': languages,
+      'availabilitySlots': availabilitySlots,
     };
+  }
+
+  /// All specializations the doctor practices, falling back to the legacy
+  /// single [specialization] field when no list is stored.
+  List<String> get specializationList {
+    if (specializations.isNotEmpty) return specializations;
+    final primary = specialization.trim();
+    return primary.isEmpty ? const [] : [primary];
+  }
+
+  /// The doctor's gender label when they have chosen to display it publicly.
+  String? get visibleGender => showGender && gender != null ? gender : null;
+
+  /// Whether the doctor offers offline consultations (clinic visits). Used to
+  /// decide whether the Hospital / Clinic section is shown.
+  bool get isOfflineConsultant {
+    if (mode == ConsultationMode.offline) return true;
+    if (clinicName != null && clinicName!.isNotEmpty) return true;
+    if (clinicLocation != null && clinicLocation!.isNotEmpty) return true;
+    return availabilitySlots.any((s) => s['mode'] != 'online');
   }
 
   String get initials {

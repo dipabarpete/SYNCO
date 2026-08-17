@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../core/theme/app_colors.dart';
 import 'widgets/article_widgets.dart';
 
@@ -48,41 +49,8 @@ class PcosArticleScreen extends StatelessWidget {
             ),
             const SizedBox(height: 14),
 
-            Container(
-              margin: const EdgeInsets.only(bottom: 16),
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: const Color(0xFFF9F6FC),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: AppColors.borderGrey.withValues(alpha: 0.6),
-                ),
-                boxShadow: const [
-                  BoxShadow(
-                    color: AppColors.shadowColor,
-                    blurRadius: 10,
-                    offset: Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(20),
-                child: AspectRatio(
-                  aspectRatio: 1.0,
-                  child: Image.asset(
-                    'assets/images/pcos_hero.png',
-                    fit: BoxFit.contain,
-                    alignment: Alignment.center,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Image.network(
-                        'https://images.unsplash.com/photo-1579684385127-1ef15d508118?w=800',
-                        fit: BoxFit.contain,
-                      );
-                    },
-                  ),
-                ),
-              ),
-            ),
+            // PMOS VIDEOS CAROUSEL
+            const PmosVideoCarousel(),
 
             // INTRODUCTION
             const ArticleSectionHeading(title: 'Introduction', icon: Icons.explore_rounded),
@@ -358,33 +326,6 @@ class PcosArticleScreen extends StatelessWidget {
               ),
             ),
 
-            // RECOMMENDED VIDEOS
-            const ArticleSectionHeading(title: 'Recommended Videos', icon: Icons.video_library_rounded),
-            ArticleVideoCard(
-              title: 'Understanding PCOS',
-              description: 'A comprehensive medical guide explaining hormones, ovulation, and symptoms.',
-              duration: '10 mins',
-              onTap: () => _showVideoPlaceholder(context, 'Understanding PCOS'),
-            ),
-            ArticleVideoCard(
-              title: 'PCOS Diet Explained',
-              description: 'Learn how to construct anti-inflammatory Indian meals for insulin balance.',
-              duration: '12 mins',
-              onTap: () => _showVideoPlaceholder(context, 'PCOS Diet Explained'),
-            ),
-            ArticleVideoCard(
-              title: 'Best Exercises for PCOS',
-              description: 'Low-impact workout routine designed to lower cortisol and build muscle.',
-              duration: '8 mins',
-              onTap: () => _showVideoPlaceholder(context, 'Best Exercises for PCOS'),
-            ),
-            ArticleVideoCard(
-              title: 'Lifestyle Tips for PCOS',
-              description: 'Practical daily routines including seed cycling, sleep, and stress control.',
-              duration: '15 mins',
-              onTap: () => _showVideoPlaceholder(context, 'Lifestyle Tips for PCOS'),
-            ),
-
             const SizedBox(height: 24),
           ],
         ),
@@ -550,52 +491,236 @@ class PcosArticleScreen extends StatelessWidget {
       ),
     );
   }
+}
 
-  void _showVideoPlaceholder(BuildContext context, String videoTitle) {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (ctx) => Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: const BoxDecoration(
-                color: AppColors.softLavender,
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.play_circle_fill_rounded, size: 48, color: AppColors.softPurple),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              videoTitle,
-              style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.bold),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Video link preview. Full video playback integration will be available soon!',
-              style: GoogleFonts.inter(fontSize: 13, color: AppColors.textMedium),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(ctx),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.softPurple,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              ),
-              child: const Text('Close'),
-            ),
-          ],
+class PmosVideoItem {
+  final String title;
+  final String videoUrl;
+  final String videoId;
+
+  const PmosVideoItem({
+    required this.title,
+    required this.videoUrl,
+    required this.videoId,
+  });
+
+  String get thumbnailUrl => 'https://img.youtube.com/vi/$videoId/hqdefault.jpg';
+}
+
+final List<PmosVideoItem> _pmosVideos = const [
+  PmosVideoItem(
+    title: 'Understanding PMOS',
+    videoUrl: 'https://youtu.be/RMWy9_CQZxc?si=scnFPjmC5EAFlC_b',
+    videoId: 'RMWy9_CQZxc',
+  ),
+  PmosVideoItem(
+    title: 'PCOS Diet Explained',
+    videoUrl: 'https://youtu.be/Wvs_lIqg2RU?si=_F33jtNaYkybLIZk',
+    videoId: 'Wvs_lIqg2RU',
+  ),
+  PmosVideoItem(
+    title: 'Best Yoga for PMOS',
+    videoUrl: 'https://youtu.be/GTVvhMPSoE8?si=L3T1wtEAfgc9tUka',
+    videoId: 'GTVvhMPSoE8',
+  ),
+  PmosVideoItem(
+    title: 'Lifestyle Tips for PMOS',
+    videoUrl: 'https://youtu.be/I94SJM07PSE?si=UzS2zisX0v-JhML9',
+    videoId: 'I94SJM07PSE',
+  ),
+];
+
+class PmosVideoCarousel extends StatefulWidget {
+  const PmosVideoCarousel({super.key});
+
+  @override
+  State<PmosVideoCarousel> createState() => _PmosVideoCarouselState();
+}
+
+class _PmosVideoCarouselState extends State<PmosVideoCarousel> {
+  late final PageController _pageController;
+  int _currentIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController(viewportFraction: 0.88);
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _openYouTubeVideo(String url) async {
+    final uri = Uri.parse(url);
+    try {
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        await launchUrl(uri);
+      }
+    } catch (e) {
+      debugPrint('Could not launch $url: $e');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 8),
+        const ArticleSectionHeading(
+          title: 'PMOS Videos',
+          icon: Icons.play_circle_fill_rounded,
         ),
-      ),
+        const SizedBox(height: 12),
+        SizedBox(
+          height: 230,
+          child: PageView.builder(
+            controller: _pageController,
+            itemCount: _pmosVideos.length,
+            onPageChanged: (index) {
+              setState(() {
+                _currentIndex = index;
+              });
+            },
+            itemBuilder: (context, index) {
+              final video = _pmosVideos[index];
+              return Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child: GestureDetector(
+                  onTap: () => _openYouTubeVideo(video.videoUrl),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(
+                        color: AppColors.borderGrey.withValues(alpha: 0.6),
+                      ),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: AppColors.shadowColor,
+                          blurRadius: 10,
+                          offset: Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: ClipRRect(
+                            borderRadius: const BorderRadius.vertical(
+                              top: Radius.circular(18),
+                            ),
+                            child: Stack(
+                              fit: StackFit.expand,
+                              children: [
+                                Image.network(
+                                  video.thumbnailUrl,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Container(
+                                      color: AppColors.softLavender,
+                                      child: const Center(
+                                        child: Icon(
+                                          Icons.ondemand_video_rounded,
+                                          size: 44,
+                                          color: AppColors.softPurple,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                                Container(
+                                  color: Colors.black.withValues(alpha: 0.15),
+                                ),
+                                Center(
+                                  child: Container(
+                                    width: 48,
+                                    height: 48,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: AppColors.softPurple.withValues(alpha: 0.88),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withValues(alpha: 0.25),
+                                          blurRadius: 8,
+                                          offset: const Offset(0, 3),
+                                        ),
+                                      ],
+                                    ),
+                                    child: const Icon(
+                                      Icons.play_arrow_rounded,
+                                      color: Colors.white,
+                                      size: 32,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 12,
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  video.title,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: GoogleFonts.outfit(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.textDark,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              const Icon(
+                                Icons.open_in_new_rounded,
+                                size: 16,
+                                color: AppColors.softPurple,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: List.generate(
+            _pmosVideos.length,
+            (index) => AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              margin: const EdgeInsets.symmetric(horizontal: 4),
+              width: _currentIndex == index ? 20 : 8,
+              height: 8,
+              decoration: BoxDecoration(
+                color: _currentIndex == index
+                    ? AppColors.softPurple
+                    : AppColors.softPurple.withValues(alpha: 0.25),
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 18),
+      ],
     );
   }
 }

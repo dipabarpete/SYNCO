@@ -96,6 +96,38 @@ service cloud.firestore {
       }
     }
 
+    // Consultation Rooms: one shared session per appointment. Only the
+    // booking's doctor or patient may read or write the session, so no
+    // participant can enter another patient's / doctor's consultation room.
+    match /consultations/{appointmentId} {
+      function isParticipant() {
+        return isAuthenticated() && (
+          resource.data.doctorId == request.auth.uid ||
+          resource.data.patientId == request.auth.uid
+        );
+      }
+
+      // Reading requires an existing session whose participants are set.
+      allow read: if isParticipant();
+
+      // Creating a session is only allowed for the doctor or patient of the
+      // matching booking, and the written document must name them and match
+      // the booking participants.
+      allow create: if isAuthenticated() &&
+        request.resource.data.appointmentId == appointmentId &&
+        request.resource.data.doctorId ==
+          get(/databases/$(database)/documents/bookings/$(appointmentId)).data.doctorId &&
+        request.resource.data.patientId ==
+          get(/databases/$(database)/documents/bookings/$(appointmentId)).data.userId &&
+        (
+          request.resource.data.doctorId == request.auth.uid ||
+          request.resource.data.patientId == request.auth.uid
+        );
+
+      // Updates (joining, ending) only by one of the participants.
+      allow update: if isParticipant();
+    }
+
     // Phase 1 & 3: Whisper Room posts
     match /whisper_posts/{postId} {
       // Any authenticated user can read the feed.

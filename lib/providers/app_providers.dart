@@ -18,8 +18,6 @@ import '../models/health_metrics.dart';
 import '../models/cycle_data.dart';
 import '../models/community_post.dart';
 import '../models/kyra_message.dart';
-import '../models/article_item.dart';
-import '../models/faq_item.dart';
 import '../models/reminder_item.dart';
 import '../models/period_record.dart';
 import '../models/period_day_log.dart';

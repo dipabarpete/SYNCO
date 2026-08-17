@@ -24,6 +24,11 @@ class NotificationService {
   bool _pluginReady = false;
   bool _exactAlarmsAvailable = false;
 
+  /// Optional handler invoked when a notification with a payload is tapped.
+  /// Registered by the app shell so deep links (e.g. consultation rooms)
+  /// can be opened from any state.
+  ValueChanged<String>? onPayloadTap;
+
   /// Fallback timezone used when the device timezone cannot be resolved.
   static const String _fallbackTimeZone = 'America/Detroit';
 
@@ -63,7 +68,11 @@ class NotificationService {
       await _plugin.initialize(
         settings: initializationSettings,
         onDidReceiveNotificationResponse: (details) {
-          debugPrint('Notification tapped: ${details.payload}');
+          final payload = details.payload;
+          debugPrint('Notification tapped: $payload');
+          if (payload != null && payload.isNotEmpty) {
+            onPayloadTap?.call(payload);
+          }
         },
       );
       _pluginReady = true;
@@ -234,13 +243,16 @@ class NotificationService {
   /// Schedules a local notification at [scheduledDate] (device local time).
   ///
   /// When [matchDateTimeComponents] is provided the notification repeats
-  /// (daily, weekly, monthly...) on the matched schedule.
+  /// (daily, weekly, monthly...) on the matched schedule. [payload] is the
+  /// deep-link payload delivered when the notification is tapped; it
+  /// defaults to `reminder_<id>`.
   Future<void> schedule({
     required int id,
     required String title,
     required String body,
     required tz.TZDateTime scheduledDate,
     DateTimeComponents? matchDateTimeComponents,
+    String? payload,
   }) async {
     if (kIsWeb) {
       debugPrint('[NotificationService] Cannot schedule notifications on Web.');
@@ -277,7 +289,7 @@ class NotificationService {
         ),
         androidScheduleMode: androidScheduleMode,
         matchDateTimeComponents: matchDateTimeComponents,
-        payload: 'reminder_$id',
+        payload: payload ?? 'reminder_$id',
       );
       debugPrint(
         '[NotificationService] Scheduled notification ID: $id at '

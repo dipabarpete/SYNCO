@@ -91,7 +91,7 @@ class _DoctorAuthScreenState extends ConsumerState<DoctorAuthScreen> {
               about: 'Newly registered practitioner on SYNCO.',
               availableDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
               timeSlots: ['10:00 AM', '12:00 PM', '02:00 PM', '04:00 PM'],
-              clinicLocation: _licenseController.text.trim(),
+              licenseId: _licenseController.text.trim(),
             );
             
             await DoctorService().createDoctorProfile(newDoctor);

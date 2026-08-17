@@ -817,11 +817,27 @@ class TrackerGridCard extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: meta.color.withValues(alpha: 0.08),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.white.withValues(alpha: 0.96),
+            Color.lerp(Colors.white, meta.color, 0.12)!
+                .withValues(alpha: 0.96),
+          ],
+        ),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: meta.color.withValues(alpha: 0.25),
+          color: meta.color.withValues(alpha: 0.32),
+          width: 1.2,
         ),
+        boxShadow: const [
+          BoxShadow(
+            color: AppColors.shadowColor,
+            blurRadius: 14,
+            offset: Offset(0, 6),
+          ),
+        ],
       ),
       child: Material(
         color: Colors.transparent,
@@ -840,8 +856,11 @@ class TrackerGridCard extends StatelessWidget {
                       width: 38,
                       height: 38,
                       decoration: BoxDecoration(
-                        color: meta.color.withValues(alpha: 0.16),
+                        color: meta.color.withValues(alpha: 0.30),
                         borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: meta.strongColor.withValues(alpha: 0.35),
+                        ),
                       ),
                       child: Icon(
                         meta.icon,
@@ -856,8 +875,11 @@ class TrackerGridCard extends StatelessWidget {
                         vertical: 5,
                       ),
                       decoration: BoxDecoration(
-                        color: meta.color.withValues(alpha: 0.14),
+                        color: meta.color.withValues(alpha: 0.25),
                         borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: meta.strongColor.withValues(alpha: 0.25),
+                        ),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,

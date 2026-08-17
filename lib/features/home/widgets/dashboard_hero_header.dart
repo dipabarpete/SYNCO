@@ -26,7 +26,6 @@ class DashboardHeroHeader extends StatelessWidget {
     final sectionHeight = isCompact ? 142.0 : 155.0;
     final helloFontSize = isCompact ? 23.0 : 26.0;
     final nameFontSize = isCompact ? 24.0 : 27.0;
-    final emojiFontSize = isCompact ? 19.0 : 21.0;
     final subtitleFontSize = isCompact ? 14.0 : 15.5;
     final imageWidth = (screenWidth * 0.46).clamp(175.0, 215.0);
     final textImageGap = isCompact ? 6.0 : 10.0;
@@ -63,20 +62,13 @@ class DashboardHeroHeader extends StatelessWidget {
                             ),
                           ),
                           TextSpan(
-                            text: '$firstName! ',
+                            text: '$firstName!',
                             style: GoogleFonts.outfit(
                               fontSize: nameFontSize,
                               fontWeight: FontWeight.w700,
                               height: 1.15,
                               letterSpacing: -0.3,
                               color: AppColors.textDark,
-                            ),
-                          ),
-                          TextSpan(
-                            text: '✨',
-                            style: TextStyle(
-                              fontSize: emojiFontSize,
-                              height: 1.15,
                             ),
                           ),
                         ],

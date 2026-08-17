@@ -15,6 +15,7 @@ class AppColors {
   
   // Rich Feminine Accents
   static const Color softPurple = Color(0xFF7B4397);
+  static const Color deepPurple = Color(0xFF4A2C6A);
   static const Color softPurpleLight = Color(0xFF9D76C1);
   static const Color rosePink = Color(0xFFE892A2);
   static const Color deepRose = Color(0xFFC94A6E);

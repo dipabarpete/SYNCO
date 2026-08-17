@@ -110,126 +110,138 @@ class _HealthTrackingScreenState extends ConsumerState<HealthTrackingScreen> {
     final dataDays =
         HealthAnalytics.dataDaysLastDays(data.allEntries, now, days: 30);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Row(
-          children: [
-            const Icon(Icons.favorite_rounded, color: AppColors.rosePink),
-            const SizedBox(width: 8),
-            Text(
-              'Health',
-              style: GoogleFonts.outfit(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textDark,
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton.icon(
-            onPressed: _openHistory,
-            style: TextButton.styleFrom(
-              foregroundColor: AppColors.softPurple,
-            ),
-            icon: const Icon(Icons.history_rounded, size: 18),
-            label: Text(
-              'History',
-              style: GoogleFonts.inter(
-                fontSize: 12.5,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: Image.asset(
+            'assets/images/whisper_room_bg.jpg',
+            fit: BoxFit.cover,
+            alignment: Alignment.center,
           ),
-          const SizedBox(width: 4),
-        ],
-      ),
-      body: data.isLoading && data.allEntries.isEmpty
-          ? const Center(
-              child: CircularProgressIndicator(color: AppColors.softPurple),
-            )
-          : RefreshIndicator(
-              onRefresh: _refresh,
-              color: AppColors.softPurple,
-              child: ListView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
-                children: [
-                  // -----------------------------------------------------------------
-                  // 2. TODAY SUMMARY
-                  // -----------------------------------------------------------------
-                  TodaySummaryCard(snapshot: today),
-                  const SizedBox(height: 22),
-
-                  // -----------------------------------------------------------------
-                  // 3. KYRA AI PATTERN DETECTION (banner, filter, insight cards)
-                  // -----------------------------------------------------------------
-                  AiHeroBanner(patternCount: insights.length),
-                  const SizedBox(height: 12),
-                  _PatternRangeSelector(
-                    range: _range,
-                    onChanged: (range) => setState(() => _range = range),
+        ),
+        Scaffold(
+          backgroundColor: Colors.transparent,
+          appBar: AppBar(
+            title: Row(
+              children: [
+                const Icon(Icons.favorite_rounded, color: AppColors.rosePink),
+                const SizedBox(width: 8),
+                Text(
+                  'Health',
+                  style: GoogleFonts.outfit(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textDark,
                   ),
-                  const SizedBox(height: 12),
-
-                  if (data.errorMessage != null) ...[
-                    _buildErrorBanner(data.errorMessage!),
-                    const SizedBox(height: 12),
-                  ],
-
-                  if (insights.isEmpty)
-                    AiEmptyState(hasAnyData: dataDays > 0)
-                  else ...[
-                    for (final insight in insights.take(2))
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 10),
-                        child: AiInsightCard(
-                          insight: insight,
-                          onViewDetails: () => _showInsightDetails(insight),
-                        ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton.icon(
+                onPressed: _openHistory,
+                style: TextButton.styleFrom(
+                  foregroundColor: AppColors.softPurple,
+                ),
+                icon: const Icon(Icons.history_rounded, size: 18),
+                label: Text(
+                  'History',
+                  style: GoogleFonts.inter(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 4),
+            ],
+          ),
+          body: data.isLoading && data.allEntries.isEmpty
+              ? const Center(
+                  child: CircularProgressIndicator(color: AppColors.softPurple),
+                )
+              : RefreshIndicator(
+                  onRefresh: _refresh,
+                  color: AppColors.softPurple,
+                  child: ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+                    children: [
+                      // -----------------------------------------------------------------
+                      // 2. TODAY SUMMARY
+                      // -----------------------------------------------------------------
+                      TodaySummaryCard(snapshot: today),
+                      const SizedBox(height: 22),
+    
+                      // -----------------------------------------------------------------
+                      // 3. KYRA AI PATTERN DETECTION (banner, filter, insight cards)
+                      // -----------------------------------------------------------------
+                      AiHeroBanner(patternCount: insights.length),
+                      const SizedBox(height: 12),
+                      _PatternRangeSelector(
+                        range: _range,
+                        onChanged: (range) => setState(() => _range = range),
                       ),
-                    if (insights.length > 2)
-                      Center(
-                        child: TextButton.icon(
-                          onPressed: _openAllInsights,
-                          icon: const Icon(
-                            Icons.view_list_rounded,
-                            size: 17,
-                            color: AppColors.softPurple,
-                          ),
-                          label: Text(
-                            'View all insights (${insights.length})',
-                            style: GoogleFonts.inter(
-                              fontSize: 13,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.softPurple,
+                      const SizedBox(height: 12),
+    
+                      if (data.errorMessage != null) ...[
+                        _buildErrorBanner(data.errorMessage!),
+                        const SizedBox(height: 12),
+                      ],
+    
+                      if (insights.isEmpty)
+                        AiEmptyState(hasAnyData: dataDays > 0)
+                      else ...[
+                        for (final insight in insights.take(2))
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 10),
+                            child: AiInsightCard(
+                              insight: insight,
+                              onViewDetails: () => _showInsightDetails(insight),
                             ),
                           ),
-                        ),
+                        if (insights.length > 2)
+                          Center(
+                            child: TextButton.icon(
+                              onPressed: _openAllInsights,
+                              icon: const Icon(
+                                Icons.view_list_rounded,
+                                size: 17,
+                                color: AppColors.softPurple,
+                              ),
+                              label: Text(
+                                'View all insights (${insights.length})',
+                                style: GoogleFonts.inter(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.softPurple,
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+    
+                      const SizedBox(height: 20),
+    
+                      // -----------------------------------------------------------------
+                      // 4. HEALTH TRACKERS (2 x 4 card grid)
+                      // -----------------------------------------------------------------
+                      const HealthSectionHeader(
+                        title: 'Health Trackers',
+                        subtitle: 'Track the small things that shape your wellbeing.',
                       ),
-                  ],
-
-                  const SizedBox(height: 20),
-
-                  // -----------------------------------------------------------------
-                  // 4. HEALTH TRACKERS (2 x 4 card grid)
-                  // -----------------------------------------------------------------
-                  const HealthSectionHeader(
-                    title: 'Health Trackers',
-                    subtitle: 'Track the small things that shape your wellbeing.',
+                      const SizedBox(height: 12),
+                      _buildTrackerGrid(today, data),
+    
+                      const SizedBox(height: 10),
+    
+                      // -----------------------------------------------------------------
+                      // 5. PRIVACY NOTE
+                      // -----------------------------------------------------------------
+                      _buildPrivacyNote(),
+                    ],
                   ),
-                  const SizedBox(height: 12),
-                  _buildTrackerGrid(today, data),
-
-                  const SizedBox(height: 10),
-
-                  // -----------------------------------------------------------------
-                  // 5. PRIVACY NOTE
-                  // -----------------------------------------------------------------
-                  _buildPrivacyNote(),
-                ],
-              ),
-            ),
+                ),
+        ),
+      ],
     );
   }
 

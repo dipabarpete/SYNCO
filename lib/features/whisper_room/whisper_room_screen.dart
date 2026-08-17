@@ -112,7 +112,7 @@ class _WhisperRoomScreenState extends ConsumerState<WhisperRoomScreen>
               IconButton(
                 icon: const Icon(
                   Icons.notifications_outlined,
-                  color: AppColors.softPurple,
+                  color: Colors.white,
                   size: 24,
                 ),
                 onPressed: _navigateToNotifications,
@@ -125,7 +125,7 @@ class _WhisperRoomScreenState extends ConsumerState<WhisperRoomScreen>
                 child: IconButton(
                   icon: const Icon(
                     Icons.bookmark_outline_rounded,
-                    color: AppColors.softPurple,
+                    color: Colors.white,
                     size: 24,
                   ),
                   onPressed: _navigateToSavedPosts,

@@ -4,9 +4,11 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../providers/app_providers.dart';
 import '../models/appointment.dart';
+import '../models/consultation_session.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'find_doctor_screen.dart';
 import 'consultation_chat_screen.dart';
+import 'patient_consultation_screen.dart';
 import 'review_doctor_screen.dart';
 
 /// User-facing list of appointment requests.
@@ -434,6 +436,47 @@ class MyAppointmentsScreen extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 10),
+            if (isConsultationWindowActive(a)) ...[
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          PatientConsultationScreen(appointmentId: a.id),
+                    ),
+                  );
+                },
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  decoration: BoxDecoration(
+                    color: AppColors.softPurple,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(
+                        Icons.video_call_rounded,
+                        color: Colors.white,
+                        size: 18,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Join Consultation',
+                        style: GoogleFonts.inter(
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+            ],
             Row(
               children: [
                 Expanded(

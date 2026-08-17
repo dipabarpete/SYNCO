@@ -18,6 +18,17 @@ class Appointment {
   final DateTime createdAt;
   final AppointmentStatus status;
 
+  /// Reason for consultation / health issue, when the booking provides one.
+  final String issue;
+
+  /// Patient age, when the booking provides one.
+  final int? age;
+
+  /// The communication mode selected by the patient for this consultation:
+  /// 'video' | 'call' | 'chat'. Empty for legacy bookings that only stored
+  /// `online`/`offline` (the room then derives the kind from [mode]).
+  final String consultationType;
+
   const Appointment({
     required this.id,
     required this.doctor,
@@ -29,6 +40,9 @@ class Appointment {
     required this.userId,
     required this.createdAt,
     this.status = AppointmentStatus.requested,
+    this.issue = '',
+    this.age,
+    this.consultationType = '',
   });
 
   factory Appointment.fromMap(String id, Map<String, dynamic> data, Doctor doctor) {
@@ -69,7 +83,21 @@ class Appointment {
           ? (data['createdAt'] as dynamic).toDate() 
           : DateTime.now(),
       status: parsedStatus,
+      issue: data['issue']?.toString() ??
+          data['reason']?.toString() ??
+          data['reasonForConsultation']?.toString() ??
+          '',
+      age: _parseAge(data['age']),
+      consultationType:
+          data['consultationType']?.toString() ?? data['type']?.toString() ?? '',
     );
+  }
+
+  static int? _parseAge(dynamic value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    if (value is String) return int.tryParse(value.trim());
+    return null;
   }
 
   Appointment copyWith({AppointmentStatus? status}) {
@@ -84,6 +112,9 @@ class Appointment {
       userId: userId,
       createdAt: createdAt,
       status: status ?? this.status,
+      issue: issue,
+      age: age,
+      consultationType: consultationType,
     );
   }
 
@@ -125,4 +156,41 @@ class Appointment {
         return 'Completed';
     }
   }
+
+  /// The exact scheduled start of the consultation, combining [date] with
+  /// the [slot] time. `null` when the slot value is not a valid time.
+  DateTime? get startDateTime {
+    return consultationSlotDateTime(date, slot);
+  }
+}
+
+/// Combines an appointment [date] with a slot like "04:00 PM" into the exact
+/// scheduled start time, or `null` when the slot is not a valid time.
+DateTime? consultationSlotDateTime(DateTime date, String slot) {
+  final minutes = consultationSlotToMinutes(slot);
+  if (minutes == null) return null;
+  return DateTime(
+    date.year,
+    date.month,
+    date.day,
+    minutes ~/ 60,
+    minutes % 60,
+  );
+}
+
+/// Parses a slot like "04:00 PM" (or 24-hour "16:00") into minutes of the
+/// day, or `null` when the value is not a valid time.
+int? consultationSlotToMinutes(String slot) {
+  final match = RegExp(
+    r'^(\d{1,2}):(\d{2})\s*(AM|PM)?$',
+    caseSensitive: false,
+  ).firstMatch(slot.trim());
+  if (match == null) return null;
+  var hour = int.parse(match.group(1)!);
+  final minute = int.parse(match.group(2)!);
+  final meridian = match.group(3)?.toUpperCase();
+  if (hour > 23 || minute > 59) return null;
+  if (meridian == 'PM' && hour < 12) hour += 12;
+  if (meridian == 'AM' && hour == 12) hour = 0;
+  return hour * 60 + minute;
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../doctor/models/appointment.dart';
+import '../../doctor/models/doctor.dart';
 
 /// Section title used across the Doctor Portal screens.
 class DoctorSectionHeader extends StatelessWidget {
@@ -161,6 +162,60 @@ class DoctorErrorState extends StatelessWidget {
             ],
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Small colored pill that shows an appointment's consultation mode
+/// (Online / Offline), driven by the appointment's [ConsultationMode].
+class DoctorModePill extends StatelessWidget {
+  final ConsultationMode mode;
+
+  const DoctorModePill({super.key, required this.mode});
+
+  @override
+  Widget build(BuildContext context) {
+    final (Color bg, Color fg, String label) = switch (mode) {
+      ConsultationMode.online => (
+          AppColors.softLavender.withValues(alpha: 0.5),
+          AppColors.softPurple,
+          'Online',
+        ),
+      ConsultationMode.offline => (
+          AppColors.pendingAmberSoft,
+          AppColors.pendingAmber,
+          'Offline',
+        ),
+    };
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: fg,
+            ),
+          ),
+          const SizedBox(width: 5),
+          Text(
+            label,
+            style: GoogleFonts.inter(
+              fontSize: 10.5,
+              fontWeight: FontWeight.w600,
+              color: fg,
+            ),
+          ),
+        ],
       ),
     );
   }
