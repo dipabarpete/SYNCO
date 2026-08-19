@@ -70,6 +70,13 @@ service cloud.firestore {
       }
     }
 
+    // Doctor verification records. These contain sensitive identity and
+    // credential information, so only the owning doctor may read or write
+    // them - ordinary users can never access them.
+    match /doctor_verifications/{doctorId} {
+      allow read, write: if isOwner(doctorId);
+    }
+
     // Phase 1 & 3: Bookings collection
     match /bookings/{bookingId} {
       // Patient (stored as 'userId') or doctor can read their own bookings.

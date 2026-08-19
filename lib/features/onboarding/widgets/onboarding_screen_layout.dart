@@ -102,7 +102,7 @@ class OnboardingScreenLayout extends StatelessWidget {
                     value: progress,
                     minHeight: 4,
                     backgroundColor: AppColors.softLavender.withValues(alpha: 0.5),
-                    valueColor: const AlwaysStoppedAnimation<Color>(AppColors.softPurple),
+                    valueColor: AlwaysStoppedAnimation<Color>(AppColors.softPurple),
                   ),
                 ),
               ),

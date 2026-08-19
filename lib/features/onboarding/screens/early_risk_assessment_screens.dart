@@ -5,12 +5,13 @@ import '../../../app.dart';
 import '../../../core/theme/app_colors.dart';
 import '../providers/onboarding_provider.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../../../models/early_risk_assessment.dart';
 import '../widgets/diagnosis_option_card.dart';
 import '../widgets/onboarding_screen_layout.dart';
 
 /// Total steps of the Early Risk Assessment branch (Q1-Q10, Q11-Q17 and the
 /// two reproductive-context screens that follow Q17 = No).
-const int _earlyRiskTotalSteps = 22;
+const int _earlyRiskTotalSteps = 19;
 
 Route<void> _nextRoute(Widget page) => PageRouteBuilder<void>(
   pageBuilder: (context, animation, secondaryAnimation) => page,
@@ -31,6 +32,7 @@ Route<void> _nextRoute(Widget page) => PageRouteBuilder<void>(
 Widget _continueButton({
   required bool enabled,
   required VoidCallback onPressed,
+  String text = 'Continue',
 }) {
   return SizedBox(
     width: double.infinity,
@@ -38,12 +40,11 @@ Widget _continueButton({
     child: Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
-        gradient: enabled ? AppColors.primaryGradient : null,
-        color: enabled ? null : AppColors.lightGrey,
+        color: enabled ? AppColors.softPurple : AppColors.lightGrey,
         boxShadow: enabled
             ? [
                 BoxShadow(
-                  color: AppColors.blushPink.withValues(alpha: 0.35),
+                  color: AppColors.softPurple.withValues(alpha: 0.3),
                   blurRadius: 12,
                   offset: const Offset(0, 4),
                 ),
@@ -61,7 +62,7 @@ Widget _continueButton({
           ),
         ),
         child: Text(
-          'Continue',
+          text,
           style: GoogleFonts.inter(
             fontSize: 16,
             fontWeight: FontWeight.w600,
@@ -217,359 +218,7 @@ class _EarlyRiskSingleChoiceScreen extends StatelessWidget {
   }
 }
 
-/// Q1 — Age
-class EarlyRiskAgeScreen extends ConsumerWidget {
-  const EarlyRiskAgeScreen({super.key});
 
-  static const _options = ['Under 18', '18–24', '25–34', '35–44', '45+'];
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(onboardingProvider);
-    return _EarlyRiskSingleChoiceScreen(
-      currentStep: 4,
-      section: 'BASIC INFORMATION',
-      question: 'What is your age?',
-      options: _options,
-      selectedValue: state.ageRange,
-      onSelected: ref.read(onboardingProvider.notifier).setAgeRange,
-      onContinue: () =>
-          Navigator.push(context, _nextRoute(const EarlyRiskHeightScreen())),
-    );
-  }
-}
-
-/// Q2 — Height
-class EarlyRiskHeightScreen extends ConsumerStatefulWidget {
-  const EarlyRiskHeightScreen({super.key});
-
-  @override
-  ConsumerState<EarlyRiskHeightScreen> createState() =>
-      _EarlyRiskHeightScreenState();
-}
-
-class _EarlyRiskHeightScreenState extends ConsumerState<EarlyRiskHeightScreen> {
-  late final TextEditingController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    final initial = ref.read(onboardingProvider).heightCm;
-    _controller = TextEditingController(
-      text: initial != null ? initial.toString() : '',
-    );
-    _controller.addListener(() => setState(() {}));
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final notifier = ref.read(onboardingProvider.notifier);
-
-    final raw = _controller.text.trim();
-    final value = double.tryParse(raw);
-    final isValid =
-        raw.isNotEmpty && value != null && value >= 100 && value <= 250;
-
-    return OnboardingScreenLayout(
-      currentStep: 5,
-      totalSteps: _earlyRiskTotalSteps,
-      onBackTap: () => Navigator.pop(context),
-      bottomButton: _continueButton(
-        enabled: isValid,
-        onPressed: () {
-          notifier.setHeightCm(_controller.text);
-          Navigator.push(context, _nextRoute(const EarlyRiskWeightScreen()));
-        },
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SizedBox(height: 16),
-          _sectionLabel('BASIC INFORMATION'),
-          Text(
-            'How tall are you?',
-            style: GoogleFonts.outfit(
-              fontSize: 26,
-              fontWeight: FontWeight.bold,
-              color: AppColors.textDark,
-              height: 1.3,
-              letterSpacing: -0.5,
-            ),
-          ),
-          const SizedBox(height: 28),
-          Text(
-            'Height',
-            style: GoogleFonts.inter(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: AppColors.textMedium,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Container(
-            decoration: BoxDecoration(
-              color: AppColors.pureWhite,
-              borderRadius: BorderRadius.circular(18),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.shadowColor.withValues(alpha: 0.08),
-                  blurRadius: 16,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: TextField(
-              controller: _controller,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
-              onChanged: (_) => notifier.setHeightCm(_controller.text),
-              style: GoogleFonts.inter(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textDark,
-              ),
-              decoration: InputDecoration(
-                hintText: 'Enter your height',
-                hintStyle: GoogleFonts.inter(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w400,
-                  color: AppColors.textLight,
-                ),
-                prefixIcon: const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16),
-                  child: Icon(
-                    Icons.height_rounded,
-                    color: AppColors.softPurple,
-                  ),
-                ),
-                suffixText: 'cm',
-                suffixStyle: GoogleFonts.inter(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textMedium,
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(18),
-                  borderSide: BorderSide(
-                    color: AppColors.borderGrey.withValues(alpha: 0.8),
-                  ),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(18),
-                  borderSide: BorderSide(
-                    color: AppColors.borderGrey.withValues(alpha: 0.8),
-                  ),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(18),
-                  borderSide: const BorderSide(
-                    color: AppColors.softPurple,
-                    width: 2,
-                  ),
-                ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 18,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Q3 — Current Weight
-class EarlyRiskWeightScreen extends ConsumerStatefulWidget {
-  const EarlyRiskWeightScreen({super.key});
-
-  @override
-  ConsumerState<EarlyRiskWeightScreen> createState() =>
-      _EarlyRiskWeightScreenState();
-}
-
-class _EarlyRiskWeightScreenState extends ConsumerState<EarlyRiskWeightScreen> {
-  late final TextEditingController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    final initial = ref.read(onboardingProvider).weightKg;
-    _controller = TextEditingController(
-      text: initial != null ? initial.toString() : '',
-    );
-    _controller.addListener(() => setState(() {}));
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final notifier = ref.read(onboardingProvider.notifier);
-
-    final raw = _controller.text.trim();
-    final value = double.tryParse(raw);
-    final isValid =
-        raw.isNotEmpty && value != null && value >= 30 && value <= 300;
-
-    return OnboardingScreenLayout(
-      currentStep: 6,
-      totalSteps: _earlyRiskTotalSteps,
-      onBackTap: () => Navigator.pop(context),
-      bottomButton: _continueButton(
-        enabled: isValid,
-        onPressed: () {
-          notifier.setWeightKg(_controller.text);
-          Navigator.push(
-            context,
-            _nextRoute(const EarlyRiskPeriodRegularityScreen()),
-          );
-        },
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SizedBox(height: 16),
-          _sectionLabel('BASIC INFORMATION'),
-          Text(
-            'What is your current weight?',
-            style: GoogleFonts.outfit(
-              fontSize: 26,
-              fontWeight: FontWeight.bold,
-              color: AppColors.textDark,
-              height: 1.3,
-              letterSpacing: -0.5,
-            ),
-          ),
-          const SizedBox(height: 28),
-          Text(
-            'Weight',
-            style: GoogleFonts.inter(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: AppColors.textMedium,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Container(
-            decoration: BoxDecoration(
-              color: AppColors.pureWhite,
-              borderRadius: BorderRadius.circular(18),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.shadowColor.withValues(alpha: 0.08),
-                  blurRadius: 16,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: TextField(
-              controller: _controller,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
-              onChanged: (_) => notifier.setWeightKg(_controller.text),
-              style: GoogleFonts.inter(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textDark,
-              ),
-              decoration: InputDecoration(
-                hintText: 'Enter your weight',
-                hintStyle: GoogleFonts.inter(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w400,
-                  color: AppColors.textLight,
-                ),
-                prefixIcon: const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16),
-                  child: Icon(
-                    Icons.monitor_weight_outlined,
-                    color: AppColors.softPurple,
-                  ),
-                ),
-                suffixText: 'kg',
-                suffixStyle: GoogleFonts.inter(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textMedium,
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(18),
-                  borderSide: BorderSide(
-                    color: AppColors.borderGrey.withValues(alpha: 0.8),
-                  ),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(18),
-                  borderSide: BorderSide(
-                    color: AppColors.borderGrey.withValues(alpha: 0.8),
-                  ),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(18),
-                  borderSide: const BorderSide(
-                    color: AppColors.softPurple,
-                    width: 2,
-                  ),
-                ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 18,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: AppColors.pureWhite,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: AppColors.softPurple.withValues(alpha: 0.15),
-              ),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Icon(
-                  Icons.info_outline_rounded,
-                  size: 20,
-                  color: AppColors.softPurple,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    'Your height and weight help us understand context only. They are not used to diagnose PCOS.',
-                    style: GoogleFonts.inter(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.textMedium,
-                      height: 1.4,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 /// Q4 — Period Regularity
 class EarlyRiskPeriodRegularityScreen extends ConsumerWidget {
@@ -1606,31 +1255,19 @@ class _EarlyRiskOutcomeScreen extends StatelessWidget {
 class EarlyRiskResultScreen extends ConsumerWidget {
   const EarlyRiskResultScreen({super.key});
 
-  static const _features = [
-    (
-      '🌸',
-      'Track your cycle & wellness',
-      'Keep track of periods, symptoms, mood, and daily wellness.',
-    ),
-    (
-      '📚',
-      'Learn at your own pace',
-      'Explore the Learn Corner for symptom-friendly guidance.',
-    ),
-    (
-      '👩‍⚕️',
-      'Talk to a professional',
-      'Discuss any patterns with a doctor whenever you feel ready.',
-    ),
-  ];
-
-  Future<void> _onGoToApp(BuildContext context, WidgetRef ref) async {
+  Future<void> _navigateToTab(
+    BuildContext context,
+    WidgetRef ref,
+    int tabIndex,
+  ) async {
     final notifier = ref.read(onboardingProvider.notifier);
     await notifier.completeOnboarding();
     if (context.mounted) {
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(builder: (context) => const HerSyncMainLayout()),
+        MaterialPageRoute(
+          builder: (context) => HerSyncMainLayout(initialIndex: tabIndex),
+        ),
         (route) => false,
       );
     }
@@ -1639,39 +1276,366 @@ class EarlyRiskResultScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final onboardingState = ref.watch(onboardingProvider);
-    final authState = ref.watch(authNotifierProvider);
 
-    final rawName = onboardingState.userName.isNotEmpty
-        ? onboardingState.userName
-        : (authState.userProfile?.username.isNotEmpty == true &&
-                  authState.userProfile?.username != 'User'
-              ? authState.userProfile!.username
-              : 'there');
+    // Calculate dynamic risk level
+    final tempAssessment = EarlyRiskAssessment(
+      ageRange: onboardingState.ageRange,
+      heightCm: onboardingState.heightCm,
+      weightKg: onboardingState.weightKg,
+      bmi: onboardingState.bmi,
+      periodRegularity: onboardingState.periodRegularityRisk,
+      typicalCycleLength: onboardingState.typicalCycleLength,
+      periodGap90Days: onboardingState.periodGap90Days,
+      periodChangeHistory: onboardingState.periodChangeHistory,
+      facialBodyHairGrowth: onboardingState.facialBodyHairGrowth,
+      acneSeverity: onboardingState.acneSeverity,
+      scalpHairThinning: onboardingState.scalpHairThinning,
+      recentWeightChange: onboardingState.recentWeightChange,
+      familyConditions: onboardingState.familyConditions,
+      diagnosedMetabolicConditions: onboardingState.diagnosedMetabolicConditions,
+      physicalActivity: onboardingState.physicalActivity,
+      sleepDuration: onboardingState.sleepDuration,
+      stressLevel: onboardingState.stressLevel,
+      pregnancyStatus: onboardingState.pregnancyStatus,
+      reproductiveContext: onboardingState.reproductiveContext,
+      menstrualAffectingCondition: onboardingState.menstrualAffectingCondition,
+      menstrualAffectingConditionDetails:
+          onboardingState.menstrualAffectingConditionDetails,
+    );
 
-    final displayName = rawName.trim().isNotEmpty ? rawName.trim() : 'there';
+    final riskCategory = tempAssessment.calculatedRiskCategoryLabel;
 
-    final hasReproductiveContext =
-        onboardingState.reproductiveContext.isNotEmpty ||
-        onboardingState.menstrualAffectingCondition == 'Yes';
+    final Color badgeColor;
+    final Color badgeBg;
+    final IconData badgeIcon;
+    final String statusTitle;
+    final String statusExplanation;
 
-    return _EarlyRiskOutcomeScreen(
-      title: 'Thank you, $displayName.',
-      subtitle:
-          'You’ve completed the early check-in. Here’s how Synco can support you next.',
-      features: _features,
-      banners: [
-        if (hasReproductiveContext)
-          const _OutcomeBanner(
-            text:
-                'Some of the situations you shared (such as stopping contraception, breastfeeding, recent birth, or a known condition) can affect menstrual patterns on their own. Keep that in mind when discussing these patterns with a healthcare professional.',
+    if (riskCategory == 'LOW RISK') {
+      badgeColor = const Color(0xFF2E8B76);
+      badgeBg = const Color(0xFFE3F6EE);
+      badgeIcon = Icons.check_circle_rounded;
+      statusTitle = 'Low Risk';
+      statusExplanation =
+          'Your responses currently suggest a lower level of PCOS/PCOD-related risk.';
+    } else if (riskCategory == 'MODERATE RISK') {
+      badgeColor = const Color(0xFFE8A33D);
+      badgeBg = const Color(0xFFFBF0DF);
+      badgeIcon = Icons.info_rounded;
+      statusTitle = 'Moderate Risk';
+      statusExplanation =
+          'Your responses suggest that some patterns may be worth discussing with a healthcare professional.';
+    } else {
+      badgeColor = const Color(0xFFC94A6E);
+      badgeBg = const Color(0xFFFFF0F3);
+      badgeIcon = Icons.warning_rounded;
+      statusTitle = 'High Risk';
+      statusExplanation =
+          'Your responses suggest patterns that may warrant professional evaluation.';
+    }
+
+    final isLow = riskCategory == 'LOW RISK';
+
+    return Scaffold(
+      backgroundColor: AppColors.creamWhite,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 8),
+              Text(
+                'Early Risk Assessment',
+                style: GoogleFonts.outfit(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.softPurple,
+                  letterSpacing: 1.2,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'YOUR RESULT',
+                style: GoogleFonts.outfit(
+                  fontSize: 26,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textDark,
+                  letterSpacing: 0.5,
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // RESULT CARD
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(
+                    color: AppColors.borderGrey.withValues(alpha: 0.8),
+                  ),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: AppColors.shadowColor,
+                      blurRadius: 16,
+                      offset: Offset(0, 6),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Badge Header
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: badgeBg,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(badgeIcon, size: 18, color: badgeColor),
+                          const SizedBox(width: 8),
+                          Text(
+                            statusTitle.toUpperCase(),
+                            style: GoogleFonts.outfit(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: badgeColor,
+                              letterSpacing: 1.0,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    Text(
+                      statusExplanation,
+                      style: GoogleFonts.inter(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textDark,
+                        height: 1.4,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppColors.lightGrey.withValues(alpha: 0.6),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.medical_information_rounded,
+                            size: 18,
+                            color: AppColors.softPurple,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              'This result is an awareness indication based on your questionnaire responses and is not a medical diagnosis.',
+                              style: GoogleFonts.inter(
+                                fontSize: 12,
+                                color: AppColors.textMedium,
+                                height: 1.35,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 28),
+
+              Text(
+                'What you can do next',
+                style: GoogleFonts.outfit(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textDark,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Recommended actions based on your risk check-in:',
+                style: GoogleFonts.inter(
+                  fontSize: 13,
+                  color: AppColors.textMedium,
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              if (isLow) ...[
+                _buildResultActionButton(
+                  context,
+                  icon: Icons.spa_rounded,
+                  title: 'Wellness Tracking',
+                  subtitle: 'Monitor mood, sleep, and daily health metrics',
+                  onTap: () => _navigateToTab(context, ref, 4),
+                ),
+                const SizedBox(height: 12),
+                _buildResultActionButton(
+                  context,
+                  icon: Icons.water_drop_rounded,
+                  title: 'Period Tracking',
+                  subtitle: 'Log cycle patterns and ovulation predictions',
+                  onTap: () => _navigateToTab(context, ref, 4),
+                ),
+                const SizedBox(height: 12),
+                _buildResultActionButton(
+                  context,
+                  icon: Icons.menu_book_rounded,
+                  title: 'Education',
+                  subtitle: 'Explore medically reviewed articles & guides',
+                  onTap: () => _navigateToTab(context, ref, 3),
+                ),
+                const SizedBox(height: 12),
+                _buildResultActionButton(
+                  context,
+                  icon: Icons.self_improvement_rounded,
+                  title: 'Lifestyle',
+                  subtitle: 'Sustainable nutrition & stress-relieving habits',
+                  onTap: () => _navigateToTab(context, ref, 3),
+                ),
+              ] else ...[
+                _buildResultActionButton(
+                  context,
+                  icon: Icons.medical_services_rounded,
+                  title: 'Consult a Doctor',
+                  subtitle: 'Discuss your symptoms with a healthcare specialist',
+                  isPrimary: true,
+                  onTap: () => _navigateToTab(context, ref, 2),
+                ),
+                const SizedBox(height: 12),
+                _buildResultActionButton(
+                  context,
+                  icon: Icons.favorite_rounded,
+                  title: 'Continue Health Tracking',
+                  subtitle: 'Keep logging symptoms and daily vitals',
+                  onTap: () => _navigateToTab(context, ref, 4),
+                ),
+                const SizedBox(height: 12),
+                _buildResultActionButton(
+                  context,
+                  icon: Icons.assignment_rounded,
+                  title: 'Track Follow-up',
+                  subtitle: 'Monitor symptom patterns over time',
+                  onTap: () => _navigateToTab(context, ref, 4),
+                ),
+                const SizedBox(height: 12),
+                _buildResultActionButton(
+                  context,
+                  icon: Icons.lightbulb_rounded,
+                  title: 'Learn More',
+                  subtitle: 'Read about symptom management & hormonal health',
+                  onTap: () => _navigateToTab(context, ref, 3),
+                ),
+              ],
+
+              const SizedBox(height: 28),
+            ],
           ),
-        const _OutcomeBanner(
-          text:
-              'Some of the patterns you shared can be associated with PCOS, but these answers cannot diagnose PCOS. These symptoms can also have other causes. If you’re concerned, consider discussing your symptoms with a healthcare professional.',
         ),
-      ],
-      isSubmitting: onboardingState.isSubmitting,
-      onGoToApp: () => _onGoToApp(context, ref),
+      ),
+    );
+  }
+
+  Widget _buildResultActionButton(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+    bool isPrimary = false,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(18),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: isPrimary ? AppColors.softPurple : Colors.white,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: isPrimary
+                  ? AppColors.softPurple
+                  : AppColors.borderGrey.withValues(alpha: 0.8),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: isPrimary
+                    ? AppColors.softPurple.withValues(alpha: 0.3)
+                    : AppColors.shadowColor,
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: isPrimary
+                      ? Colors.white.withValues(alpha: 0.2)
+                      : AppColors.softLavender,
+                ),
+                child: Icon(
+                  icon,
+                  size: 22,
+                  color: isPrimary ? Colors.white : AppColors.softPurple,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: GoogleFonts.outfit(
+                        fontSize: 15.5,
+                        fontWeight: FontWeight.bold,
+                        color: isPrimary ? Colors.white : AppColors.textDark,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: GoogleFonts.inter(
+                        fontSize: 12.5,
+                        color: isPrimary
+                            ? Colors.white.withValues(alpha: 0.85)
+                            : AppColors.textMedium,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Icon(
+                Icons.chevron_right_rounded,
+                color: isPrimary ? Colors.white : AppColors.softPurple,
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

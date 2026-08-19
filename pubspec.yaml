@@ -120,22 +120,22 @@ flutter:
   # see https://flutter.dev/to/font-from-package
 
 flutter_native_splash:
-  color: "#f2bcb0"
+  color: "#ddc8f3"
   image: assets/images/splash_logo.png
   android: true
   ios: true
   web: false
   fullscreen: true
   android_12:
-    color: "#f2bcb0"
+    color: "#ddc8f3"
     image: assets/images/android12_splash.png
 
 flutter_launcher_icons:
   android: "ic_launcher"
   ios: true
   image_path: "assets/images/synco.png"
-  adaptive_icon_background: "#FFFFFF"
-  adaptive_icon_foreground: "assets/images/synco.png"
+  adaptive_icon_background: "#ddc8f3"
+  adaptive_icon_foreground: "assets/images/app_logo_padded.png"
   min_sdk_android: 21
   remove_alpha_ios: true
 

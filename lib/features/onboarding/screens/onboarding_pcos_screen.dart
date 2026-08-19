@@ -58,7 +58,7 @@ class OnboardingPcosScreen extends ConsumerWidget {
         context,
         PageRouteBuilder(
           pageBuilder: (context, animation, secondaryAnimation) =>
-              const EarlyRiskAgeScreen(),
+              const EarlyRiskPeriodRegularityScreen(),
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
             return FadeTransition(
               opacity: animation,

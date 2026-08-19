@@ -8,9 +8,12 @@ import 'placeholder_topic_screen.dart';
 import 'reproductive_health_screen.dart';
 import 'stress_wellbeing_screen.dart';
 import 'menstrual_health_screen.dart';
+import 'nutrition_screen.dart';
+import 'exercise_screen.dart';
 import 'widgets/topic_card.dart';
 import 'providers/learn_provider.dart';
 import 'widgets/learn_hero_card.dart';
+import 'widgets/your_movement_card.dart';
 
 class PinkCornerScreen extends ConsumerWidget {
   const PinkCornerScreen({super.key});
@@ -115,6 +118,10 @@ class PinkCornerScreen extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const LearnHeroCard(),
+            const SizedBox(height: 20),
+
+            // Your Movement — shared card displaying live movement progress & streak
+            const YourMovementCard(),
             const SizedBox(height: 24),
 
             // 1. Explore Topics (2-Column Grid)
@@ -173,6 +180,21 @@ class PinkCornerScreen extends ConsumerWidget {
                         context,
                         MaterialPageRoute(
                           builder: (_) => const ReproductiveHealthScreen(),
+                        ),
+                      );
+                    } else if (topic['title'] == 'Nutrition') {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const NutritionScreen(),
+                        ),
+                      );
+                    } else if (topic['title'] == 'Exercise & Movements' ||
+                        topic['title'] == 'Exercise & Movement') {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const ExerciseScreen(),
                         ),
                       );
                     } else {

@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -40,6 +41,7 @@ class _KyraAiScreenState extends ConsumerState<KyraAiScreen> {
   @override
   Widget build(BuildContext context) {
     final messages = ref.watch(kyraMessagesProvider);
+    final isGenerating = ref.watch(kyraIsGeneratingProvider);
     final health = ref.watch(healthMetricsProvider);
     final cycle = ref.watch(cycleDataProvider);
 
@@ -140,10 +142,14 @@ class _KyraAiScreenState extends ConsumerState<KyraAiScreen> {
             child: ListView.builder(
               controller: _scrollController,
               padding: const EdgeInsets.all(16),
-              itemCount: messages.length,
+              itemCount: messages.length + (isGenerating ? 1 : 0),
               itemBuilder: (ctx, i) {
-                final msg = messages[i];
-                return _buildMessageBubble(msg);
+                if (i < messages.length) {
+                  final msg = messages[i];
+                  return _buildMessageBubble(msg);
+                } else {
+                  return _buildKyraLoadingBubble();
+                }
               },
             ),
           ),
@@ -190,13 +196,15 @@ class _KyraAiScreenState extends ConsumerState<KyraAiScreen> {
                         ? Colors.redAccent
                         : AppColors.softPurple,
                   ),
-                  onPressed: () {
-                    setState(() => _isListeningVoice = !_isListeningVoice);
-                    if (_isListeningVoice) {
-                      _textController.text =
-                          'Kyra, what food should I eat for PCOS energy?';
-                    }
-                  },
+                  onPressed: isGenerating
+                      ? null
+                      : () {
+                          setState(() => _isListeningVoice = !_isListeningVoice);
+                          if (_isListeningVoice) {
+                            _textController.text =
+                                'Kyra, what food should I eat for PCOS energy?';
+                          }
+                        },
                 ),
 
                 // Text Field Input
@@ -204,8 +212,9 @@ class _KyraAiScreenState extends ConsumerState<KyraAiScreen> {
                   child: TextField(
                     controller: _textController,
                     decoration: InputDecoration(
-                      hintText:
-                          'Ask Kyra about your health, cycle, or lab reports...',
+                      hintText: isGenerating
+                          ? 'Kyra is thinking...'
+                          : 'Ask Kyra about your health, cycle, or lab reports...',
                       hintStyle: GoogleFonts.inter(
                         fontSize: 13,
                         color: AppColors.textLight,
@@ -228,17 +237,23 @@ class _KyraAiScreenState extends ConsumerState<KyraAiScreen> {
 
                 // Send Button
                 GestureDetector(
-                  onTap: () => _sendMessage(_textController.text),
-                  child: Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: const BoxDecoration(
-                      gradient: AppColors.primaryGradient,
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.send_rounded,
-                      color: Colors.white,
-                      size: 18,
+                  onTap: isGenerating
+                      ? null
+                      : () => _sendMessage(_textController.text),
+                  child: AnimatedOpacity(
+                    duration: const Duration(milliseconds: 200),
+                    opacity: isGenerating ? 0.4 : 1.0,
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: const BoxDecoration(
+                        gradient: AppColors.primaryGradient,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.send_rounded,
+                        color: Colors.white,
+                        size: 18,
+                      ),
                     ),
                   ),
                 ),
@@ -250,8 +265,51 @@ class _KyraAiScreenState extends ConsumerState<KyraAiScreen> {
     );
   }
 
+  Widget _buildKyraLoadingBubble() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.start,
+        children: [
+          CircleAvatar(
+            radius: 16,
+            backgroundColor: AppColors.softPurple,
+            child: const Icon(
+              Icons.auto_awesome_rounded,
+              color: Colors.white,
+              size: 16,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: Theme.of(context).cardColor,
+              borderRadius: BorderRadius.circular(20).copyWith(
+                bottomLeft: const Radius.circular(4),
+              ),
+              border: Border.all(
+                color: AppColors.softPurple.withValues(alpha: 0.3),
+              ),
+              boxShadow: const [
+                BoxShadow(
+                  color: AppColors.shadowColor,
+                  blurRadius: 8,
+                  offset: Offset(0, 3),
+                ),
+              ],
+            ),
+            child: const _KyraTypingIndicator(),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildMessageBubble(KyraMessage msg) {
     final isKyra = msg.sender == KyraSender.kyra;
+    final isGenerating = ref.watch(kyraIsGeneratingProvider);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -293,11 +351,11 @@ class _KyraAiScreenState extends ConsumerState<KyraAiScreen> {
                           ? const Radius.circular(4)
                           : const Radius.circular(20),
                     ),
-                    boxShadow: [
+                    boxShadow: const [
                       BoxShadow(
                         color: AppColors.shadowColor,
                         blurRadius: 8,
-                        offset: const Offset(0, 3),
+                        offset: Offset(0, 3),
                       ),
                     ],
                     border: isKyra
@@ -371,7 +429,7 @@ class _KyraAiScreenState extends ConsumerState<KyraAiScreen> {
                     children: msg.actionButtons!
                         .map(
                           (btnText) => GestureDetector(
-                            onTap: () => _sendMessage(btnText),
+                            onTap: isGenerating ? null : () => _sendMessage(btnText),
                             child: Container(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 10,
@@ -404,6 +462,7 @@ class _KyraAiScreenState extends ConsumerState<KyraAiScreen> {
   }
 
   Widget _buildPromptChip(String text) {
+    final isGenerating = ref.watch(kyraIsGeneratingProvider);
     return Container(
       margin: const EdgeInsets.only(right: 8),
       child: ActionChip(
@@ -414,13 +473,14 @@ class _KyraAiScreenState extends ConsumerState<KyraAiScreen> {
         backgroundColor: AppColors.softLavender.withValues(alpha: 0.5),
         side: BorderSide.none,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        onPressed: () => _sendMessage(text),
+        onPressed: isGenerating ? null : () => _sendMessage(text),
       ),
     );
   }
 
   void _sendMessage(String text) {
     if (text.trim().isEmpty) return;
+    if (ref.read(kyraIsGeneratingProvider)) return;
     ref.read(kyraMessagesProvider.notifier).sendMessage(text.trim());
     _textController.clear();
     setState(() => _isListeningVoice = false);
@@ -480,6 +540,78 @@ class _KyraAiScreenState extends ConsumerState<KyraAiScreen> {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _KyraTypingIndicator extends StatefulWidget {
+  const _KyraTypingIndicator();
+
+  @override
+  State<_KyraTypingIndicator> createState() => _KyraTypingIndicatorState();
+}
+
+class _KyraTypingIndicatorState extends State<_KyraTypingIndicator>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Kyra is thinking',
+              style: GoogleFonts.inter(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: AppColors.softPurple,
+              ),
+            ),
+            const SizedBox(width: 6),
+            Row(
+              children: List.generate(3, (index) {
+                final delay = index * 0.2;
+                final value =
+                    math.sin((_controller.value * 2 * math.pi) - (delay * 2 * math.pi));
+                final scale = 0.6 + (0.4 * ((value + 1) / 2));
+                final opacity = 0.4 + (0.6 * ((value + 1) / 2));
+
+                return Transform.scale(
+                  scale: scale,
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 2),
+                    width: 6,
+                    height: 6,
+                    decoration: BoxDecoration(
+                      color: AppColors.softPurple.withValues(alpha: opacity),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                );
+              }),
+            ),
+          ],
+        );
+      },
     );
   }
 }

@@ -141,14 +141,16 @@ void main() {
 
   group('active consultation selection', () {
     test('picks the first window-active appointment', () {
+      final now = DateTime.now();
       final active = _appointment(
         id: 'active',
-        date: DateTime(2026, 8, 17, 15, 50),
-        slot: '03:50 PM',
+        date: DateTime(now.year, now.month, now.day),
+        slot: '00:00',
       );
+      final tomorrow = now.add(const Duration(days: 1));
       final upcoming = _appointment(
         id: 'upcoming',
-        date: DateTime(2026, 8, 18),
+        date: DateTime(tomorrow.year, tomorrow.month, tomorrow.day),
         slot: '10:00 AM',
       );
       expect(

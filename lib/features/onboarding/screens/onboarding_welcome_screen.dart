@@ -4,7 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_colors.dart';
 import '../providers/onboarding_provider.dart';
 import '../widgets/onboarding_screen_layout.dart';
-import 'onboarding_pcos_screen.dart';
+import 'onboarding_basic_info_screen.dart';
 
 class OnboardingWelcomeScreen extends ConsumerWidget {
   const OnboardingWelcomeScreen({super.key});
@@ -38,7 +38,7 @@ class OnboardingWelcomeScreen extends ConsumerWidget {
                 context,
                 PageRouteBuilder(
                   pageBuilder: (context, animation, secondaryAnimation) =>
-                      const OnboardingPcosScreen(),
+                      const OnboardingBasicInfoScreen(),
                   transitionsBuilder: (context, animation, secondaryAnimation, child) {
                     return FadeTransition(
                       opacity: animation,

@@ -1,0 +1,25 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Public profile photos used on the doctor's public profile page.
+    // Only the owning doctor may upload/replace; anyone may view.
+    match /doctor_profiles/{uid}/{fileName} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // Sensitive verification documents (government ID, qualification and
+    // registration certificates, specialization certificates). These are
+    // never publicly accessible - only the owning doctor may read or write
+    // their own documents.
+    match /doctor_documents/{uid}/{fileName} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // Everything else stays locked down.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

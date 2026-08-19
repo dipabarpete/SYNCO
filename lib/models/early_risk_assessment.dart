@@ -25,6 +25,9 @@ class EarlyRiskAssessment {
   final List<String> reproductiveContext;
   final String? menstrualAffectingCondition;
   final String? menstrualAffectingConditionDetails;
+  final int? totalScore;
+  final String? riskCategoryLabel;
+  final DateTime? createdAt;
 
   const EarlyRiskAssessment({
     this.ageRange,
@@ -48,6 +51,9 @@ class EarlyRiskAssessment {
     this.reproductiveContext = const [],
     this.menstrualAffectingCondition,
     this.menstrualAffectingConditionDetails,
+    this.totalScore,
+    this.riskCategoryLabel,
+    this.createdAt,
   });
 
   factory EarlyRiskAssessment.fromMap(Map<String, dynamic> map) {
@@ -93,6 +99,13 @@ class EarlyRiskAssessment {
           ?.toString(),
       menstrualAffectingConditionDetails:
           map['menstrual_affecting_condition_details']?.toString(),
+      totalScore: map['total_score'] != null
+          ? int.tryParse(map['total_score'].toString())
+          : null,
+      riskCategoryLabel: map['risk_category_label']?.toString(),
+      createdAt: map['created_at'] != null
+          ? DateTime.tryParse(map['created_at'].toString())
+          : null,
     );
   }
 
@@ -120,7 +133,81 @@ class EarlyRiskAssessment {
       'menstrual_affecting_condition': menstrualAffectingCondition,
       'menstrual_affecting_condition_details':
           menstrualAffectingConditionDetails,
+      'total_score': totalScore ?? calculatedScore,
+      'risk_category_label': riskCategoryLabel ?? calculatedRiskCategoryLabel,
+      'created_at': (createdAt ?? DateTime.now()).toIso8601String(),
     };
+  }
+
+  int get calculatedScore {
+    int score = 0;
+    if (periodRegularity != null &&
+        (periodRegularity!.toLowerCase().contains('irregular') ||
+            periodRegularity!.toLowerCase().contains('no_periods') ||
+            periodRegularity!.toLowerCase().contains('don\'t get'))) {
+      score += 2;
+    }
+    if (periodGap90Days != null &&
+        (periodGap90Days!.toLowerCase().contains('yes') ||
+            periodGap90Days! == '1')) {
+      score += 2;
+    }
+    if (periodChangeHistory != null &&
+        periodChangeHistory!.toLowerCase().contains('yes')) {
+      score += 1;
+    }
+    if (facialBodyHairGrowth != null &&
+        (facialBodyHairGrowth!.toLowerCase().contains('moderate') ||
+            facialBodyHairGrowth!.toLowerCase().contains('significant') ||
+            facialBodyHairGrowth!.toLowerCase().contains('yes'))) {
+      score += 2;
+    }
+    if (acneSeverity != null &&
+        (acneSeverity!.toLowerCase().contains('frequently') ||
+            acneSeverity!.toLowerCase().contains('severe') ||
+            acneSeverity!.toLowerCase().contains('yes'))) {
+      score += 1;
+    }
+    if (scalpHairThinning != null &&
+        (scalpHairThinning!.toLowerCase().contains('moderate') ||
+            scalpHairThinning!.toLowerCase().contains('significant') ||
+            scalpHairThinning!.toLowerCase().contains('yes'))) {
+      score += 1;
+    }
+    if (recentWeightChange != null &&
+        (recentWeightChange!.toLowerCase().contains('gained') ||
+            recentWeightChange!.toLowerCase().contains('hard'))) {
+      score += 1;
+    }
+    if (familyConditions.any(
+      (c) =>
+          c.toLowerCase().contains('pcos') ||
+          c.toLowerCase().contains('diabetes'),
+    )) {
+      score += 1;
+    }
+    if (diagnosedMetabolicConditions.any(
+      (c) =>
+          c.toLowerCase().contains('insulin') ||
+          c.toLowerCase().contains('prediabetes') ||
+          c.toLowerCase().contains('diabetes'),
+    )) {
+      score += 2;
+    }
+    if (stressLevel != null && stressLevel! >= 4) {
+      score += 1;
+    }
+    return score;
+  }
+
+  String get calculatedRiskCategoryLabel {
+    if (riskCategoryLabel != null && riskCategoryLabel!.isNotEmpty) {
+      return riskCategoryLabel!;
+    }
+    final score = totalScore ?? calculatedScore;
+    if (score <= 4) return 'LOW RISK';
+    if (score <= 9) return 'MODERATE RISK';
+    return 'HIGH RISK';
   }
 
   EarlyRiskAssessment copyWith({

@@ -276,7 +276,9 @@ class _HerSyncAuthGatewayState
 // =============================================================================
 
 class HerSyncMainLayout extends ConsumerStatefulWidget {
-  const HerSyncMainLayout({super.key});
+  final int initialIndex;
+
+  const HerSyncMainLayout({super.key, this.initialIndex = 0});
 
   @override
   ConsumerState<HerSyncMainLayout> createState() =>
@@ -286,7 +288,13 @@ class HerSyncMainLayout extends ConsumerStatefulWidget {
 class _HerSyncMainLayoutState
     extends ConsumerState<HerSyncMainLayout> {
 
-  int _currentIndex = 0;
+  late int _currentIndex;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentIndex = widget.initialIndex;
+  }
 
 
   final List<Widget> _screens = const [

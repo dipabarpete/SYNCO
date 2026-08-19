@@ -1,389 +1,476 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../providers/meditation_provider.dart';
+import '../../core/theme/app_colors.dart';
+import 'data/stress_wellbeing_topic.dart';
+import 'data/stress_wellbeing_tools.dart';
+import 'data/stress_wellbeing_topics.dart';
+import 'stress_wellbeing_topic_detail_screen.dart';
+import 'tools/breathing_tool_screen.dart';
+import 'tools/grounding_tool_screen.dart';
+import 'tools/journal_tool_screen.dart';
+import 'tools/meditation_tool_screen.dart';
+import 'tools/pmr_tool_screen.dart';
+import 'tools/screen_breaks_tool_screen.dart';
+import 'tools/social_connection_tool_screen.dart';
+import 'tools/stress_checkin_tool_screen.dart';
+import 'tools/walking_tool_screen.dart';
+import 'widgets/article_widgets.dart';
+import 'widgets/topic_card.dart';
 
-class StressWellbeingScreen extends ConsumerStatefulWidget {
+/// Entry screen for the Stress & Well-being card inside Learn.
+///
+/// Shows the educational topic groups, the nine practical tools, and — front
+/// and centre — a prominent "When should I seek professional help?" banner.
+class StressWellbeingScreen extends StatelessWidget {
   const StressWellbeingScreen({super.key});
 
-  @override
-  ConsumerState<StressWellbeingScreen> createState() => _StressWellbeingScreenState();
-}
+  static const Color _mintDeep = Color(0xFF45B69C);
+  static const Color _mintLight = Color(0xFFE2F5EE);
+  static const Color _mintCardBg = Color(0xFFF0FDF4);
 
-class _StressWellbeingScreenState extends ConsumerState<StressWellbeingScreen> with SingleTickerProviderStateMixin {
-  late AnimationController _breathingController;
-  late Animation<double> _scaleAnimation;
-  bool _isBreathing = false;
-  String _breathingText = "Ready to relax?";
-  final Color _mintGreen = const Color(0xFF45B69C);
-  final Color _lightMint = const Color(0xFFE2F5EE);
-
-  @override
-  void initState() {
-    super.initState();
-    // A 4-second inhale, 4-second exhale cycle
-    _breathingController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 4),
-    );
-
-    _scaleAnimation = Tween<double>(begin: 1.0, end: 1.6).animate(
-      CurvedAnimation(parent: _breathingController, curve: Curves.easeInOut),
-    );
-
-    _breathingController.addStatusListener((status) {
-      if (status == AnimationStatus.completed) {
-        setState(() {
-          _breathingText = "Breathe Out...";
-        });
-        _breathingController.reverse();
-      } else if (status == AnimationStatus.dismissed && _isBreathing) {
-        setState(() {
-          _breathingText = "Breathe In...";
-        });
-        _breathingController.forward();
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    _breathingController.dispose();
-    super.dispose();
-  }
-
-  void _toggleBreathing() {
-    setState(() {
-      _isBreathing = !_isBreathing;
-      if (_isBreathing) {
-        _breathingText = "Breathe In...";
-        _breathingController.forward();
-      } else {
-        _breathingText = "Ready to relax?";
-        _breathingController.stop();
-        _breathingController.reverse();
-      }
-    });
-  }
-
-  void _showLogMeditationDialog() {
-    final TextEditingController minutesController = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: Text(
-            'Log Meditation',
-            style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: AppColors.textDark),
-          ),
-          content: TextField(
-            controller: minutesController,
-            keyboardType: TextInputType.number,
-            decoration: InputDecoration(
-              hintText: 'Duration (minutes)',
-              hintStyle: GoogleFonts.inter(color: AppColors.textLight),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: AppColors.softPurple),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: AppColors.softPurple, width: 2),
-              ),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text('Cancel', style: GoogleFonts.inter(color: AppColors.textMedium)),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                final minutes = int.tryParse(minutesController.text.trim());
-                if (minutes != null && minutes > 0) {
-                  ref.read(meditationProvider.notifier).addSession(minutes);
-                }
-                Navigator.pop(context);
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _mintGreen,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-              child: const Text('Log', style: TextStyle(color: Colors.white)),
-            ),
-          ],
-        );
-      },
-    );
+  void _openTool(BuildContext context, StressTool tool) {
+    final Widget screen = switch (tool.id) {
+      'breathing' => const BreathingToolScreen(),
+      'meditation' => const MeditationToolScreen(),
+      'journaling' => const JournalToolScreen(),
+      'grounding' => const GroundingToolScreen(),
+      'muscle-relaxation' => const PmrToolScreen(),
+      'walking' => const WalkingToolScreen(),
+      'social-connection' => const SocialConnectionToolScreen(),
+      'screen-breaks' => const ScreenBreaksToolScreen(),
+      'stress-checkin' => const StressCheckInToolScreen(),
+      _ => throw StateError('Unknown tool id: ${tool.id}'),
+    };
+    Navigator.push(context, MaterialPageRoute(builder: (_) => screen));
   }
 
   @override
   Widget build(BuildContext context) {
-    final meditationLogs = ref.watch(meditationProvider);
-    final totalMinutes = ref.watch(meditationProvider.notifier).totalMeditationMinutes;
-
     return Scaffold(
       backgroundColor: AppColors.creamWhite,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
         centerTitle: true,
         title: Text(
           'Stress & Wellbeing',
           style: GoogleFonts.outfit(
-            fontSize: 20,
             fontWeight: FontWeight.bold,
+            fontSize: 18,
             color: AppColors.textDark,
           ),
         ),
-        iconTheme: const IconThemeData(color: AppColors.textDark),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24.0),
+        padding: const EdgeInsets.all(16),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Breathing Exercise Section
+            // Intro hero
             Container(
-              padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 24),
+              width: double.infinity,
+              padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
-                color: _lightMint,
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: _mintGreen.withValues(alpha: 0.3)),
-              ),
-              child: Column(
-                children: [
-                  Text(
-                    'Guided Breathing',
-                    style: GoogleFonts.outfit(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: _mintGreen,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Take a moment to center yourself',
-                    style: GoogleFonts.inter(
-                      fontSize: 14,
-                      color: AppColors.textMedium,
-                    ),
-                  ),
-                  const SizedBox(height: 60),
-                  
-                  // Animated Breathing Circle
-                  SizedBox(
-                    height: 180,
-                    child: Center(
-                      child: AnimatedBuilder(
-                        animation: _scaleAnimation,
-                        builder: (context, child) {
-                          return Transform.scale(
-                            scale: _scaleAnimation.value,
-                            child: Container(
-                              width: 100,
-                              height: 100,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: _mintGreen.withValues(alpha: 0.2),
-                                border: Border.all(color: _mintGreen, width: 2),
-                              ),
-                              child: Center(
-                                child: Container(
-                                  width: 50,
-                                  height: 50,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: _mintGreen.withValues(alpha: 0.5),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 50),
-                  
-                  Text(
-                    _breathingText,
-                    style: GoogleFonts.outfit(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w600,
-                      color: _mintGreen,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  
-                  ElevatedButton(
-                    onPressed: _toggleBreathing,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _isBreathing ? AppColors.textMedium : _mintGreen,
-                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      elevation: 0,
-                    ),
-                    child: Text(
-                      _isBreathing ? 'Stop' : 'Start Breathing',
-                      style: GoogleFonts.inter(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            
-            const SizedBox(height: 32),
-            
-            // Meditation Log Section
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Meditation Log',
-                  style: GoogleFonts.outfit(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textDark,
-                  ),
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [_mintCardBg, _mintLight],
                 ),
-                TextButton.icon(
-                  onPressed: _showLogMeditationDialog,
-                  icon: Icon(Icons.add_rounded, color: _mintGreen),
-                  label: Text('Log Time', style: TextStyle(color: _mintGreen)),
-                )
-              ],
-            ),
-            const SizedBox(height: 8),
-            
-            // Total Time Card
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
+                borderRadius: BorderRadius.circular(22),
+                border: Border.all(
+                  color: stressMintBorder.withValues(alpha: 0.7),
+                ),
+                boxShadow: const [
                   BoxShadow(
                     color: AppColors.shadowColor,
                     blurRadius: 10,
-                    offset: const Offset(0, 4),
+                    offset: Offset(0, 4),
                   ),
                 ],
               ),
               child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: _lightMint,
+                      color: Colors.white.withValues(alpha: 0.9),
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(Icons.self_improvement_rounded, color: _mintGreen),
+                    child: const Icon(
+                      Icons.self_improvement_rounded,
+                      color: _mintDeep,
+                      size: 26,
+                    ),
                   ),
-                  const SizedBox(width: 16),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Total Mindful Minutes',
-                        style: GoogleFonts.inter(
-                          fontSize: 14,
-                          color: AppColors.textMedium,
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Understand stress, gently',
+                          style: GoogleFonts.outfit(
+                            fontSize: 17,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textDark,
+                          ),
                         ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'Simple guides to stress and emotional well-being, gentle tools to try, '
+                          'and honest guidance on when professional support can help — all in one calm place.',
+                          style: GoogleFonts.inter(
+                            fontSize: 12.5,
+                            height: 1.5,
+                            color: AppColors.textMedium,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // Disclaimer strip
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: _mintLight.withValues(alpha: 0.6),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: _mintDeep.withValues(alpha: 0.25),
+                ),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(
+                    Icons.info_outline_rounded,
+                    size: 18,
+                    color: _mintDeep,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Everything here is educational wellbeing support — not a diagnosis and not a '
+                      'replacement for professional mental-health care.',
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        height: 1.5,
+                        color: AppColors.textDark,
                       ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Professional-help banner (clearly visible, right after the hero)
+            _SeekHelpBanner(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => StressWellbeingTopicDetailScreen(
+                      topic: seekProfessionalHelpTopic,
+                    ),
+                  ),
+                );
+              },
+            ),
+
+            const SizedBox(height: 24),
+
+            // 1. Group — Understanding Stress
+            const ArticleSectionHeading(
+              title: 'Understanding Stress',
+              icon: Icons.waves_rounded,
+            ),
+            _TopicGrid(
+              topics: stressWellbeingGroups[0].topics,
+              onTap: (topic) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => StressWellbeingTopicDetailScreen(
+                      topic: topic,
+                    ),
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 22),
+
+            // 2. Group — Mental Well-being
+            const ArticleSectionHeading(
+              title: 'Mental Well-being',
+              icon: Icons.favorite_outline_rounded,
+            ),
+            _TopicGrid(
+              topics: stressWellbeingGroups[1].topics,
+              onTap: (topic) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => StressWellbeingTopicDetailScreen(
+                      topic: topic,
+                    ),
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 22),
+
+            // 3. Group — Practical Tools
+            const ArticleSectionHeading(
+              title: 'Practical Tools',
+              icon: Icons.self_improvement_rounded,
+            ),
+            _ToolGrid(
+              tools: allStressTools,
+              onTap: (tool) => _openTool(context, tool),
+            ),
+            const SizedBox(height: 22),
+
+            // Support reminder
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF7E8),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: const Color(0xFFE8A33D).withValues(alpha: 0.4),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.volunteer_activism_rounded,
+                        size: 18,
+                        color: Color(0xFFE8A33D),
+                      ),
+                      const SizedBox(width: 8),
                       Text(
-                        '$totalMinutes mins',
+                        'Support is always available',
                         style: GoogleFonts.outfit(
-                          fontSize: 24,
+                          fontSize: 13.5,
                           fontWeight: FontWeight.bold,
                           color: AppColors.textDark,
                         ),
                       ),
                     ],
                   ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'This app can\u2019t replace people. If you\u2019re in immediate danger or feel you '
+                    'can\u2019t keep yourself safe, please reach out right away to a trusted person or '
+                    'local emergency services.',
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
+                      height: 1.5,
+                      color: AppColors.textDark,
+                    ),
+                  ),
                 ],
               ),
             ),
-            
-            const SizedBox(height: 24),
-            Text(
-              'Recent Sessions',
-              style: GoogleFonts.inter(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textDark,
-              ),
-            ),
-            const SizedBox(height: 12),
-            
-            if (meditationLogs.isEmpty)
-              Padding(
-                padding: const EdgeInsets.all(20.0),
-                child: Text(
-                  'No sessions logged yet. Take a deep breath and start today!',
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.inter(color: AppColors.textLight),
-                ),
-              )
-            else
-              ListView.separated(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: meditationLogs.length,
-                separatorBuilder: (context, index) => const SizedBox(height: 12),
-                itemBuilder: (context, index) {
-                  final log = meditationLogs[index];
-                  // Simple date formatting
-                  final dateStr = "${log.date.month}/${log.date.day}/${log.date.year}";
-                  
-                  return Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppColors.softLavender),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Row(
-                          children: [
-                            Icon(Icons.check_circle_outline_rounded, color: _mintGreen, size: 20),
-                            const SizedBox(width: 12),
-                            Text(
-                              dateStr,
-                              style: GoogleFonts.inter(
-                                fontSize: 15,
-                                color: AppColors.textDark,
-                              ),
-                            ),
-                          ],
-                        ),
-                        Text(
-                          '${log.durationMinutes} min',
-                          style: GoogleFonts.inter(
-                            fontSize: 15,
-                            fontWeight: FontWeight.bold,
-                            color: _mintGreen,
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
+            const SizedBox(height: 16),
           ],
         ),
       ),
+    );
+  }
+}
+
+const Color stressMintBorder = Color(0xFFB5EAD7);
+
+/// 2-column grid of educational topics, matching the other Learn categories.
+class _TopicGrid extends StatelessWidget {
+  final List<StressWellbeingTopic> topics;
+  final void Function(StressWellbeingTopic) onTap;
+
+  const _TopicGrid({required this.topics, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: topics.length,
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
+        childAspectRatio: 1.15,
+      ),
+      itemBuilder: (context, index) {
+        final topic = topics[index];
+        return TopicCard(
+          title: topic.title,
+          subtitle: topic.shortDescription,
+          icon: topic.icon,
+          backgroundColor: topic.backgroundColor,
+          borderColor: topic.accentColor.withValues(alpha: 0.35),
+          iconColor: topic.accentColor,
+          onTap: () => onTap(topic),
+        );
+      },
+    );
+  }
+}
+
+/// 2-column grid of interactive tools, sharing the same card system.
+class _ToolGrid extends StatelessWidget {
+  final List<StressTool> tools;
+  final void Function(StressTool) onTap;
+
+  const _ToolGrid({required this.tools, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: tools.length,
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
+        childAspectRatio: 1.15,
+      ),
+      itemBuilder: (context, index) {
+        final tool = tools[index];
+        return TopicCard(
+          title: tool.title,
+          subtitle: tool.subtitle,
+          icon: tool.icon,
+          backgroundColor: tool.backgroundColor,
+          borderColor: tool.accentColor.withValues(alpha: 0.35),
+          iconColor: tool.accentColor,
+          onTap: () => onTap(tool),
+        );
+      },
+    );
+  }
+}
+
+/// Prominent, clearly visible banner linking to the professional-help guide.
+class _SeekHelpBanner extends StatelessWidget {
+  final VoidCallback onTap;
+
+  const _SeekHelpBanner({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFFFFF7E8), Color(0xFFFFFBEF)],
+          ),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: const Color(0xFFE8A33D).withValues(alpha: 0.5),
+            width: 1.2,
+          ),
+          boxShadow: const [
+            BoxShadow(
+              color: AppColors.shadowColor,
+              blurRadius: 8,
+              offset: Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(11),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.9),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.volunteer_activism_rounded,
+                color: Color(0xFFE8A33D),
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'When should I seek professional help?',
+                    style: GoogleFonts.outfit(
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textDark,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'A calm, clear three-level guide — self-care, considering support, and urgent help.',
+                    style: GoogleFonts.inter(
+                      fontSize: 11.5,
+                      height: 1.4,
+                      color: AppColors.textMedium,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Row(
+                    children: [
+                      _LightDot(color: Color(0xFF2E8B76)),
+                      SizedBox(width: 6),
+                      _LightDot(color: Color(0xFFE8A33D)),
+                      SizedBox(width: 6),
+                      _LightDot(color: Color(0xFFC94A6E)),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const Icon(
+              Icons.chevron_right_rounded,
+              size: 22,
+              color: AppColors.textLight,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _LightDot extends StatelessWidget {
+  final Color color;
+
+  const _LightDot({required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 10,
+      height: 10,
+      decoration: BoxDecoration(shape: BoxShape.circle, color: color),
     );
   }
 }

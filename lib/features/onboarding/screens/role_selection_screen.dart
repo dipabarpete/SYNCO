@@ -6,7 +6,7 @@ import '../../../models/user_profile.dart';
 import '../providers/onboarding_provider.dart';
 import '../widgets/role_selection_card.dart';
 import 'onboarding_name_screen.dart';
-import '../../doctor/screens/doctor_auth_screen.dart';
+import '../../doctor/screens/verification/doctor_verification_screen.dart';
 
 class RoleSelectionScreen extends ConsumerWidget {
   const RoleSelectionScreen({super.key});
@@ -148,11 +148,14 @@ class RoleSelectionScreen extends ConsumerWidget {
                             ),
                           );
                         } else {
-                          // Route to Doctor Flow
+                          // Route to the one-time Doctor Verification &
+                          // Registration flow (account creation + login are
+                          // handled inside it).
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => const DoctorAuthScreen(),
+                              builder: (context) =>
+                                  const DoctorVerificationScreen(),
                             ),
                           );
                         }

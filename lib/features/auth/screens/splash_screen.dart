@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../../core/theme/app_colors.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
   final VoidCallback onSplashComplete;
@@ -61,16 +60,16 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF2BCB0), // Premium pastel blush pink matching native splash
+      backgroundColor: const Color(0xFFDDC8F3), // Premium soft lavender matching brand icon
       body: Container(
         width: double.infinity,
         height: double.infinity,
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             colors: [
-              Color(0xFFF2BCB0),
-              Color(0xFFF8A4B8),
-              Color(0xFFE8DFF5),
+              Color(0xFFEADBFC),
+              Color(0xFFDDC8F3),
+              Color(0xFFD3B6F0),
             ],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
@@ -86,33 +85,34 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                 child: FadeTransition(
                   opacity: _fadeAnimation,
                   child: Container(
-                    padding: const EdgeInsets.all(24),
+                    padding: const EdgeInsets.all(4),
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: Colors.white.withValues(alpha: 0.25),
+                      color: const Color(0xFFDDC8F3),
                       boxShadow: [
                         BoxShadow(
-                          color: AppColors.softPurple.withValues(alpha: 0.1),
-                          blurRadius: 30,
-                          spreadRadius: 10,
+                          color: const Color(0xFF7048A1).withValues(alpha: 0.2),
+                          blurRadius: 36,
+                          spreadRadius: 8,
                         ),
                       ],
                     ),
-                    child: ClipOval(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(32),
                       child: Image.asset(
                         'assets/images/synco.png',
-                        width: 140,
-                        height: 140,
+                        width: 150,
+                        height: 150,
                         fit: BoxFit.cover,
                         errorBuilder: (ctx, err, st) => Image.asset(
                           'assets/images/app_logo.png',
-                          width: 140,
-                          height: 140,
+                          width: 150,
+                          height: 150,
                           fit: BoxFit.cover,
                           errorBuilder: (c, e, s) => const Icon(
-                            Icons.favorite_rounded,
+                            Icons.spa_rounded,
                             size: 90,
-                            color: AppColors.softPurple,
+                            color: Color(0xFF7048A1),
                           ),
                         ),
                       ),
@@ -120,7 +120,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                   ),
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 28),
               FadeTransition(
                 opacity: _fadeAnimation,
                 child: Column(
@@ -128,10 +128,10 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                     Text(
                       'SYNCO',
                       style: GoogleFonts.outfit(
-                        fontSize: 36,
+                        fontSize: 38,
                         fontWeight: FontWeight.bold,
-                        color: AppColors.textDark,
-                        letterSpacing: 0.5,
+                        color: const Color(0xFF7048A1),
+                        letterSpacing: 2.0,
                       ),
                     ),
                     const SizedBox(height: 6),
@@ -140,7 +140,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                       style: GoogleFonts.inter(
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
-                        color: AppColors.textMedium,
+                        color: const Color(0xFF634091),
+                        letterSpacing: 0.2,
                       ),
                     ),
                   ],
@@ -148,11 +149,11 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
               ),
               const Spacer(),
               const SizedBox(
-                width: 28,
-                height: 28,
+                width: 26,
+                height: 26,
                 child: CircularProgressIndicator(
                   strokeWidth: 2.5,
-                  valueColor: AlwaysStoppedAnimation<Color>(AppColors.softPurple),
+                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF7048A1)),
                 ),
               ),
               const SizedBox(height: 40),

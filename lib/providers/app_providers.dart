@@ -1214,6 +1214,9 @@ final kyraApiServiceProvider = Provider<KyraApiService>((ref) {
   return KyraApiService();
 });
 
+// Kyra Generating Response Loading Provider
+final kyraIsGeneratingProvider = StateProvider<bool>((ref) => false);
+
 // Kyra AI Companion Provider
 final kyraMessagesProvider = StateNotifierProvider<KyraNotifier, List<KyraMessage>>((ref) {
   return KyraNotifier(ref);
@@ -1240,6 +1243,10 @@ class KyraNotifier extends StateNotifier<List<KyraMessage>> {
         ]);
 
   Future<void> sendMessage(String userText) async {
+    if (ref.read(kyraIsGeneratingProvider)) return;
+
+    ref.read(kyraIsGeneratingProvider.notifier).state = true;
+
     final userMsg = KyraMessage(
       id: 'u_${DateTime.now().millisecondsSinceEpoch}',
       sender: KyraSender.user,
@@ -1293,6 +1300,10 @@ class KyraNotifier extends StateNotifier<List<KyraMessage>> {
           timestamp: DateTime.now(),
         );
         state = [...state, errorReply];
+      }
+    } finally {
+      if (mounted) {
+        ref.read(kyraIsGeneratingProvider.notifier).state = false;
       }
     }
   }

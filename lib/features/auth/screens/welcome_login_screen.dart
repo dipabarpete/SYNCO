@@ -79,8 +79,8 @@ class WelcomeLoginScreen extends ConsumerWidget {
           gradient: LinearGradient(
             colors: [
               AppColors.creamWhite,
-              Color(0xFFFFF0F5),
-              Color(0xFFFAF8F5),
+              Color(0xFFF0E8F8),
+              AppColors.creamWhite,
             ],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
@@ -105,33 +105,34 @@ class WelcomeLoginScreen extends ConsumerWidget {
 
                     // Top: SYNCO Logo / Identity
                     Container(
-                      padding: const EdgeInsets.all(18),
+                      padding: const EdgeInsets.all(3),
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: AppColors.pureWhite,
+                        color: const Color(0xFFDDC8F3),
                         boxShadow: [
                           BoxShadow(
-                            color: AppColors.blushPink.withValues(alpha: 0.25),
+                            color: const Color(0xFF7048A1).withValues(alpha: 0.18),
                             blurRadius: 20,
-                            offset: const Offset(0, 8),
+                            offset: const Offset(0, 6),
                           ),
                         ],
                       ),
-                      child: ClipOval(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(24),
                         child: Image.asset(
                           'assets/images/synco.png',
-                          width: 80,
-                          height: 80,
+                          width: 86,
+                          height: 86,
                           fit: BoxFit.cover,
                           errorBuilder: (ctx, err, st) => Image.asset(
                             'assets/images/app_logo.png',
-                            width: 80,
-                            height: 80,
+                            width: 86,
+                            height: 86,
                             fit: BoxFit.cover,
                             errorBuilder: (c, e, s) => const Icon(
-                              Icons.favorite_rounded,
+                              Icons.spa_rounded,
                               size: 54,
-                              color: AppColors.softPurple,
+                              color: Color(0xFF7048A1),
                             ),
                           ),
                         ),
@@ -258,10 +259,10 @@ class WelcomeLoginScreen extends ConsumerWidget {
                       child: Container(
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(20),
-                          gradient: AppColors.primaryGradient,
+                          color: AppColors.softPurple,
                           boxShadow: [
                             BoxShadow(
-                              color: AppColors.blushPink.withValues(alpha: 0.35),
+                              color: AppColors.softPurple.withValues(alpha: 0.25),
                               blurRadius: 12,
                               offset: const Offset(0, 4),
                             ),

@@ -1,12 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+
 import '../../../core/theme/app_colors.dart';
 import '../../auth/providers/auth_provider.dart';
-import '../models/doctor.dart';
-import '../services/doctor_service.dart';
 import '../../doctor_dashboard/screens/doctor_dashboard_screen.dart';
+import '../models/doctor_verification.dart';
+import '../providers/doctor_verification_provider.dart';
+import 'verification/professional_step_screen.dart';
+import 'verification/verification_status_screen.dart';
 
+/// Doctor sign-in with the professional email + password created during
+/// one-time verification.
+///
+/// After authentication the existing authentication identity/user ID is used
+/// to determine whether a doctor account/profile already exists:
+///  - doctor record exists → Doctor Portal (or verification status screen)
+///  - no doctor record → the one-time verification questionnaire
+///
+/// The doctor never has to repeat the verification questionnaire once their
+/// account has been created.
 class DoctorAuthScreen extends ConsumerStatefulWidget {
   const DoctorAuthScreen({super.key});
 
@@ -18,102 +31,101 @@ class _DoctorAuthScreenState extends ConsumerState<DoctorAuthScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _nameController = TextEditingController();
-  final _licenseController = TextEditingController();
-  
-  bool _isLogin = true;
   bool _isLoading = false;
+  bool _obscurePassword = true;
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
-    _nameController.dispose();
-    _licenseController.dispose();
     super.dispose();
   }
 
   void _showError(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: AppColors.deepRose,
-      ),
-    );
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: AppColors.deepRose,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          margin: const EdgeInsets.all(16),
+        ),
+      );
   }
 
-  Future<void> _submit() async {
+  Future<void> _signIn() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
     ref.read(authNotifierProvider.notifier).clearMessages();
 
     final email = _emailController.text.trim();
-    final password = _passwordController.text.trim();
+    final password = _passwordController.text;
 
-    try {
-      if (_isLogin) {
-        final success = await ref.read(authNotifierProvider.notifier).loginWithEmail(
+    final success = await ref.read(authNotifierProvider.notifier).loginWithEmail(
           email: email,
           password: password,
         );
 
-        if (success && mounted) {
-          Navigator.pushAndRemoveUntil(
-            context,
-            MaterialPageRoute(builder: (context) => const DoctorDashboardScreen()),
-            (route) => false,
-          );
-        } else {
-          final error = ref.read(authNotifierProvider).errorMessage ?? 'Login failed';
-          _showError(error);
-        }
-      } else {
-        // Sign Up
-        final success = await ref.read(authNotifierProvider.notifier).signUpWithEmail(
-          email: email,
-          password: password,
-        );
-
-        if (success) {
-          final user = ref.read(authNotifierProvider).user;
-          if (user != null) {
-            final newDoctor = Doctor(
-              id: user.id,
-              name: _nameController.text.trim(),
-              specialization: 'General Physician', // Default for now
-              experience: '0 Years',
-              consultationFee: 50,
-              rating: 0.0,
-              availability: 'Available Today',
-              mode: ConsultationMode.online,
-              about: 'Newly registered practitioner on SYNCO.',
-              availableDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
-              timeSlots: ['10:00 AM', '12:00 PM', '02:00 PM', '04:00 PM'],
-              licenseId: _licenseController.text.trim(),
-            );
-            
-            await DoctorService().createDoctorProfile(newDoctor);
-
-            if (mounted) {
-              Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(builder: (context) => const DoctorDashboardScreen()),
-                (route) => false,
-              );
-            }
-          }
-        } else {
-          final error = ref.read(authNotifierProvider).errorMessage ?? 'Sign up failed';
-          _showError(error);
-        }
-      }
-    } catch (e) {
-      _showError(e.toString());
-    } finally {
+    if (!success) {
       if (mounted) setState(() => _isLoading = false);
+      final error =
+          ref.read(authNotifierProvider).errorMessage ?? 'Login failed';
+      _showError(error);
+      return;
     }
+
+    final user = ref.read(authNotifierProvider).user;
+    if (user == null) {
+      if (mounted) setState(() => _isLoading = false);
+      _showError('Login failed. Please try again.');
+      return;
+    }
+
+    // Determine what this identity already has on the backend.
+    final service = ref.read(doctorVerificationServiceProvider);
+    final hasRecord = await service.hasDoctorRecord(user.id);
+    if (!hasRecord) {
+      // Authenticated identity without a doctor record: start the one-time
+      // verification questionnaire. The account is reused on submission.
+      ref.read(doctorVerificationProvider.notifier).reset();
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const ProfessionalStepScreen()),
+        (route) => false,
+      );
+      return;
+    }
+
+    final verification = await service.getVerification(user.id);
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+
+    if (verification == null ||
+        verification.status == DoctorVerificationStatus.verified) {
+      // Existing doctor: straight to the Doctor Portal, nothing to repeat.
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const DoctorDashboardScreen()),
+        (route) => false,
+      );
+      return;
+    }
+
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(
+        builder: (_) => VerificationStatusScreen(uid: user.id),
+      ),
+      (route) => false,
+    );
   }
 
   @override
@@ -127,7 +139,7 @@ class _DoctorAuthScreenState extends ConsumerState<DoctorAuthScreen> {
           gradient: LinearGradient(
             colors: [
               AppColors.creamWhite,
-              Color(0xFFF3EFE0),
+              Color(0xFFF3EFF7),
               Color(0xFFFAF8F5),
             ],
             begin: Alignment.topCenter,
@@ -136,7 +148,8 @@ class _DoctorAuthScreenState extends ConsumerState<DoctorAuthScreen> {
         ),
         child: SafeArea(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
             child: Form(
               key: _formKey,
               child: Column(
@@ -150,35 +163,25 @@ class _DoctorAuthScreenState extends ConsumerState<DoctorAuthScreen> {
                       size: 20,
                     ),
                   ),
-                  const SizedBox(height: 16),
-
-                  // Branding Header
+                  const SizedBox(height: 12),
                   Center(
                     child: Container(
                       padding: const EdgeInsets.all(18),
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: AppColors.pureWhite,
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.softPurple.withValues(alpha: 0.15),
-                            blurRadius: 20,
-                            offset: const Offset(0, 6),
-                          ),
-                        ],
+                        color: AppColors.softLavender,
                       ),
                       child: const Icon(
                         Icons.medical_services_rounded,
-                        size: 48,
+                        size: 44,
                         color: AppColors.softPurple,
                       ),
                     ),
                   ),
-                  const SizedBox(height: 24),
-
+                  const SizedBox(height: 22),
                   Center(
                     child: Text(
-                      _isLogin ? 'SYNCO Doctor Login' : 'Register as Doctor',
+                      'Doctor Login',
                       style: GoogleFonts.outfit(
                         fontSize: 26,
                         fontWeight: FontWeight.bold,
@@ -189,7 +192,7 @@ class _DoctorAuthScreenState extends ConsumerState<DoctorAuthScreen> {
                   const SizedBox(height: 6),
                   Center(
                     child: Text(
-                      'Consultant & Healthcare Practitioner Access',
+                      'Sign in with your professional email and password.',
                       textAlign: TextAlign.center,
                       style: GoogleFonts.inter(
                         fontSize: 14,
@@ -197,103 +200,127 @@ class _DoctorAuthScreenState extends ConsumerState<DoctorAuthScreen> {
                       ),
                     ),
                   ),
-
-                  const SizedBox(height: 36),
-
-                  if (!_isLogin) ...[
-                    // Full Name Field
-                    _buildLabel('Full Name (with Title)'),
-                    const SizedBox(height: 8),
-                    _buildTextField(
-                      controller: _nameController,
-                      hintText: 'e.g. Dr. John Smith, MD',
-                      icon: Icons.person_outline,
-                      validator: (v) => v!.isEmpty ? 'Name is required' : null,
-                    ),
-                    const SizedBox(height: 20),
-
-                    // Medical License Field
-                    _buildLabel('Medical License Number'),
-                    const SizedBox(height: 8),
-                    _buildTextField(
-                      controller: _licenseController,
-                      hintText: 'MCI-84920-IND',
-                      icon: Icons.badge_outlined,
-                      validator: (v) => v!.isEmpty ? 'License is required' : null,
-                    ),
-                    const SizedBox(height: 20),
-                  ],
-
-                  // Email Field
-                  _buildLabel('Work Email'),
+                  const SizedBox(height: 32),
+                  _buildLabel('Professional / Work Email'),
                   const SizedBox(height: 8),
                   _buildTextField(
                     controller: _emailController,
                     hintText: 'dr.smith@hospital.com',
                     icon: Icons.email_outlined,
                     keyboardType: TextInputType.emailAddress,
-                    validator: (v) => v!.isEmpty || !v.contains('@') ? 'Enter a valid email' : null,
+                    validator: (value) {
+                      final text = value?.trim() ?? '';
+                      if (text.isEmpty) return 'Professional email is required.';
+                      if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                          .hasMatch(text)) {
+                        return 'Please enter a valid email address.';
+                      }
+                      return null;
+                    },
                   ),
                   const SizedBox(height: 20),
-
-                  // Password Field
                   _buildLabel('Password'),
                   const SizedBox(height: 8),
                   _buildTextField(
                     controller: _passwordController,
                     hintText: '••••••••',
-                    icon: Icons.lock_outline,
-                    obscureText: true,
-                    validator: (v) => v!.length < 6 ? 'Password must be 6+ characters' : null,
+                    icon: Icons.lock_outline_rounded,
+                    obscureText: _obscurePassword,
+                    suffixIcon: IconButton(
+                      onPressed: () => setState(
+                        () => _obscurePassword = !_obscurePassword,
+                      ),
+                      icon: Icon(
+                        _obscurePassword
+                            ? Icons.visibility_outlined
+                            : Icons.visibility_off_outlined,
+                        color: AppColors.textLight,
+                        size: 20,
+                      ),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Password is required.';
+                      }
+                      return null;
+                    },
                   ),
                   const SizedBox(height: 32),
-
-                  // Submit Button
                   SizedBox(
                     width: double.infinity,
                     height: 56,
-                    child: ElevatedButton(
-                      onPressed: _isLoading ? null : _submit,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.softPurple,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        elevation: 3,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(20),
+                        gradient: AppColors.primaryGradient,
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.blushPink.withValues(alpha: 0.35),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
                       ),
-                      child: _isLoading 
-                          ? const CircularProgressIndicator(color: Colors.white)
-                          : Text(
-                              _isLogin ? 'Access Doctor Dashboard' : 'Create Doctor Account',
-                              style: GoogleFonts.inter(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
+                      child: ElevatedButton(
+                        onPressed: _isLoading ? null : _signIn,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.transparent,
+                          shadowColor: Colors.transparent,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                        ),
+                        child: _isLoading
+                            ? const SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2.5,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : Text(
+                                'Sign In',
+                                style: GoogleFonts.inter(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white,
+                                ),
                               ),
-                            ),
+                      ),
                     ),
                   ),
-
-                  const SizedBox(height: 24),
-
-                  // Toggle Button
+                  const SizedBox(height: 16),
                   Center(
                     child: TextButton(
-                      onPressed: () {
-                        setState(() {
-                          _isLogin = !_isLogin;
-                          _formKey.currentState?.reset();
-                        });
-                      },
+                      onPressed: _isLoading
+                          ? null
+                          : () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const ProfessionalStepScreen(),
+                              ),
+                            ),
                       child: Text(
-                        _isLogin 
-                            ? 'New practitioner? Apply for access here.'
-                            : 'Already registered? Sign in here.',
+                        'New practitioner? Start your verification here.',
                         style: GoogleFonts.inter(
                           fontSize: 14,
                           color: AppColors.softPurple,
                           fontWeight: FontWeight.w600,
                         ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Center(
+                    child: Text(
+                      'Your verification information was collected only once - '
+                      'signing in again never asks for it a second time.',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.inter(
+                        fontSize: 11,
+                        color: AppColors.textLight,
+                        height: 1.4,
                       ),
                     ),
                   ),
@@ -324,24 +351,30 @@ class _DoctorAuthScreenState extends ConsumerState<DoctorAuthScreen> {
     bool obscureText = false,
     TextInputType? keyboardType,
     String? Function(String?)? validator,
+    Widget? suffixIcon,
   }) {
     return TextFormField(
       controller: controller,
       obscureText: obscureText,
       keyboardType: keyboardType,
       validator: validator,
+      autovalidateMode: AutovalidateMode.onUserInteraction,
       decoration: InputDecoration(
         hintText: hintText,
+        hintStyle: GoogleFonts.inter(fontSize: 13, color: AppColors.textLight),
         prefixIcon: Icon(icon, color: AppColors.softPurple),
+        suffixIcon: suffixIcon,
         filled: true,
         fillColor: AppColors.pureWhite,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: AppColors.borderGrey.withValues(alpha: 0.8)),
+          borderSide:
+              BorderSide(color: AppColors.borderGrey.withValues(alpha: 0.8)),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: AppColors.borderGrey.withValues(alpha: 0.8)),
+          borderSide:
+              BorderSide(color: AppColors.borderGrey.withValues(alpha: 0.8)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),

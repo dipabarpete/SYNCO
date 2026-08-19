@@ -293,46 +293,48 @@ class DoctorAppointmentCard extends ConsumerWidget {
     final action = await showModalBottomSheet<String>(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (sheetContext) => Material(
-        color: Colors.white,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        clipBehavior: Clip.antiAlias,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  margin: const EdgeInsets.only(bottom: 12),
-                  decoration: BoxDecoration(
-                    color: AppColors.borderGrey,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
+      builder: (sheetContext) => Container(
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 12),
+                decoration: BoxDecoration(
+                  color: AppColors.borderGrey,
+                  borderRadius: BorderRadius.circular(2),
                 ),
               ),
-              Text(
-                a.patientName,
-                style: GoogleFonts.outfit(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textDark,
-                ),
+            ),
+            Text(
+              a.patientName,
+              style: GoogleFonts.outfit(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textDark,
               ),
-              const SizedBox(height: 2),
-              Text(
-                '${a.formattedDateShort} • ${a.slot}',
-                style: GoogleFonts.inter(
-                  fontSize: 12.5,
-                  color: AppColors.textMedium,
-                ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              '${a.formattedDateShort} • ${a.slot}',
+              style: GoogleFonts.inter(
+                fontSize: 12.5,
+                color: AppColors.textMedium,
               ),
-              const SizedBox(height: 12),
-              const Divider(height: 1),
-              ListTile(
+            ),
+            const SizedBox(height: 12),
+            const Divider(height: 1),
+            Material(
+              color: Colors.transparent,
+              child: ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: Container(
                   padding: const EdgeInsets.all(9),
@@ -363,8 +365,8 @@ class DoctorAppointmentCard extends ConsumerWidget {
                 ),
                 onTap: () => Navigator.pop(sheetContext, 'cancel'),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -375,7 +377,10 @@ class DoctorAppointmentCard extends ConsumerWidget {
   }
 
   /// Confirmation dialog shown before the appointment is actually cancelled.
-  Future<void> _confirmCancellation(BuildContext context, WidgetRef ref) async {
+  Future<void> _confirmCancellation(
+    BuildContext context,
+    WidgetRef ref,
+  ) async {
     final a = appointment;
     final confirmed = await showDialog<bool>(
       context: context,
@@ -463,7 +468,10 @@ class DoctorAppointmentCard extends ConsumerWidget {
 
   /// Cancels the appointment through the existing backend status update and
   /// keeps the UI in sync (the appointment stream removes it automatically).
-  Future<void> _performCancellation(BuildContext context, WidgetRef ref) async {
+  Future<void> _performCancellation(
+    BuildContext context,
+    WidgetRef ref,
+  ) async {
     final a = appointment;
     final messenger = ScaffoldMessenger.of(context);
     try {
@@ -509,33 +517,32 @@ class _StatusChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final (Color bg, Color fg, String label) = switch (status) {
       AppointmentStatus.requested => (
-        AppColors.pendingAmberSoft,
-        AppColors.pendingAmber,
-        'Pending',
-      ),
+          AppColors.pendingAmberSoft,
+          AppColors.pendingAmber,
+          'Pending',
+        ),
       AppointmentStatus.confirmed => (
-        AppColors.mintGreen.withValues(alpha: 0.4),
-        AppColors.confirmedGreen,
-        'Confirmed',
-      ),
+          AppColors.mintGreen.withValues(alpha: 0.4),
+          AppColors.confirmedGreen,
+          'Confirmed',
+        ),
       AppointmentStatus.declined => (
-        AppColors.babyPink,
-        AppColors.deepRose,
-        'Declined',
-      ),
+          AppColors.babyPink,
+          AppColors.deepRose,
+          'Declined',
+        ),
       AppointmentStatus.cancelled => (
-        AppColors.lightGrey,
-        AppColors.textLight,
-        'Cancelled',
-      ),
+          AppColors.lightGrey,
+          AppColors.textLight,
+          'Cancelled',
+        ),
       AppointmentStatus.completed => (
-        AppColors.mintGreen.withValues(alpha: 0.4),
-        AppColors.confirmedGreen,
-        'Completed',
-      ),
+          AppColors.mintGreen.withValues(alpha: 0.4),
+          AppColors.confirmedGreen,
+          'Completed',
+        ),
     };
-    final showsCheck =
-        status == AppointmentStatus.confirmed ||
+    final showsCheck = status == AppointmentStatus.confirmed ||
         status == AppointmentStatus.completed;
 
     final chip = Container(
@@ -554,7 +561,10 @@ class _StatusChip extends StatelessWidget {
             Container(
               width: 8,
               height: 8,
-              decoration: BoxDecoration(shape: BoxShape.circle, color: fg),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: fg,
+              ),
             ),
           Text(
             label,
@@ -571,7 +581,10 @@ class _StatusChip extends StatelessWidget {
     if (onTap == null) return chip;
     return GestureDetector(
       onTap: onTap,
-      child: Tooltip(message: 'Manage appointment', child: chip),
+      child: Tooltip(
+        message: 'Manage appointment',
+        child: chip,
+      ),
     );
   }
 }

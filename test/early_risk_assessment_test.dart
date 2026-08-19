@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hersync/features/onboarding/screens/onboarding_basic_info_screen.dart';
 import 'package:hersync/features/onboarding/screens/onboarding_pcos_screen.dart';
 import 'package:hersync/features/onboarding/providers/onboarding_provider.dart';
 
@@ -26,36 +27,38 @@ Future<void> _tapOption(WidgetTester tester, String label) async {
   await _tapContinue(tester);
 }
 
-/// Enters the Early Risk Assessment branch (diagnosis = No).
+/// Answers Q1-Q3 (basic information on OnboardingBasicInfoScreen).
+Future<void> _answerBasicInfo(WidgetTester tester) async {
+  expect(find.text('What is your age?'), findsOneWidget);
+
+  final continueDisabled = tester
+      .widget<ElevatedButton>(find.widgetWithText(ElevatedButton, 'Continue'))
+      .onPressed;
+  expect(continueDisabled, isNull);
+
+  await _tap(tester, '18–24');
+  await tester.pump();
+
+  final fields = find.byType(TextField);
+  expect(fields, findsNWidgets(2));
+  await tester.enterText(fields.at(0), '165');
+  await tester.enterText(fields.at(1), '60');
+  await tester.pump();
+
+  await _tapContinue(tester);
+}
+
+/// Enters the Early Risk Assessment branch (starting at OnboardingBasicInfoScreen,
+/// filling basic info, then selecting diagnosis = No on OnboardingPcosScreen).
 Future<void> _enterBranch(WidgetTester tester) async {
-  await tester.pumpWidget(_wrap(const OnboardingPcosScreen()));
+  await tester.pumpWidget(_wrap(const OnboardingBasicInfoScreen()));
+  await _answerBasicInfo(tester);
+
   expect(
     find.text('Have you been diagnosed with PCOS, PCOD, or PMOS?'),
     findsOneWidget,
   );
   await _tap(tester, 'No');
-  await tester.pump();
-  await _tapContinue(tester);
-  expect(find.text('What is your age?'), findsOneWidget);
-}
-
-/// Answers Q1-Q3 (basic information).
-Future<void> _answerBasicInfo(WidgetTester tester) async {
-  await _tap(tester, '18–24');
-  await tester.pump();
-  await _tapContinue(tester);
-
-  expect(find.text('How tall are you?'), findsOneWidget);
-  final continueDisabled = tester
-      .widget<ElevatedButton>(find.widgetWithText(ElevatedButton, 'Continue'))
-      .onPressed;
-  expect(continueDisabled, isNull);
-  await tester.enterText(find.byType(TextField), '165');
-  await tester.pump();
-  await _tapContinue(tester);
-
-  expect(find.text('What is your current weight?'), findsOneWidget);
-  await tester.enterText(find.byType(TextField), '60');
   await tester.pump();
   await _tapContinue(tester);
 }
@@ -168,7 +171,6 @@ void main() {
   ) async {
     await _enterBranch(tester);
 
-    await _answerBasicInfo(tester);
     await _answerCycleQuestions(tester);
     await _answerSymptomQuestions(tester);
     await _answerMetabolicAndLifestyle(tester);
@@ -201,18 +203,15 @@ void main() {
     await _tapOption(tester, 'No');
 
     // Standard result stage
-    expect(find.textContaining('Thank you,'), findsOneWidget);
+    expect(find.text('YOUR RESULT'), findsOneWidget);
     expect(
-      find.textContaining('these answers cannot diagnose PCOS'),
+      find.textContaining('awareness indication based on your questionnaire responses'),
       findsOneWidget,
     );
-    expect(
-      find.textContaining('can affect menstrual patterns on their own'),
-      findsOneWidget,
-    );
+    expect(find.text('What you can do next'), findsOneWidget);
 
     // Verify all Q1-Q19 answers captured in state
-    final context = tester.element(find.textContaining('Thank you,'));
+    final context = tester.element(find.text('YOUR RESULT'));
     final container = ProviderScope.containerOf(context);
     final state = container.read(onboardingProvider);
     expect(state.ageRange, '18–24');
@@ -247,7 +246,7 @@ void main() {
     await tester.pump();
     await _tapContinue(tester);
 
-    expect(find.text('What is your age?'), findsOneWidget);
+    expect(find.text('How regular are your periods?'), findsOneWidget);
   });
 
   testWidgets('YES -> existing Management Profile (DiagnosedByScreen)', (
@@ -266,7 +265,6 @@ void main() {
     tester,
   ) async {
     await _enterBranch(tester);
-    await _answerBasicInfo(tester);
     await _answerCycleQuestions(tester);
     await _answerSymptomQuestions(tester);
     await _answerMetabolicAndLifestyle(tester);
@@ -293,7 +291,6 @@ void main() {
     'Q17 = Not sure -> pregnancy-aware outcome, no standard screening',
     (tester) async {
       await _enterBranch(tester);
-      await _answerBasicInfo(tester);
       await _answerCycleQuestions(tester);
       await _answerSymptomQuestions(tester);
       await _answerMetabolicAndLifestyle(tester);
@@ -320,7 +317,6 @@ void main() {
     tester,
   ) async {
     await _enterBranch(tester);
-    await _answerBasicInfo(tester);
     await _answerCycleQuestions(tester);
     await _answerSymptomQuestions(tester);
 
@@ -366,7 +362,6 @@ void main() {
     tester,
   ) async {
     await _enterBranch(tester);
-    await _answerBasicInfo(tester);
     await _answerCycleQuestions(tester);
     await _answerSymptomQuestions(tester);
 
@@ -412,7 +407,6 @@ void main() {
     tester,
   ) async {
     await _enterBranch(tester);
-    await _answerBasicInfo(tester);
     await _answerCycleQuestions(tester);
     await _answerSymptomQuestions(tester);
     await _answerMetabolicAndLifestyle(tester);
@@ -455,7 +449,6 @@ void main() {
 
   testWidgets('Back navigation preserves Q11-Q16 answers', (tester) async {
     await _enterBranch(tester);
-    await _answerBasicInfo(tester);
     await _answerCycleQuestions(tester);
     await _answerSymptomQuestions(tester);
     await _answerMetabolicAndLifestyle(tester);

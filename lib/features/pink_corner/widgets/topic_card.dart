@@ -10,6 +10,7 @@ class TopicCard extends StatefulWidget {
   final Color borderColor;
   final Color iconColor;
   final VoidCallback onTap;
+  final int maxTitleLines;
 
   const TopicCard({
     super.key,
@@ -20,6 +21,7 @@ class TopicCard extends StatefulWidget {
     required this.borderColor,
     required this.iconColor,
     required this.onTap,
+    this.maxTitleLines = 2,
   });
 
   @override
@@ -85,16 +87,19 @@ class _TopicCardState extends State<TopicCard> {
                   ),
                 ),
                 const SizedBox(height: 10),
-                Text(
-                  widget.title,
-                  textAlign: TextAlign.center,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.outfit(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textDark,
-                    height: 1.2,
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 130),
+                  child: Text(
+                    widget.title,
+                    textAlign: TextAlign.center,
+                    maxLines: widget.maxTitleLines,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.outfit(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textDark,
+                      height: 1.2,
+                    ),
                   ),
                 ),
                 if (widget.subtitle != null) ...[
