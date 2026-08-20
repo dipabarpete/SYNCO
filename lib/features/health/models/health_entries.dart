@@ -1,4 +1,4 @@
-﻿/// Health tracker entry models.
+/// Health tracker entry models.
 ///
 /// Every entry is owned by one authenticated user (`userId`) and is stored
 /// against a calendar date (`date`). Multi-entry trackers (water, sugar
@@ -147,6 +147,43 @@ String formatDurationMinutes(int minutes) {
 /// Minutes of the day (0..1439) for a [TimeOfDay]-like pair.
 int minutesOfDay(int hour, int minute) => hour * 60 + minute;
 
+/// Safely parses dynamic value [value] into a [num] (int or double or null),
+/// handling ints, doubles, nums, numeric Strings (e.g. "45", "62.4"), or null.
+num? safeParseNum(dynamic value) {
+  if (value == null) return null;
+  if (value is num) return value;
+  if (value is String) {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) return null;
+    return num.tryParse(trimmed);
+  }
+  return null;
+}
+
+/// Safely parses dynamic value [value] into an [int] or fallback.
+int safeParseInt(dynamic value, [int fallback = 0]) {
+  final parsed = safeParseNum(value);
+  return parsed?.toInt() ?? fallback;
+}
+
+/// Safely parses dynamic value [value] into an optional [int]? (or null).
+int? safeParseIntNullable(dynamic value) {
+  final parsed = safeParseNum(value);
+  return parsed?.toInt();
+}
+
+/// Safely parses dynamic value [value] into a [double] or fallback.
+double safeParseDouble(dynamic value, [double fallback = 0.0]) {
+  final parsed = safeParseNum(value);
+  return parsed?.toDouble() ?? fallback;
+}
+
+/// Safely parses dynamic value [value] into an optional [double]? (or null).
+double? safeParseDoubleNullable(dynamic value) {
+  final parsed = safeParseNum(value);
+  return parsed?.toDouble();
+}
+
 abstract class HealthEntry {
   const HealthEntry();
 
@@ -208,9 +245,9 @@ class SleepEntry extends HealthEntry {
       id: map['id'] as String? ?? '',
       userId: map['user_id'] as String? ?? '',
       date: parseHealthDate(map['date'] as String),
-      startMinutes: (map['start_minutes'] as num?)?.toInt() ?? 0,
-      endMinutes: (map['end_minutes'] as num?)?.toInt() ?? 0,
-      durationMinutes: (map['duration_minutes'] as num?)?.toInt() ?? 0,
+      startMinutes: safeParseInt(map['start_minutes']),
+      endMinutes: safeParseInt(map['end_minutes']),
+      durationMinutes: safeParseInt(map['duration_minutes']),
       quality: map['quality'] as String? ?? '',
       factors: (map['factors'] as List?)?.cast<String>() ?? const [],
       createdAt: map['created_at'] as String? ?? '',
@@ -278,10 +315,10 @@ class WaterEntry extends HealthEntry {
       id: map['id'] as String? ?? '',
       userId: map['user_id'] as String? ?? '',
       date: parseHealthDate(map['date'] as String),
-      quantity: (map['quantity'] as num?)?.toDouble() ?? 0,
+      quantity: safeParseDouble(map['quantity']),
       unit: map['unit'] as String? ?? 'cups',
       hydrationLevel: map['hydration_level'] as String? ?? '',
-      timeMinutes: (map['time_minutes'] as num?)?.toInt(),
+      timeMinutes: safeParseIntNullable(map['time_minutes']),
       createdAt: map['created_at'] as String? ?? '',
       updatedAt: map['updated_at'] as String? ?? '',
     );
@@ -335,7 +372,7 @@ class StepEntry extends HealthEntry {
       id: map['id'] as String? ?? '',
       userId: map['user_id'] as String? ?? '',
       date: parseHealthDate(map['date'] as String),
-      count: (map['count'] as num?)?.toInt() ?? 0,
+      count: safeParseInt(map['count']),
       source: map['source'] as String? ?? 'manual',
       createdAt: map['created_at'] as String? ?? '',
       updatedAt: map['updated_at'] as String? ?? '',
@@ -392,7 +429,7 @@ class SugarCravingEntry extends HealthEntry {
       date: parseHealthDate(map['date'] as String),
       craving: map['craving'] as String? ?? '',
       level: map['level'] as String? ?? '',
-      timeMinutes: (map['time_minutes'] as num?)?.toInt(),
+      timeMinutes: safeParseIntNullable(map['time_minutes']),
       createdAt: map['created_at'] as String? ?? '',
       updatedAt: map['updated_at'] as String? ?? '',
     );
@@ -446,7 +483,7 @@ class SupplementEntry extends HealthEntry {
       userId: map['user_id'] as String? ?? '',
       date: parseHealthDate(map['date'] as String),
       name: map['name'] as String? ?? '',
-      timeMinutes: (map['time_minutes'] as num?)?.toInt(),
+      timeMinutes: safeParseIntNullable(map['time_minutes']),
       createdAt: map['created_at'] as String? ?? '',
       updatedAt: map['updated_at'] as String? ?? '',
     );
@@ -506,12 +543,12 @@ class MentalWellnessEntry extends HealthEntry {
       id: map['id'] as String? ?? '',
       userId: map['user_id'] as String? ?? '',
       date: parseHealthDate(map['date'] as String),
-      stressLevel: (map['stress_level'] as num?)?.toInt() ?? 0,
-      anxietyLevel: (map['anxiety_level'] as num?)?.toInt() ?? 0,
-      energyLevel: (map['energy_level'] as num?)?.toInt() ?? 0,
+      stressLevel: safeParseInt(map['stress_level']),
+      anxietyLevel: safeParseInt(map['anxiety_level']),
+      energyLevel: safeParseInt(map['energy_level']),
       sleepQuality: map['sleep_quality'] as String? ?? '',
       mood: map['mood'] as String? ?? '',
-      timeMinutes: (map['time_minutes'] as num?)?.toInt(),
+      timeMinutes: safeParseIntNullable(map['time_minutes']),
       createdAt: map['created_at'] as String? ?? '',
       updatedAt: map['updated_at'] as String? ?? '',
     );
@@ -573,11 +610,11 @@ class FoodEntry extends HealthEntry {
       id: map['id'] as String? ?? '',
       userId: map['user_id'] as String? ?? '',
       date: parseHealthDate(map['date'] as String),
-      description: map['description'] as String? ?? '',
+      description: map['description'] as String? ?? map['food_name'] as String? ?? '',
       mealType: map['meal_type'] as String? ?? '',
       tags: (map['tags'] as List?)?.cast<String>() ?? const [],
       isFavorite: map['is_favorite'] as bool? ?? false,
-      timeMinutes: (map['time_minutes'] as num?)?.toInt(),
+      timeMinutes: safeParseIntNullable(map['time_minutes']),
       createdAt: map['created_at'] as String? ?? '',
       updatedAt: map['updated_at'] as String? ?? '',
     );
@@ -648,7 +685,7 @@ class WeightEntry extends HealthEntry {
       id: map['id'] as String? ?? '',
       userId: map['user_id'] as String? ?? '',
       date: parseHealthDate(map['date'] as String),
-      weight: (map['weight'] as num?)?.toDouble() ?? 0,
+      weight: safeParseDouble(map['weight'] ?? map['weight_kg']),
       unit: map['unit'] as String? ?? 'kg',
       createdAt: map['created_at'] as String? ?? '',
       updatedAt: map['updated_at'] as String? ?? '',

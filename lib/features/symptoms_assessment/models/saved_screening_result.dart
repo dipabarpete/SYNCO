@@ -90,6 +90,11 @@ class SavedScreeningResult {
 
   /// Restores a record previously stored by [toJson].
   factory SavedScreeningResult.fromJson(Map<String, dynamic> json) {
+    final rawScoreVal = json['raw_score'];
+    final score = rawScoreVal is num
+        ? rawScoreVal.toInt()
+        : (rawScoreVal is String ? int.tryParse(rawScoreVal) : null) ?? 0;
+
     return SavedScreeningResult(
       assessmentType: ScreeningAssessmentType.values.firstWhere(
         (type) => type.name == json['assessment_type'],
@@ -97,7 +102,7 @@ class SavedScreeningResult {
       ),
       categoryTitle: json['category_title'] as String? ?? '',
       levelLabel: json['level_label'] as String? ?? '',
-      rawScore: (json['raw_score'] as num?)?.toInt() ?? 0,
+      rawScore: score,
       isCompleted: json['is_completed'] as bool? ?? true,
       completedAt:
           DateTime.tryParse(json['completed_at'] as String? ?? '') ??

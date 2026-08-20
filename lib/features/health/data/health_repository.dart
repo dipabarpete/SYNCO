@@ -63,6 +63,42 @@ class HealthRepository implements HealthDataRepository {
     }
   }
 
+  @override
+  Stream<List<Map<String, dynamic>>> stream(HealthTrackerType type) {
+    final collection = _dailyLogsCollection;
+    if (collection == null) {
+      return Stream.value([]);
+    }
+
+    return collection
+        .orderBy('date', descending: true)
+        .snapshots()
+        .map((snapshot) {
+      final List<Map<String, dynamic>> allEntries = [];
+
+      for (final doc in snapshot.docs) {
+        final data = doc.data();
+        if (data.containsKey(type.collection)) {
+          final typeMap = data[type.collection] as Map<String, dynamic>;
+          for (final entry in typeMap.entries) {
+            final id = entry.key;
+            final payload = entry.value as Map<String, dynamic>;
+            final compositeId = '${doc.id}|$id';
+            allEntries.add(<String, dynamic>{'id': compositeId, ...payload});
+          }
+        }
+      }
+
+      allEntries.sort((a, b) {
+        final aTime = a['created_at'] as String? ?? a['date'] as String? ?? '';
+        final bTime = b['created_at'] as String? ?? b['date'] as String? ?? '';
+        return bTime.compareTo(aTime);
+      });
+
+      return allEntries;
+    });
+  }
+
   String _getDateId(Map<String, dynamic> payload) {
     final dateStr = payload['date'] as String?;
     if (dateStr != null && dateStr.isNotEmpty) return dateStr.substring(0, 10);

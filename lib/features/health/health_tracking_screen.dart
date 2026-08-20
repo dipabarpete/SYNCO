@@ -10,6 +10,7 @@ import 'screens/ai_insights_screen.dart';
 import 'screens/health_history_screen.dart';
 import 'services/ai_pattern_service.dart';
 import 'services/health_analytics.dart';
+import 'services/health_data_seeder.dart';
 import 'widgets/health_dashboard_widgets.dart';
 import 'widgets/food_tracker_sheet.dart';
 import 'widgets/sleep_tracker_sheet.dart';
@@ -42,10 +43,14 @@ class _HealthTrackingScreenState extends ConsumerState<HealthTrackingScreen> {
   @override
   void initState() {
     super.initState();
-    Future.microtask(() => ref.read(healthDataProvider.notifier).loadAll());
+    Future.microtask(() {
+      HealthDataSeeder.seedSampleData();
+      ref.read(healthDataProvider.notifier).loadAll();
+    });
   }
 
   Future<void> _refresh() async {
+    await HealthDataSeeder.seedSampleData();
     await ref.read(healthDataProvider.notifier).loadAll();
   }
 

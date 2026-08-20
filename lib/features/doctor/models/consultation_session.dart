@@ -175,10 +175,8 @@ String consultationStatusLabel(ConsultationStatus status) {
   }
 }
 
-/// Whether the consultation window for [appointment] is active (cannot start
-/// earlier than the scheduled time, and remains valid after).
+/// Whether the consultation window for [appointment] is active.
+/// Requires status == confirmed and current time within [startDateTime, endDateTime].
 bool isConsultationWindowActive(Appointment appointment) {
-  final start = appointment.startDateTime;
-  if (start == null) return false;
-  return !DateTime.now().isBefore(start);
+  return appointment.isWindowActive;
 }

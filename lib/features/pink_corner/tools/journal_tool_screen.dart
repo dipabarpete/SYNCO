@@ -1,12 +1,14 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_colors.dart';
 import '../services/stress_wellbeing_local_store.dart';
+import '../services/stress_wellbeing_repository.dart';
 
 /// Private, prompt-based journaling tool.
 ///
-/// Entries are saved on this device only, scoped to the signed-in user —
-/// never uploaded, never shown publicly, never sent to external services.
+/// Entries are saved per user UID — backed by Cloud Firestore with local fallback.
 class JournalToolScreen extends StatefulWidget {
   const JournalToolScreen({super.key});
 
@@ -18,14 +20,17 @@ const _lavender = Color(0xFF7B4397);
 const _lavenderLight = Color(0xFFF4EFFB);
 
 const _prompts = [
-  'How are you feeling today?',
-  'What is taking up most of your mental space?',
-  'What helped you feel a little better today?',
-  'Anything else on your mind — no rules here',
+  'What is heavy on your mind right now?',
+  'What is one small thing that went well today?',
+  'How does your body feel right now?',
+  'What do you need permission to let go of?',
+  'Write freely — no rules, no judgment.',
 ];
 
 class _JournalToolScreenState extends State<JournalToolScreen> {
   final TextEditingController _controller = TextEditingController();
+  final StressWellbeingRepository _repository = StressWellbeingRepository();
+  StreamSubscription? _subscription;
   int _selectedPrompt = 0;
   List<StressJournalEntry> _entries = const [];
   bool _loaded = false;
@@ -33,22 +38,22 @@ class _JournalToolScreenState extends State<JournalToolScreen> {
   @override
   void initState() {
     super.initState();
-    _load();
+    _subscription = _repository.streamJournals().listen((entries) {
+      if (!mounted) return;
+      setState(() {
+        _entries = entries;
+        _loaded = true;
+      });
+    }, onError: (e) {
+      debugPrint('[journal] stream error: $e');
+    });
   }
 
   @override
   void dispose() {
+    _subscription?.cancel();
     _controller.dispose();
     super.dispose();
-  }
-
-  Future<void> _load() async {
-    final entries = await StressWellbeingLocalStore.loadJournals();
-    if (!mounted) return;
-    setState(() {
-      _entries = entries;
-      _loaded = true;
-    });
   }
 
   Future<void> _save() async {
@@ -62,20 +67,19 @@ class _JournalToolScreenState extends State<JournalToolScreen> {
       );
       return;
     }
-    await StressWellbeingLocalStore.saveJournal(
+    await _repository.saveJournal(
       StressJournalEntry(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        id: 'jrn_${DateTime.now().millisecondsSinceEpoch}',
         date: DateTime.now(),
         prompt: _prompts[_selectedPrompt],
         text: text,
       ),
     );
     _controller.clear();
-    await _load();
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('Saved privately to this device.'),
+        content: Text('Saved to your health log.'),
         behavior: SnackBarBehavior.floating,
         backgroundColor: _lavender,
       ),

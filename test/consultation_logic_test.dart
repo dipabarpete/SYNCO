@@ -142,10 +142,12 @@ void main() {
   group('active consultation selection', () {
     test('picks the first window-active appointment', () {
       final now = DateTime.now();
+      final slotHour = now.hour.toString().padLeft(2, '0');
+      final slotMin = now.minute.toString().padLeft(2, '0');
       final active = _appointment(
         id: 'active',
         date: DateTime(now.year, now.month, now.day),
-        slot: '00:00',
+        slot: '$slotHour:$slotMin',
       );
       final tomorrow = now.add(const Duration(days: 1));
       final upcoming = _appointment(

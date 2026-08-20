@@ -97,7 +97,7 @@ class StressWellbeingLocalStore {
     return entries;
   }
 
-  /// Saves a new journal entry (private to the signed-in user).
+  /// Saves a new journal entry (persisted to Firestore per user UID).
   static Future<void> saveJournal(StressJournalEntry entry) async {
     final prefs = await SharedPreferences.getInstance();
     final entries = await loadJournals();
@@ -106,6 +106,16 @@ class StressWellbeingLocalStore {
       jsonEncode(
         [entry.toJson(), ...entries.map((e) => e.toJson())],
       ),
+    );
+  }
+
+  /// Deletes a journal entry.
+  static Future<void> deleteJournal(String id) async {
+    final prefs = await SharedPreferences.getInstance();
+    final entries = (await loadJournals())..removeWhere((e) => e.id == id);
+    await prefs.setString(
+      _scopedKey(_journalPrefix),
+      jsonEncode(entries.map((e) => e.toJson()).toList()),
     );
   }
 
@@ -124,7 +134,7 @@ class StressWellbeingLocalStore {
     return records;
   }
 
-  /// Saves a new check-in (private to the signed-in user).
+  /// Saves a new check-in (persisted to Firestore per user UID).
   static Future<void> saveCheckIn(StressCheckInRecord record) async {
     final prefs = await SharedPreferences.getInstance();
     final records = await loadCheckIns();

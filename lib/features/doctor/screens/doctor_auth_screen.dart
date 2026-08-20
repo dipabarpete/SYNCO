@@ -64,68 +64,79 @@ class _DoctorAuthScreenState extends ConsumerState<DoctorAuthScreen> {
     setState(() => _isLoading = true);
     ref.read(authNotifierProvider.notifier).clearMessages();
 
-    final email = _emailController.text.trim();
-    final password = _passwordController.text;
+    debugPrint('[DOCTOR_PORTAL] Starting doctor sign-in...');
+    try {
+      final email = _emailController.text.trim();
+      final password = _passwordController.text;
 
-    final success = await ref.read(authNotifierProvider.notifier).loginWithEmail(
-          email: email,
-          password: password,
+      final success = await ref.read(authNotifierProvider.notifier).loginWithEmail(
+            email: email,
+            password: password,
+          );
+
+      if (!success) {
+        final error =
+            ref.read(authNotifierProvider).errorMessage ?? 'Login failed';
+        debugPrint('[DOCTOR_PORTAL] Doctor login failed: $error');
+        _showError(error);
+        return;
+      }
+
+      final user = ref.read(authNotifierProvider).user;
+      if (user == null) {
+        debugPrint('[DOCTOR_PORTAL] User profile is null after sign-in');
+        _showError('Login failed. Please try again.');
+        return;
+      }
+
+      debugPrint('[DOCTOR_PORTAL] Current user UID: ${user.id}. Checking doctor record...');
+
+      // Determine what this identity already has on the backend.
+      final service = ref.read(doctorVerificationServiceProvider);
+      final hasRecord = await service.hasDoctorRecord(user.id);
+      if (!hasRecord) {
+        debugPrint('[DOCTOR_PORTAL] Doctor record not found for UID: ${user.id}. Routing to verification steps.');
+        ref.read(doctorVerificationProvider.notifier).reset();
+        if (!mounted) return;
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => const ProfessionalStepScreen()),
+          (route) => false,
         );
+        return;
+      }
 
-    if (!success) {
-      if (mounted) setState(() => _isLoading = false);
-      final error =
-          ref.read(authNotifierProvider).errorMessage ?? 'Login failed';
-      _showError(error);
-      return;
-    }
-
-    final user = ref.read(authNotifierProvider).user;
-    if (user == null) {
-      if (mounted) setState(() => _isLoading = false);
-      _showError('Login failed. Please try again.');
-      return;
-    }
-
-    // Determine what this identity already has on the backend.
-    final service = ref.read(doctorVerificationServiceProvider);
-    final hasRecord = await service.hasDoctorRecord(user.id);
-    if (!hasRecord) {
-      // Authenticated identity without a doctor record: start the one-time
-      // verification questionnaire. The account is reused on submission.
-      ref.read(doctorVerificationProvider.notifier).reset();
+      debugPrint('[DOCTOR_PORTAL] Doctor record found. Loading verification status...');
+      final verification = await service.getVerification(user.id);
       if (!mounted) return;
-      setState(() => _isLoading = false);
+
+      if (verification == null ||
+          verification.status == DoctorVerificationStatus.verified) {
+        debugPrint('[DOCTOR_PORTAL] Verified doctor. Navigating to doctor dashboard portal.');
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => const DoctorDashboardScreen()),
+          (route) => false,
+        );
+        return;
+      }
+
+      debugPrint('[DOCTOR_PORTAL] Pending verification. Navigating to VerificationStatusScreen.');
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(builder: (_) => const ProfessionalStepScreen()),
+        MaterialPageRoute(
+          builder: (_) => VerificationStatusScreen(uid: user.id),
+        ),
         (route) => false,
       );
-      return;
+    } catch (e, st) {
+      debugPrint('[DOCTOR_PORTAL] Exception during doctor sign in: $e\n$st');
+      _showError('Unable to open Doctor Portal: ${e.toString()}');
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
-
-    final verification = await service.getVerification(user.id);
-    if (!mounted) return;
-    setState(() => _isLoading = false);
-
-    if (verification == null ||
-        verification.status == DoctorVerificationStatus.verified) {
-      // Existing doctor: straight to the Doctor Portal, nothing to repeat.
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (_) => const DoctorDashboardScreen()),
-        (route) => false,
-      );
-      return;
-    }
-
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(
-        builder: (_) => VerificationStatusScreen(uid: user.id),
-      ),
-      (route) => false,
-    );
   }
 
   @override

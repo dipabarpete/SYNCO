@@ -1,18 +1,52 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/exercise_achievements.dart';
 import '../services/exercise_local_store.dart';
+import '../services/exercise_repository.dart';
 
 /// Holds the user's real movement activity in memory and derives the streak
 /// and achievement unlocks from it.
 ///
 /// Achievements are only ever unlocked by [logSession] — which is only called
-/// when a movement session is actually completed. No activity data is ever
-/// invented.
+/// when a movement session is actually completed.
 class ExerciseProgressController extends ChangeNotifier {
+  final ExerciseRepository _repository = ExerciseRepository();
+  StreamSubscription? _sessionsSub;
+  StreamSubscription? _achievementsSub;
+
   List<ExerciseSession> _sessions = const [];
   Set<String> _unlocked = {};
+
+  ExerciseProgressController() {
+    _initStreams();
+  }
+
+  void _initStreams() {
+    _sessionsSub = _repository.streamSessions().listen((sessions) {
+      _sessions = sessions;
+      _unlocked = _unlocked.union(_newlyEligibleIds());
+      notifyListeners();
+    }, onError: (e) {
+      debugPrint('[exercise] stream error: $e');
+    });
+
+    _achievementsSub = _repository.streamUnlockedAchievements().listen((unlocked) {
+      _unlocked = unlocked.union(_newlyEligibleIds());
+      notifyListeners();
+    }, onError: (e) {
+      debugPrint('[exercise] achievements stream error: $e');
+    });
+  }
+
+  @override
+  void dispose() {
+    _sessionsSub?.cancel();
+    _achievementsSub?.cancel();
+    super.dispose();
+  }
 
   List<ExerciseSession> get sessions => _sessions;
   Set<String> get unlocked => _unlocked;
@@ -28,7 +62,7 @@ class ExerciseProgressController extends ChangeNotifier {
 
   bool isUnlocked(String id) => _unlocked.contains(id);
 
-  /// Loads stored sessions and unlocks from the device.
+  /// Loads stored sessions and unlocks.
   Future<void> refresh() async {
     _sessions = await ExerciseLocalStore.loadSessions();
     _unlocked = await ExerciseLocalStore.loadUnlockedAchievements();
@@ -38,8 +72,6 @@ class ExerciseProgressController extends ChangeNotifier {
 
   /// Records a genuinely completed movement session and unlocks any
   /// achievements the user has now earned.
-  ///
-  /// Returns the achievements that were just unlocked (empty if none).
   Future<List<ExerciseAchievement>> logSession({
     required String activityType,
     required int durationMinutes,
@@ -47,7 +79,7 @@ class ExerciseProgressController extends ChangeNotifier {
   }) async {
     final now = DateTime.now();
     final session = ExerciseSession(
-      id: 'local_${now.microsecondsSinceEpoch}',
+      id: 'ex_${now.microsecondsSinceEpoch}',
       date: now,
       activityType: activityType,
       durationMinutes: durationMinutes,
@@ -55,13 +87,12 @@ class ExerciseProgressController extends ChangeNotifier {
       createdAt: now,
     );
 
-    await ExerciseLocalStore.saveSession(session);
-    _sessions = [session, ..._sessions];
+    await _repository.saveSession(session);
 
     final justUnlocked = _newlyEligibleIds();
     if (justUnlocked.isNotEmpty) {
       _unlocked = _unlocked.union(justUnlocked);
-      await ExerciseLocalStore.saveUnlockedAchievements(_unlocked);
+      await _repository.saveUnlockedAchievements(_unlocked);
     }
 
     notifyListeners();

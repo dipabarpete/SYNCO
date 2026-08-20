@@ -136,42 +136,6 @@ class StressWellbeingScreen extends StatelessWidget {
                 ],
               ),
             ),
-            const SizedBox(height: 12),
-
-            // Disclaimer strip
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: _mintLight.withValues(alpha: 0.6),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(
-                  color: _mintDeep.withValues(alpha: 0.25),
-                ),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Icon(
-                    Icons.info_outline_rounded,
-                    size: 18,
-                    color: _mintDeep,
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      'Everything here is educational wellbeing support — not a diagnosis and not a '
-                      'replacement for professional mental-health care.',
-                      style: GoogleFonts.inter(
-                        fontSize: 12,
-                        height: 1.5,
-                        color: AppColors.textDark,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
             const SizedBox(height: 16),
 
             // Professional-help banner (clearly visible, right after the hero)
@@ -197,6 +161,7 @@ class StressWellbeingScreen extends StatelessWidget {
             ),
             _TopicGrid(
               topics: stressWellbeingGroups[0].topics,
+              showSubtitle: false,
               onTap: (topic) {
                 Navigator.push(
                   context,
@@ -217,6 +182,7 @@ class StressWellbeingScreen extends StatelessWidget {
             ),
             _TopicGrid(
               topics: stressWellbeingGroups[1].topics,
+              showSubtitle: false,
               onTap: (topic) {
                 Navigator.push(
                   context,
@@ -301,8 +267,13 @@ const Color stressMintBorder = Color(0xFFB5EAD7);
 class _TopicGrid extends StatelessWidget {
   final List<StressWellbeingTopic> topics;
   final void Function(StressWellbeingTopic) onTap;
+  final bool showSubtitle;
 
-  const _TopicGrid({required this.topics, required this.onTap});
+  const _TopicGrid({
+    required this.topics,
+    required this.onTap,
+    this.showSubtitle = true,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -320,7 +291,7 @@ class _TopicGrid extends StatelessWidget {
         final topic = topics[index];
         return TopicCard(
           title: topic.title,
-          subtitle: topic.shortDescription,
+          subtitle: showSubtitle ? topic.shortDescription : null,
           icon: topic.icon,
           backgroundColor: topic.backgroundColor,
           borderColor: topic.accentColor.withValues(alpha: 0.35),

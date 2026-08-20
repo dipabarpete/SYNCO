@@ -10,8 +10,8 @@ import 'widgets/article_widgets.dart';
 
 /// Entry screen for the Nutrition card inside Learn.
 ///
-/// Shows educational topics grouped into Nutrition Basics, PCOS-Conscious
-/// Eating and Indian Everyday Guides, plus a filterable recipe section.
+/// Shows educational topics grouped into PCOS-Conscious Eating and Indian
+/// Everyday Guides, plus a filterable recipe section.
 class NutritionScreen extends StatefulWidget {
   const NutritionScreen({super.key});
 

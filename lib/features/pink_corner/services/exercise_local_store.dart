@@ -34,17 +34,22 @@ class ExerciseSession {
         'created_at': createdAt.toIso8601String(),
       };
 
-  factory ExerciseSession.fromJson(Map<String, dynamic> json) =>
-      ExerciseSession(
-        id: json['id'] as String? ?? '',
-        date:
-            DateTime.tryParse(json['date'] as String? ?? '') ?? DateTime.now(),
-        activityType: json['activity_type'] as String? ?? 'general',
-        durationMinutes: (json['duration_minutes'] as num?)?.toInt() ?? 0,
-        workoutId: json['workout_id'] as String?,
-        createdAt: DateTime.tryParse(json['created_at'] as String? ?? '') ??
-            DateTime.now(),
-      );
+  factory ExerciseSession.fromJson(Map<String, dynamic> json) {
+    final rawDuration = json['duration_minutes'];
+    final duration = rawDuration is num
+        ? rawDuration.toInt()
+        : (rawDuration is String ? int.tryParse(rawDuration) : null) ?? 0;
+
+    return ExerciseSession(
+      id: json['id'] as String? ?? '',
+      date: DateTime.tryParse(json['date'] as String? ?? '') ?? DateTime.now(),
+      activityType: json['activity_type'] as String? ?? 'general',
+      durationMinutes: duration,
+      workoutId: json['workout_id'] as String?,
+      createdAt: DateTime.tryParse(json['created_at'] as String? ?? '') ??
+          DateTime.now(),
+    );
+  }
 }
 
 /// Current and best-ever streak, derived from completed sessions.

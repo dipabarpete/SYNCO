@@ -1,10 +1,15 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../core/backend.dart';
 import '../../../models/cycle_log.dart';
+import '../../../models/cycle_data.dart';
 import '../../../models/symptom_log.dart';
+import '../../../models/period_record.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../../cycle/services/cycle_calculation_service.dart';
+import '../../cycle/services/period_repository.dart';
 
 // -----------------------------------------------------------------------------
 // CYCLE STATE
@@ -12,32 +17,48 @@ import '../../auth/providers/auth_provider.dart';
 
 class CycleState {
   final bool isLoading;
+  final bool hasHistory;
   final CycleLog? activeCycle;
   final int currentDay;
+  final int totalDays;
   final int daysUntilNextPeriod;
   final String currentPhase;
+  final String fertilityWindow;
+  final int daysUntilOvulation;
 
   const CycleState({
     this.isLoading = false,
+    this.hasHistory = false,
     this.activeCycle,
     this.currentDay = 1,
+    this.totalDays = 28,
     this.daysUntilNextPeriod = 28,
     this.currentPhase = 'Follicular Phase',
+    this.fertilityWindow = 'Days 11–16',
+    this.daysUntilOvulation = 6,
   });
 
   CycleState copyWith({
     bool? isLoading,
+    bool? hasHistory,
     CycleLog? activeCycle,
     int? currentDay,
+    int? totalDays,
     int? daysUntilNextPeriod,
     String? currentPhase,
+    String? fertilityWindow,
+    int? daysUntilOvulation,
   }) {
     return CycleState(
       isLoading: isLoading ?? this.isLoading,
+      hasHistory: hasHistory ?? this.hasHistory,
       activeCycle: activeCycle ?? this.activeCycle,
       currentDay: currentDay ?? this.currentDay,
+      totalDays: totalDays ?? this.totalDays,
       daysUntilNextPeriod: daysUntilNextPeriod ?? this.daysUntilNextPeriod,
       currentPhase: currentPhase ?? this.currentPhase,
+      fertilityWindow: fertilityWindow ?? this.fertilityWindow,
+      daysUntilOvulation: daysUntilOvulation ?? this.daysUntilOvulation,
     );
   }
 }
@@ -45,76 +66,98 @@ class CycleState {
 class CycleStateNotifier extends StateNotifier<CycleState> {
   final Ref ref;
   StreamSubscription? _subscription;
+  final CycleCalculationService _calculationService = CycleCalculationService();
 
   CycleStateNotifier(this.ref) : super(const CycleState()) {
-    _init();
+    init();
   }
 
-  void _init() {
+  void init() {
+    _subscription?.cancel();
     final user = ref.read(authNotifierProvider).user;
     if (user == null || Backend.firestore == null) {
-      // Provide a mock default state if no user or backend
-      state = state.copyWith(isLoading: false, currentDay: 8, daysUntilNextPeriod: 16);
+      state = state.copyWith(
+        isLoading: false,
+        hasHistory: false,
+        currentDay: 1,
+        totalDays: 28,
+        daysUntilNextPeriod: 28,
+        currentPhase: 'Follicular Phase',
+        fertilityWindow: 'Days 11–16',
+        daysUntilOvulation: 6,
+      );
       return;
     }
 
     state = state.copyWith(isLoading: true);
 
-    _subscription = Backend.firestore!
-        .collection('users')
-        .doc(user.id)
-        .collection('period_logs')
-        .orderBy('start_date', descending: true)
-        .limit(1)
-        .snapshots()
-        .listen((snapshot) {
-      if (snapshot.docs.isNotEmpty) {
-        final doc = snapshot.docs.first;
-        final data = doc.data();
-        
-        final startDateStr = data['start_date'] as String;
-        final startDate = DateTime.parse(startDateStr);
-        final cycleLength = 28; // Default cycle length
-        final periodLength = 5; // Default period length
-        
-        final now = DateTime.now();
-        final diff = now.difference(startDate).inDays;
-        final currentDay = diff >= 0 ? diff + 1 : 1;
-        
-        final expectedNextDate = startDate.add(Duration(days: cycleLength));
-        final daysUntil = expectedNextDate.difference(now).inDays;
-        
-        String phase = 'Follicular Phase';
-        if (currentDay <= periodLength) {
-          phase = 'Menstrual Phase';
-        } else if (currentDay >= cycleLength - 14 && currentDay <= cycleLength - 12) {
-          phase = 'Ovulation Phase';
-        } else if (currentDay > cycleLength - 12) {
-          phase = 'Luteal Phase';
+    try {
+      final repository = PeriodRepository();
+      _subscription = repository.streamPeriods().listen((records) {
+        if (!mounted) return;
+        _updateWithRecords(records);
+      }, onError: (e) {
+        debugPrint('[dashboard_provider] period stream error: $e');
+        if (mounted) {
+          state = state.copyWith(isLoading: false);
         }
-
-        // We use a mock CycleLog since we don't have all data in period_logs
-        final activeCycle = CycleLog(
-          id: doc.id,
-          startDate: startDate,
-          cycleLength: cycleLength,
-          periodLength: periodLength,
-        );
-
-        state = state.copyWith(
-          isLoading: false,
-          activeCycle: activeCycle,
-          currentDay: currentDay,
-          daysUntilNextPeriod: daysUntil > 0 ? daysUntil : 0,
-          currentPhase: phase,
-        );
-      } else {
-        // No logs found, use safe defaults
-        state = state.copyWith(isLoading: false, currentDay: 1, daysUntilNextPeriod: 28, currentPhase: 'Follicular Phase');
+      });
+    } catch (e) {
+      debugPrint('[dashboard_provider] init exception: $e');
+      if (mounted) {
+        state = state.copyWith(isLoading: false);
       }
-    }, onError: (_) {
-      state = state.copyWith(isLoading: false);
-    });
+    }
+  }
+
+  void _updateWithRecords(List<PeriodRecord> records) {
+    if (records.isEmpty) {
+      state = state.copyWith(
+        isLoading: false,
+        hasHistory: false,
+        currentDay: 1,
+        totalDays: 28,
+        daysUntilNextPeriod: 28,
+        currentPhase: 'Follicular Phase',
+        fertilityWindow: 'Days 11–16',
+        daysUntilOvulation: 6,
+      );
+      return;
+    }
+
+    final insights = _calculationService.computeInsights(records);
+    final now = DateTime.now();
+
+    int daysUntilOvulation = 0;
+    if (insights.estimatedOvulation != null) {
+      final diff = insights.estimatedOvulation!.difference(now).inDays;
+      daysUntilOvulation = diff > 0 ? diff : 0;
+    }
+
+    String fertilityWindowStr = 'Days 11–16';
+    if (insights.fertileWindowStart != null && insights.fertileWindowEnd != null) {
+      fertilityWindowStr =
+          'Days ${insights.fertileWindowStart!.day}–${insights.fertileWindowEnd!.day}';
+    }
+
+    final activeCycle = CycleLog(
+      id: records.first.id,
+      startDate: insights.lastPeriodStartDate ?? now,
+      cycleLength: insights.averageCycleLength,
+      periodLength: insights.averagePeriodDuration,
+    );
+
+    state = state.copyWith(
+      isLoading: false,
+      hasHistory: insights.hasHistory,
+      activeCycle: activeCycle,
+      currentDay: insights.currentDayOfCycle,
+      totalDays: insights.averageCycleLength,
+      daysUntilNextPeriod: (insights.daysUntilNextPeriod ?? 0).clamp(0, 999),
+      currentPhase: insights.currentPhase.displayName,
+      fertilityWindow: fertilityWindowStr,
+      daysUntilOvulation: daysUntilOvulation,
+    );
   }
 
   @override
@@ -124,7 +167,8 @@ class CycleStateNotifier extends StateNotifier<CycleState> {
   }
 }
 
-final cycleProvider = StateNotifierProvider<CycleStateNotifier, CycleState>((ref) {
+final cycleProvider =
+    StateNotifierProvider<CycleStateNotifier, CycleState>((ref) {
   return CycleStateNotifier(ref);
 });
 
@@ -139,7 +183,7 @@ class HealthScoreState {
 
   const HealthScoreState({
     this.isLoading = false,
-    this.score = 85, // Base mock score
+    this.score = 85,
     this.percentile = 75,
   });
 
@@ -158,13 +202,17 @@ class HealthScoreState {
 
 class HealthScoreNotifier extends StateNotifier<HealthScoreState> {
   final Ref ref;
-  StreamSubscription? _subscription;
+  StreamSubscription? _symptomSub;
+  StreamSubscription? _dailyLogsSub;
 
   HealthScoreNotifier(this.ref) : super(const HealthScoreState()) {
-    _init();
+    init();
   }
 
-  void _init() {
+  void init() {
+    _symptomSub?.cancel();
+    _dailyLogsSub?.cancel();
+
     final user = ref.read(authNotifierProvider).user;
     if (user == null || Backend.firestore == null) {
       state = state.copyWith(isLoading: false);
@@ -173,53 +221,155 @@ class HealthScoreNotifier extends StateNotifier<HealthScoreState> {
 
     state = state.copyWith(isLoading: true);
 
-    // Fetch the last 7 days of symptom logs to calculate score
-    final sevenDaysAgo = DateTime.now().subtract(const Duration(days: 7));
-    
-    _subscription = Backend.firestore!
+    final db = Backend.firestore!;
+    final fourteenDaysAgo = DateTime.now().subtract(const Duration(days: 14));
+    final fourteenDaysAgoTimestamp = Timestamp.fromDate(fourteenDaysAgo);
+
+    // Stream general symptom_logs
+    _symptomSub = db
         .collection('users')
         .doc(user.id)
         .collection('symptom_logs')
-        .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(sevenDaysAgo))
+        .where('date', isGreaterThanOrEqualTo: fourteenDaysAgoTimestamp)
         .snapshots()
-        .listen((snapshot) {
+        .listen((symptomSnap) {
+      _recalculateScore(user.id, symptomSnap.docs);
+    }, onError: (e) {
+      debugPrint('[dashboard_provider] symptom_logs score error: $e');
+      if (mounted) state = state.copyWith(isLoading: false);
+    });
+
+    // Also listen to daily_logs for real-time cycle/pain tracker additions
+    _dailyLogsSub = db
+        .collection('users')
+        .doc(user.id)
+        .collection('daily_logs')
+        .snapshots()
+        .listen((_) {
+      // Re-trigger calculation on daily log updates
+      final currentSymptomSnapDocs = <QueryDocumentSnapshot<Map<String, dynamic>>>[];
+      _recalculateScore(user.id, currentSymptomSnapDocs);
+    }, onError: (_) {});
+  }
+
+  Future<void> _recalculateScore(
+    String userId,
+    List<QueryDocumentSnapshot<Map<String, dynamic>>> symptomDocs,
+  ) async {
+    try {
       int baseScore = 85;
-      
-      for (var doc in snapshot.docs) {
-        final log = SymptomLog.fromMap(doc.id, doc.data());
-        // For each log, if there is a severe symptom, decrease score slightly
+      bool hasActiveTracking = symptomDocs.isNotEmpty;
+
+      // 1. Symptom log deductions
+      for (var doc in symptomDocs) {
+        final data = doc.data();
+        final log = SymptomLog.fromMap(doc.id, data);
         log.symptoms.forEach((key, value) {
-          if (value == 'severe' || value == 'high') {
+          final v = value.toString().toLowerCase();
+          if (v == 'severe' || v == 'high') {
             baseScore -= 2;
-          } else if (value == 'moderate') {
+          } else if (v == 'moderate') {
             baseScore -= 1;
           }
         });
       }
 
-      // Keep score between 0 and 100
-      baseScore = baseScore.clamp(0, 100);
-      
-      state = state.copyWith(
-        isLoading: false,
-        score: baseScore,
-        percentile: (baseScore * 0.9).toInt(), // Simplified mock percentile
-      );
-    }, onError: (_) {
-      state = state.copyWith(isLoading: false);
-    });
+      // 2. Daily logs tracking bonus & pain deductions
+      final db = Backend.firestore;
+      if (db != null) {
+        final dailyLogsSnap = await db
+            .collection('users')
+            .doc(userId)
+            .collection('daily_logs')
+            .limit(14)
+            .get();
+
+        if (dailyLogsSnap.docs.isNotEmpty) {
+          hasActiveTracking = true;
+          for (var doc in dailyLogsSnap.docs) {
+            final data = doc.data();
+            final periodMap = data['period_logs'];
+            if (periodMap is Map) {
+              for (var val in periodMap.values) {
+                if (val is Map) {
+                  final pain = val['pain_level'] as num?;
+                  if (pain != null && pain >= 7) {
+                    baseScore -= 2;
+                  } else if (pain != null && pain >= 4) {
+                    baseScore -= 1;
+                  }
+                }
+              }
+            }
+          }
+        }
+
+        // 3. Health Entries check (Sleep, Water, Stress)
+        final healthEntriesSnap = await db
+            .collection('users')
+            .doc(userId)
+            .collection('health_entries')
+            .get();
+
+        for (var doc in healthEntriesSnap.docs) {
+          hasActiveTracking = true;
+          final cat = doc.id.toLowerCase();
+          final data = doc.data();
+          if (cat == 'sleep') {
+            final hours = (data['val'] ?? data['hours'] ?? data['value']) as num?;
+            if (hours != null) {
+              if (hours >= 7.0) baseScore += 2;
+              if (hours < 5.0) baseScore -= 2;
+            }
+          } else if (cat == 'water') {
+            final liters = (data['val'] ?? data['liters'] ?? data['value']) as num?;
+            if (liters != null && liters >= 2.0) {
+              baseScore += 2;
+            }
+          } else if (cat == 'stress') {
+            final level = (data['val'] ?? data['level'] ?? data['value']) as num?;
+            if (level != null) {
+              if (level <= 30) baseScore += 2;
+              if (level >= 70) baseScore -= 2;
+            }
+          }
+        }
+      }
+
+      // Active logging bonus
+      if (hasActiveTracking) {
+        baseScore += 3;
+      }
+
+      final score = baseScore.clamp(0, 100);
+      final percentile = (score * 0.9).round();
+
+      if (mounted) {
+        state = state.copyWith(
+          isLoading: false,
+          score: score,
+          percentile: percentile,
+        );
+      }
+    } catch (e) {
+      debugPrint('[dashboard_provider] score recalculation error: $e');
+      if (mounted) {
+        state = state.copyWith(isLoading: false);
+      }
+    }
   }
 
   @override
   void dispose() {
-    _subscription?.cancel();
+    _symptomSub?.cancel();
+    _dailyLogsSub?.cancel();
     super.dispose();
   }
 }
 
-final healthScoreProvider = StateNotifierProvider<HealthScoreStateNotifier, HealthScoreState>((ref) {
-  return HealthScoreNotifier(ref);
+final healthScoreProvider =
+    StateNotifierProvider<HealthScoreStateNotifier, HealthScoreState>((ref) {
+  return HealthScoreStateNotifier(ref);
 });
 
-// Alias for provider
 typedef HealthScoreStateNotifier = HealthScoreNotifier;

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../providers/app_providers.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../doctor/models/appointment.dart';
 import '../../doctor/models/consultation_session.dart';
@@ -163,10 +164,70 @@ class _PatientConsultationScreenState
     final sessionAsync = ref.watch(consultationSessionProvider(a.id));
     final session = sessionAsync.value;
 
-    if (a.status == AppointmentStatus.completed) {
+    if (a.status == AppointmentStatus.requested) {
       return ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          _buildDoctorCard(a, kind),
+          const SizedBox(height: 14),
+          _buildStatusCard(
+            icon: Icons.schedule_send_rounded,
+            iconBg: AppColors.pendingAmberSoft,
+            iconColor: AppColors.pendingAmber,
+            title: 'Appointment Requested',
+            subtitle: 'Your request has been sent to ${a.doctor.name}. '
+                'Your consultation room will become available once confirmed by the doctor.',
+          ),
+        ],
+      );
+    }
+
+    if (a.status == AppointmentStatus.declined) {
+      return ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          _buildDoctorCard(a, kind),
+          const SizedBox(height: 14),
+          _buildStatusCard(
+            icon: Icons.cancel_rounded,
+            iconBg: AppColors.deepRose.withValues(alpha: 0.15),
+            iconColor: AppColors.deepRose,
+            title: 'Request Declined',
+            subtitle: 'Your appointment request with ${a.doctor.name} was declined.',
+          ),
+        ],
+      );
+    }
+
+    if (a.status == AppointmentStatus.cancelled) {
+      return ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          _buildDoctorCard(a, kind),
+          const SizedBox(height: 14),
+          _buildStatusCard(
+            icon: Icons.cancel_outlined,
+            iconBg: Colors.grey.withValues(alpha: 0.15),
+            iconColor: Colors.grey,
+            title: 'Appointment Cancelled',
+            subtitle: 'Your appointment with ${a.doctor.name} was cancelled.',
+          ),
+        ],
+      );
+    }
+
+    if (a.status == AppointmentStatus.completed || a.isAfterWindow) {
+      if (a.status == AppointmentStatus.confirmed && a.isAfterWindow) {
+        // Auto-complete expired confirmed consultation
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          ref.read(doctorServiceProvider).updateAppointmentStatus(a.id, 'completed');
+        });
+      }
+      return ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          _buildDoctorCard(a, kind),
+          const SizedBox(height: 14),
           _buildStatusCard(
             icon: Icons.task_alt_rounded,
             iconBg: AppColors.mintGreen.withValues(alpha: 0.35),
@@ -197,8 +258,7 @@ class _PatientConsultationScreenState
             iconColor: AppColors.pendingAmber,
             title: 'Consultation has not started yet',
             subtitle: 'Scheduled for ${a.formattedDateShort} · ${a.slot} · '
-                '${kind.label}. Your doctor will join when the consultation '
-                'starts.',
+                '${kind.label}. Your consultation room will open at ${a.slot}.',
           )
         else if (inProgress || (patientJoined && doctorJoined))
           _buildReadyCard(a, kind)

@@ -162,6 +162,37 @@ class Appointment {
   DateTime? get startDateTime {
     return consultationSlotDateTime(date, slot);
   }
+
+  /// The scheduled end of the consultation (default 30-minute duration).
+  DateTime? get endDateTime {
+    final start = startDateTime;
+    if (start == null) return null;
+    return start.add(const Duration(minutes: 30));
+  }
+
+  /// Whether current time is before the scheduled start window.
+  bool get isBeforeWindow {
+    final start = startDateTime;
+    if (start == null) return false;
+    return DateTime.now().isBefore(start);
+  }
+
+  /// Whether current time falls within the active consultation window.
+  bool get isWindowActive {
+    if (status != AppointmentStatus.confirmed) return false;
+    final start = startDateTime;
+    final end = endDateTime;
+    if (start == null || end == null) return false;
+    final now = DateTime.now();
+    return !now.isBefore(start) && !now.isAfter(end);
+  }
+
+  /// Whether current time is past the scheduled end window.
+  bool get isAfterWindow {
+    final end = endDateTime;
+    if (end == null) return false;
+    return DateTime.now().isAfter(end);
+  }
 }
 
 /// Combines an appointment [date] with a slot like "04:00 PM" into the exact

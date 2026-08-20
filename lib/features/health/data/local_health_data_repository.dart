@@ -15,6 +15,9 @@ abstract class HealthDataRepository {
   /// a full stored record (includes `id`, `date`, `created_at`, `updated_at`).
   Future<List<Map<String, dynamic>>> fetch(HealthTrackerType type);
 
+  /// Real-time stream of stored entries for [type], newest date first.
+  Stream<List<Map<String, dynamic>>> stream(HealthTrackerType type);
+
   /// Inserts a new entry. [payload] should contain the tracker fields plus
   /// `date`, `created_at` and `updated_at` (no `id`). Returns the full stored
   /// map including the generated `id`.
@@ -74,6 +77,11 @@ class LocalHealthDataRepository implements HealthDataRepository {
       return (b['created_at'] as String? ?? '').compareTo(a['created_at'] as String? ?? '');
     });
     return rows;
+  }
+
+  @override
+  Stream<List<Map<String, dynamic>>> stream(HealthTrackerType type) async* {
+    yield await fetch(type);
   }
 
   @override

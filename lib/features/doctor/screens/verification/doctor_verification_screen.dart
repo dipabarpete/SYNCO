@@ -33,6 +33,7 @@ class _DoctorVerificationScreenState
     extends ConsumerState<DoctorVerificationScreen> {
   bool _checking = true;
   bool _needsLogin = false;
+  String? _errorMessage;
 
   @override
   void initState() {
@@ -41,44 +42,64 @@ class _DoctorVerificationScreenState
   }
 
   Future<void> _decide() async {
-    final auth = Backend.auth;
-    final user = auth?.currentUser;
+    if (!mounted) return;
+    setState(() {
+      _checking = true;
+      _errorMessage = null;
+    });
 
-    if (user == null) {
+    debugPrint('[DOCTOR_PORTAL] DoctorVerificationScreen: checking doctor record...');
+    try {
+      final auth = Backend.auth;
+      final user = auth?.currentUser;
+
+      if (user == null) {
+        debugPrint('[DOCTOR_PORTAL] No currentUser found. Setting needsLogin = true.');
+        if (mounted) {
+          setState(() {
+            _checking = false;
+            _needsLogin = true;
+          });
+        }
+        return;
+      }
+
+      final service = ref.read(doctorVerificationServiceProvider);
+      final hasRecord = await service.hasDoctorRecord(user.uid);
+      if (!hasRecord) {
+        debugPrint('[DOCTOR_PORTAL] Doctor record does not exist for UID ${user.uid}. Starting verification.');
+        if (!mounted) return;
+        await _startVerification();
+        return;
+      }
+
+      final verification = await service.getVerification(user.uid);
+      if (verification == null ||
+          verification.status == DoctorVerificationStatus.verified) {
+        debugPrint('[DOCTOR_PORTAL] Doctor verified or legacy. Navigating to portal.');
+        if (!mounted) return;
+        _goToPortal();
+        return;
+      }
+
+      debugPrint('[DOCTOR_PORTAL] Doctor verification status: ${verification.status}. Navigating to status screen.');
+      if (!mounted) return;
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(
+          builder: (_) => VerificationStatusScreen(uid: user.uid),
+        ),
+        (route) => false,
+      );
+    } catch (e, st) {
+      debugPrint('[DOCTOR_PORTAL] Error during DoctorVerificationScreen decision: $e\n$st');
       if (mounted) {
         setState(() {
           _checking = false;
-          _needsLogin = true;
+          _errorMessage = 'Unable to check doctor status: ${e.toString()}';
         });
       }
-      return;
     }
-
-    final service = ref.read(doctorVerificationServiceProvider);
-    final hasRecord = await service.hasDoctorRecord(user.uid);
-    if (!hasRecord) {
-      if (!mounted) return;
-      await _startVerification();
-      return;
-    }
-
-    final verification = await service.getVerification(user.uid);
-    if (verification == null ||
-        verification.status == DoctorVerificationStatus.verified) {
-      // Legacy doctor or already verified: straight to the Doctor Portal.
-      if (!mounted) return;
-      _goToPortal();
-      return;
-    }
-
-    if (!mounted) return;
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(
-        builder: (_) => VerificationStatusScreen(uid: user.uid),
-      ),
-      (route) => false,
-    );
   }
 
   Future<void> _startVerification() async {
@@ -127,9 +148,67 @@ class _DoctorVerificationScreenState
               ? const Center(
                   child: CircularProgressIndicator(color: AppColors.softPurple),
                 )
-              : _needsLogin
-                  ? _buildWelcome()
-                  : const SizedBox.shrink(),
+              : _errorMessage != null
+                  ? _buildErrorView()
+                  : _needsLogin
+                      ? _buildWelcome()
+                      : const SizedBox.shrink(),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildErrorView() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.error_outline_rounded,
+              color: AppColors.deepRose,
+              size: 56,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Doctor Portal Error',
+              style: GoogleFonts.outfit(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textDark,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _errorMessage ?? 'An error occurred while loading doctor credentials.',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.inter(
+                fontSize: 14,
+                color: AppColors.textMedium,
+              ),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: _decide,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.softPurple,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              ),
+              icon: const Icon(Icons.refresh_rounded, size: 20),
+              label: Text(
+                'Retry',
+                style: GoogleFonts.inter(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

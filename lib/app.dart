@@ -9,7 +9,6 @@ import 'models/user_profile.dart';
 
 import 'features/auth/providers/auth_provider.dart';
 import 'features/auth/screens/splash_screen.dart';
-import 'features/auth/screens/welcome_login_screen.dart';
 
 import 'features/onboarding/screens/role_selection_screen.dart';
 
@@ -252,11 +251,11 @@ class _HerSyncAuthGatewayState
     // -------------------------------------------------------------------------
 
     debugPrint(
-      '[DIAGNOSTIC] ROUTING TO LOGIN. '
+      '[DIAGNOSTIC] ROUTING TO ROLE SELECTION BEFORE LOGIN. '
       'Status=${authState.status}',
     );
 
-    return const WelcomeLoginScreen();
+    return const RoleSelectionScreen();
   }
 }
 

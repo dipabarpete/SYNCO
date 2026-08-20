@@ -40,22 +40,32 @@ class DoctorVerificationService {
   /// flow still route straight to the Doctor Portal.
   Future<bool> hasDoctorRecord(String uid) async {
     final db = _db;
-    if (db == null) return false;
-    final doctorsDoc = await db.collection('doctors').doc(uid).get();
-    if (doctorsDoc.exists) return true;
-    final verificationDoc =
-        await db.collection('doctor_verifications').doc(uid).get();
-    return verificationDoc.exists;
+    if (db == null || uid.isEmpty) return false;
+    try {
+      final doctorsDoc = await db.collection('doctors').doc(uid).get();
+      if (doctorsDoc.exists) return true;
+      final verificationDoc =
+          await db.collection('doctor_verifications').doc(uid).get();
+      return verificationDoc.exists;
+    } catch (e) {
+      debugPrint('[DOCTOR_PORTAL] Warning: error checking hasDoctorRecord for $uid: $e');
+      return false;
+    }
   }
 
   /// Loads the stored verification record for [uid], or `null` when the
   /// doctor never submitted one.
   Future<DoctorVerification?> getVerification(String uid) async {
     final db = _db;
-    if (db == null) return null;
-    final doc = await db.collection('doctor_verifications').doc(uid).get();
-    if (!doc.exists) return null;
-    return DoctorVerification.fromMap(Map<String, dynamic>.from(doc.data()!));
+    if (db == null || uid.isEmpty) return null;
+    try {
+      final doc = await db.collection('doctor_verifications').doc(uid).get();
+      if (!doc.exists || doc.data() == null) return null;
+      return DoctorVerification.fromMap(Map<String, dynamic>.from(doc.data()!));
+    } catch (e) {
+      debugPrint('[DOCTOR_PORTAL] Warning: error fetching getVerification for $uid: $e');
+      return null;
+    }
   }
 
   // -------------------------------------------------------------------------

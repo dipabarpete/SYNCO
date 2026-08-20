@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_colors.dart';
 
 class PeriodCycleOverviewCard extends StatelessWidget {
+  final bool hasHistory;
   final String currentPhase;
   final int currentDay;
   final int totalDays;
@@ -13,6 +14,7 @@ class PeriodCycleOverviewCard extends StatelessWidget {
 
   const PeriodCycleOverviewCard({
     super.key,
+    this.hasHistory = true,
     this.currentPhase = 'Follicular Phase',
     this.currentDay = 8,
     this.totalDays = 28,
@@ -147,7 +149,9 @@ class PeriodCycleOverviewCard extends StatelessWidget {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            'Day $currentDay of $totalDays • Cycle Overview',
+                            hasHistory
+                                ? 'Day $currentDay of $totalDays • Cycle Overview'
+                                : 'Start tracking to see your cycle overview.',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: GoogleFonts.inter(

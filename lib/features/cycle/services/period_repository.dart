@@ -66,6 +66,39 @@ class PeriodRepository {
     }
   }
 
+  Stream<List<PeriodRecord>> streamPeriods() {
+    final collection = _dailyLogsCollection;
+    if (collection == null) {
+      return Stream.value([]);
+    }
+
+    return collection
+        .orderBy('date', descending: true)
+        .snapshots()
+        .map((snapshot) {
+      final List<PeriodRecord> records = [];
+
+      for (final doc in snapshot.docs) {
+        final data = doc.data();
+        if (data.containsKey('period_logs')) {
+          final periodMap = data['period_logs'] as Map<String, dynamic>;
+          for (final entry in periodMap.entries) {
+            final id = entry.key;
+            final payload = entry.value as Map<String, dynamic>;
+            final compositeId = '${doc.id}|$id';
+            records.add(PeriodRecord.fromMap({
+              'id': compositeId,
+              ...payload,
+            }));
+          }
+        }
+      }
+
+      records.sort((a, b) => b.startDate.compareTo(a.startDate));
+      return records;
+    });
+  }
+
   static String _formatDate(DateTime date) {
     final y = date.year.toString().padLeft(4, '0');
     final m = date.month.toString().padLeft(2, '0');

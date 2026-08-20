@@ -164,8 +164,27 @@ final periodLogsProvider =
 
 class PeriodLogsNotifier extends StateNotifier<PeriodLogsState> {
   final Ref ref;
+  StreamSubscription<List<PeriodRecord>>? _subscription;
 
-  PeriodLogsNotifier(this.ref) : super(const PeriodLogsState());
+  PeriodLogsNotifier(this.ref) : super(const PeriodLogsState()) {
+    subscribe();
+  }
+
+  void subscribe() {
+    _subscription?.cancel();
+    _subscription = _repository.streamPeriods().listen((records) {
+      if (!mounted) return;
+      state = PeriodLogsState(records: records);
+    }, onError: (e) {
+      debugPrint('[period_logs] stream error: $e');
+    });
+  }
+
+  @override
+  void dispose() {
+    _subscription?.cancel();
+    super.dispose();
+  }
 
   PeriodRepository get _repository => ref.read(periodRepositoryProvider);
 

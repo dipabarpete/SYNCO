@@ -5,8 +5,8 @@ import '../../../core/theme/app_colors.dart';
 import '../../../models/user_profile.dart';
 import '../providers/onboarding_provider.dart';
 import '../widgets/role_selection_card.dart';
-import 'onboarding_name_screen.dart';
-import '../../doctor/screens/verification/doctor_verification_screen.dart';
+import '../../auth/screens/welcome_login_screen.dart';
+import '../../doctor/screens/doctor_auth_screen.dart';
 
 class RoleSelectionScreen extends ConsumerWidget {
   const RoleSelectionScreen({super.key});
@@ -38,7 +38,19 @@ class RoleSelectionScreen extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SizedBox(height: 12),
+                if (Navigator.canPop(context)) ...[
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(
+                      Icons.arrow_back_ios_new_rounded,
+                      color: AppColors.textDark,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                ] else ...[
+                  const SizedBox(height: 12),
+                ],
                 // Synco Logo Header
                 Center(
                   child: Container(
@@ -73,9 +85,9 @@ class RoleSelectionScreen extends ConsumerWidget {
 
                 // Title
                 Text(
-                  'Choose Your Role',
+                  'How would you like to continue?',
                   style: GoogleFonts.outfit(
-                    fontSize: 28,
+                    fontSize: 26,
                     fontWeight: FontWeight.bold,
                     color: AppColors.textDark,
                     letterSpacing: -0.5,
@@ -83,7 +95,7 @@ class RoleSelectionScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Select how you would like to experience Synco.',
+                  'Select your role to access your personalized SYNCO portal.',
                   style: GoogleFonts.inter(
                     fontSize: 14,
                     color: AppColors.textMedium,
@@ -93,29 +105,41 @@ class RoleSelectionScreen extends ConsumerWidget {
 
                 const SizedBox(height: 32),
 
-                // Option 1: Login as User
+                // Option 1: Continue as a User
                 RoleSelectionCard(
                   role: UserRole.user,
-                  title: 'Login as User',
+                  title: 'Continue as a User',
                   description:
-                      'Track cycle, symptoms, nutrition, AI companion Kyra, and health records.',
+                      'Track your health, learn, and connect with care.',
                   icon: Icons.person_outline_rounded,
                   isSelected: onboardingState.selectedRole == UserRole.user,
                   onTap: () {
                     onboardingNotifier.setRole(UserRole.user);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const WelcomeLoginScreen(),
+                      ),
+                    );
                   },
                 ),
 
-                // Option 2: Login as Consultant / Doctor
+                // Option 2: Continue as a Doctor / Consultant
                 RoleSelectionCard(
                   role: UserRole.doctor,
-                  title: 'Login as Consultant / Doctor',
+                  title: 'Continue as a Doctor / Consultant',
                   description:
-                      'Manage patient requests, review lab summaries, and conduct consultations.',
+                      'Manage patients, appointments, and consultations.',
                   icon: Icons.medical_services_outlined,
                   isSelected: onboardingState.selectedRole == UserRole.doctor,
                   onTap: () {
                     onboardingNotifier.setRole(UserRole.doctor);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const DoctorAuthScreen(),
+                      ),
+                    );
                   },
                 ),
 
@@ -140,22 +164,17 @@ class RoleSelectionScreen extends ConsumerWidget {
                     child: ElevatedButton(
                       onPressed: () {
                         if (onboardingState.selectedRole == UserRole.user) {
-                          // Route to User Onboarding Screen 1
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => const OnboardingNameScreen(),
+                              builder: (context) => const WelcomeLoginScreen(),
                             ),
                           );
                         } else {
-                          // Route to the one-time Doctor Verification &
-                          // Registration flow (account creation + login are
-                          // handled inside it).
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) =>
-                                  const DoctorVerificationScreen(),
+                              builder: (context) => const DoctorAuthScreen(),
                             ),
                           );
                         }

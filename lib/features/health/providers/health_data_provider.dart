@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -117,8 +119,108 @@ final aiMonthlyInsightsProvider = Provider<List<AiInsight>>((ref) {
 
 class HealthDataNotifier extends StateNotifier<HealthDataState> {
   final HealthDataRepository _repository;
+  final List<StreamSubscription> _subscriptions = [];
 
-  HealthDataNotifier(this._repository) : super(const HealthDataState());
+  HealthDataNotifier(this._repository) : super(const HealthDataState()) {
+    subscribeAll();
+  }
+
+  void subscribeAll() {
+    _cancelSubscriptions();
+
+    _subscriptions.add(
+      _repository.stream(HealthTrackerType.sleep).listen((rows) {
+        if (!mounted) return;
+        final sleep = rows.map((m) => SleepEntry.fromMap(m)).toList();
+        state = state.copyWith(sleep: sleep);
+      }, onError: (e) {
+        debugPrint('[health] sleep stream error: $e');
+      }),
+    );
+
+    _subscriptions.add(
+      _repository.stream(HealthTrackerType.water).listen((rows) {
+        if (!mounted) return;
+        final water = rows.map((m) => WaterEntry.fromMap(m)).toList();
+        state = state.copyWith(water: water);
+      }, onError: (e) {
+        debugPrint('[health] water stream error: $e');
+      }),
+    );
+
+    _subscriptions.add(
+      _repository.stream(HealthTrackerType.steps).listen((rows) {
+        if (!mounted) return;
+        final steps = rows.map((m) => StepEntry.fromMap(m)).toList();
+        state = state.copyWith(steps: steps);
+      }, onError: (e) {
+        debugPrint('[health] steps stream error: $e');
+      }),
+    );
+
+    _subscriptions.add(
+      _repository.stream(HealthTrackerType.sugarCravings).listen((rows) {
+        if (!mounted) return;
+        final sugarCravings = rows.map((m) => SugarCravingEntry.fromMap(m)).toList();
+        state = state.copyWith(sugarCravings: sugarCravings);
+      }, onError: (e) {
+        debugPrint('[health] sugarCravings stream error: $e');
+      }),
+    );
+
+    _subscriptions.add(
+      _repository.stream(HealthTrackerType.supplements).listen((rows) {
+        if (!mounted) return;
+        final supplements = rows.map((m) => SupplementEntry.fromMap(m)).toList();
+        state = state.copyWith(supplements: supplements);
+      }, onError: (e) {
+        debugPrint('[health] supplements stream error: $e');
+      }),
+    );
+
+    _subscriptions.add(
+      _repository.stream(HealthTrackerType.mentalWellness).listen((rows) {
+        if (!mounted) return;
+        final wellness = rows.map((m) => MentalWellnessEntry.fromMap(m)).toList();
+        state = state.copyWith(wellness: wellness);
+      }, onError: (e) {
+        debugPrint('[health] wellness stream error: $e');
+      }),
+    );
+
+    _subscriptions.add(
+      _repository.stream(HealthTrackerType.food).listen((rows) {
+        if (!mounted) return;
+        final food = rows.map((m) => FoodEntry.fromMap(m)).toList();
+        state = state.copyWith(food: food);
+      }, onError: (e) {
+        debugPrint('[health] food stream error: $e');
+      }),
+    );
+
+    _subscriptions.add(
+      _repository.stream(HealthTrackerType.weight).listen((rows) {
+        if (!mounted) return;
+        final weight = rows.map((m) => WeightEntry.fromMap(m)).toList();
+        state = state.copyWith(weight: weight);
+      }, onError: (e) {
+        debugPrint('[health] weight stream error: $e');
+      }),
+    );
+  }
+
+  void _cancelSubscriptions() {
+    for (final sub in _subscriptions) {
+      sub.cancel();
+    }
+    _subscriptions.clear();
+  }
+
+  @override
+  void dispose() {
+    _cancelSubscriptions();
+    super.dispose();
+  }
 
   /// Loads every tracker for the signed-in user, newest date first.
   Future<void> loadAll() async {

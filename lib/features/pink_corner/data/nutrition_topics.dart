@@ -27,8 +27,10 @@ class NutritionGroup {
 }
 
 /// Group ordering + icons for the Nutrition list screen.
+///
+/// The "Nutrition Basics" group is intentionally not listed here — the
+/// section was removed from the Nutrition list UI.
 const List<({String name, IconData icon, Color accent})> _groupMeta = [
-  (name: 'Nutrition Basics', icon: Icons.school_rounded, accent: Color(0xFFE8A33D)),
   (name: 'PCOS-Conscious Eating', icon: Icons.spa_rounded, accent: Color(0xFF2E8B76)),
   (name: 'Indian Everyday Guides', icon: Icons.temple_hindu_rounded, accent: Color(0xFFE07A5F)),
 ];

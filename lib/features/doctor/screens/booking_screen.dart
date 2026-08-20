@@ -6,7 +6,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../providers/app_providers.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../models/doctor.dart';
-import 'booking_confirmation_screen.dart';
+import 'request_sent_screen.dart';
 
 const _purpleGradient = LinearGradient(
   colors: [AppColors.softPurple, AppColors.softPurpleLight],
@@ -296,7 +296,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
       
       final patientName = user?.username ?? 'Unknown Patient';
 
-      await doctorService.bookAppointment(
+      final appointment = await doctorService.bookAppointment(
         userId: userId,
         doctorId: widget.doctor.id,
         doctorName: widget.doctor.name,
@@ -311,12 +311,8 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (_) => BookingConfirmationScreen(
-              doctor: widget.doctor,
-              mode: _selectedMode,
-              date: _selectedDate,
-              slot: _selectedSlot!,
-              fee: widget.doctor.consultationFee,
+            builder: (_) => RequestSentScreen(
+              appointment: appointment,
             ),
           ),
         );

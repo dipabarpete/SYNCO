@@ -398,6 +398,97 @@ class NotificationService {
       body: body,
       scheduledDate: tz.TZDateTime.now(tz.local).add(const Duration(seconds: 1)),
       matchDateTimeComponents: null,
+      payload: payload,
     );
+  }
+
+  /// Set of scheduled reminder keys to ensure idempotency.
+  final Set<String> _scheduledReminderKeys = {};
+
+  /// Schedules 30-minute pre-consultation reminders and at-time notifications
+  /// for an accepted appointment.
+  Future<void> scheduleAppointmentReminders(dynamic appointment) async {
+    final statusStr = appointment.status.toString();
+    if (!statusStr.contains('confirmed')) return;
+    final String appointmentId = appointment.id;
+    if (appointmentId.startsWith('demo_')) return;
+
+    final String key = 'reminder_$appointmentId';
+    if (_scheduledReminderKeys.contains(key)) return;
+    _scheduledReminderKeys.add(key);
+
+    final DateTime? start = appointment.startDateTime;
+    if (start == null) return;
+    final String doctorName = appointment.doctor.name;
+    final String patientName = appointment.patientName;
+    final String patientId = appointment.userId;
+    final String doctorId = appointment.doctor.id;
+
+    final now = DateTime.now();
+
+    // 1. 30 Minutes Before Start
+    final thirtyMinsBefore = start.subtract(const Duration(minutes: 30));
+    if (thirtyMinsBefore.isAfter(now)) {
+      final tz30 = tz.TZDateTime.from(thirtyMinsBefore, tz.local);
+      await schedule(
+        id: (appointmentId + '_30').hashCode,
+        title: 'Upcoming Appointment',
+        body: 'Your appointment with Dr. $doctorName is in 30 minutes.',
+        scheduledDate: tz30,
+        payload: 'appointment:$appointmentId',
+      );
+      if (patientId.isNotEmpty) {
+        await saveAppNotification(
+          userId: patientId,
+          title: 'Upcoming Appointment',
+          subtitle: 'Your appointment with Dr. $doctorName is in 30 minutes.',
+          iconCode: 0xe0b0,
+          iconColorHex: 'FF2196F3',
+          payload: 'appointment:$appointmentId',
+        );
+      }
+      if (doctorId.isNotEmpty) {
+        await saveAppNotification(
+          userId: doctorId,
+          title: 'Upcoming Consultation',
+          subtitle: 'You have an appointment with $patientName in 30 minutes.',
+          iconCode: 0xe0b0,
+          iconColorHex: 'FF2196F3',
+          payload: 'appointment:$appointmentId',
+        );
+      }
+    }
+
+    // 2. Appointment Start Time
+    if (start.isAfter(now)) {
+      final tzStart = tz.TZDateTime.from(start, tz.local);
+      await schedule(
+        id: (appointmentId + '_start').hashCode,
+        title: "It's Time for Your Appointment!",
+        body: "It's time for your appointment with Dr. $doctorName.",
+        scheduledDate: tzStart,
+        payload: 'appointment:$appointmentId',
+      );
+      if (patientId.isNotEmpty) {
+        await saveAppNotification(
+          userId: patientId,
+          title: "It's Time for Your Appointment!",
+          subtitle: "It's time for your appointment with Dr. $doctorName.",
+          iconCode: 0xe86c,
+          iconColorHex: 'FF45B69C',
+          payload: 'appointment:$appointmentId',
+        );
+      }
+      if (doctorId.isNotEmpty) {
+        await saveAppNotification(
+          userId: doctorId,
+          title: "It's Time for Your Consultation!",
+          subtitle: "It's time for your consultation with $patientName.",
+          iconCode: 0xe86c,
+          iconColorHex: 'FF45B69C',
+          payload: 'appointment:$appointmentId',
+        );
+      }
+    }
   }
 }

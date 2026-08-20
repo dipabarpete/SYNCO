@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_colors.dart';
 import '../services/stress_wellbeing_local_store.dart';
+import '../services/stress_wellbeing_repository.dart';
 
 /// Stress Check-in tool — a simple, private check-in that helps the user
 /// notice patterns. It is explicitly not a diagnosis or a clinical score.
@@ -34,17 +37,17 @@ class _Level {
 const _levels = [
   _Level(
     label: 'Low',
-    note: 'Feeling steady — that\u2019s okay to acknowledge too',
-    icon: Icons.wb_sunny_outlined,
+    note: 'Feeling calm, steady or manageable',
+    icon: Icons.wb_sunny_rounded,
     color: Color(0xFF2E8B76),
-    bg: Color(0xFFE9F7F1),
+    bg: Color(0xFFE3F6EE),
   ),
   _Level(
     label: 'Moderate',
-    note: 'Some pressure, but things are manageable',
-    icon: Icons.cloud_outlined,
+    note: 'Noticeable pressure, but handling it',
+    icon: Icons.filter_drama_rounded,
     color: Color(0xFFE8A33D),
-    bg: Color(0xFFFFF7E8),
+    bg: Color(0xFFFBF0DF),
   ),
   _Level(
     label: 'High',
@@ -71,6 +74,9 @@ const _factors = [
 ];
 
 class _StressCheckInToolScreenState extends State<StressCheckInToolScreen> {
+  final StressWellbeingRepository _repository = StressWellbeingRepository();
+  StreamSubscription? _subscription;
+
   int? _selectedLevel;
   final Set<String> _selectedFactors = {};
   List<StressCheckInRecord> _history = const [];
@@ -79,16 +85,21 @@ class _StressCheckInToolScreenState extends State<StressCheckInToolScreen> {
   @override
   void initState() {
     super.initState();
-    _load();
+    _subscription = _repository.streamCheckIns().listen((records) {
+      if (!mounted) return;
+      setState(() {
+        _history = records;
+        _loaded = true;
+      });
+    }, onError: (e) {
+      debugPrint('[stress_checkin] stream error: $e');
+    });
   }
 
-  Future<void> _load() async {
-    final records = await StressWellbeingLocalStore.loadCheckIns();
-    if (!mounted) return;
-    setState(() {
-      _history = records;
-      _loaded = true;
-    });
+  @override
+  void dispose() {
+    _subscription?.cancel();
+    super.dispose();
   }
 
   Future<void> _save() async {
@@ -102,21 +113,20 @@ class _StressCheckInToolScreenState extends State<StressCheckInToolScreen> {
       return;
     }
     final record = StressCheckInRecord(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      id: 'st_${DateTime.now().millisecondsSinceEpoch}',
       date: DateTime.now(),
       level: _levels[_selectedLevel!].label,
       factors: _selectedFactors.toList(),
     );
-    await StressWellbeingLocalStore.saveCheckIn(record);
+    await _repository.saveCheckIn(record);
     setState(() {
       _selectedLevel = null;
       _selectedFactors.clear();
     });
-    await _load();
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Thanks for checking in with yourself. Saved privately.'),
+        content: Text('Thanks for checking in with yourself. Saved to health log.'),
         behavior: SnackBarBehavior.floating,
         backgroundColor: _blue,
       ),

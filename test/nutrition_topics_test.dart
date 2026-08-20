@@ -55,7 +55,12 @@ void main() {
         .expand((group) => group.topics)
         .map((t) => t.id)
         .toList();
-    expect(flat, allNutritionTopics.map((t) => t.id).toList());
+    final groupNames = nutritionGroups.map((g) => g.name).toSet();
+    final visible = allNutritionTopics
+        .where((t) => groupNames.contains(t.category))
+        .map((t) => t.id)
+        .toList();
+    expect(flat, visible);
   });
 
   test('No topic claims a cure, a universal diet, or a guaranteed response',
@@ -181,12 +186,13 @@ void main() {
     }
   });
 
-  testWidgets('Nutrition list shows all 19 topic cards', (tester) async {
+  testWidgets('Nutrition list shows all visible topic cards', (tester) async {
     await tester.pumpWidget(const MaterialApp(home: NutritionScreen()));
 
-    for (final topic in allNutritionTopics) {
+    for (final topic in nutritionGroups.expand((g) => g.topics)) {
       expect(find.text(topic.title), findsWidgets);
     }
+    expect(find.text('Nutrition Basics'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 

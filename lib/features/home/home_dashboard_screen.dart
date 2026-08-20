@@ -92,9 +92,17 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
 
           // DASHBOARD CONTENT
           SafeArea(
-            child: SingleChildScrollView(
-              controller: _scrollController,
-              physics: const BouncingScrollPhysics(),
+            child: RefreshIndicator(
+              color: AppColors.softPurple,
+              onRefresh: () async {
+                ref.read(cycleProvider.notifier).init();
+                ref.read(healthScoreProvider.notifier).init();
+              },
+              child: SingleChildScrollView(
+                controller: _scrollController,
+                physics: const AlwaysScrollableScrollPhysics(
+                  parent: BouncingScrollPhysics(),
+                ),
               padding: const EdgeInsets.symmetric(horizontal: 18.0, vertical: 14.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -136,12 +144,13 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
                 const Center(child: CircularProgressIndicator(color: AppColors.softPurple))
               else
                 PeriodCycleOverviewCard(
+                  hasHistory: cycleState.hasHistory,
                   currentPhase: cycleState.currentPhase,
                   currentDay: cycleState.currentDay,
-                  totalDays: cycleState.activeCycle?.cycleLength ?? 28,
+                  totalDays: cycleState.totalDays,
                   daysUntilNextPeriod: cycleState.daysUntilNextPeriod,
-                  fertilityWindow: 'Days 11–16', // Keeping mock string for now
-                  daysUntilOvulation: 14 - cycleState.currentDay > 0 ? 14 - cycleState.currentDay : 0,
+                  fertilityWindow: cycleState.fertilityWindow,
+                  daysUntilOvulation: cycleState.daysUntilOvulation,
                   onTap: () {
                     Navigator.push(
                       context,
@@ -185,8 +194,9 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
           ),
         ),
       ),
-    ],
-  ),
+    ),
+  ],
+),
 );
   }
 
